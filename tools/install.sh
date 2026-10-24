@@ -20,6 +20,10 @@ if ! command -v nix >/dev/null && [ ! -x /nix/var/nix/profiles/default/bin/nix ]
   # The installer wants sudo to create /nix; do it ourselves (root in a container).
   [ -d /nix ] || $SUDO sh -c 'mkdir -m 0755 /nix && chown "$(id -un)" /nix' 2>/dev/null || \
     { [ -z "$SUDO" ] && mkdir -m 0755 /nix; }
+  # Single-user install as root (CI container): no build users, no sandbox.
+  if [ "$(id -u)" -eq 0 ]; then
+    mkdir -p /etc/nix && printf 'build-users-group =\nsandbox = false\n' > /etc/nix/nix.conf
+  fi
   sh /tmp/nix-install.sh --no-daemon --yes 2>&1 | grep -v "^ *[0-9]*  *[0-9.]*[kMG]* *[0-9]* " || true
   [ -x "$HOME/.nix-profile/bin/nix" ] || [ -x /nix/var/nix/profiles/default/bin/nix ] || { echo "nix install failed"; exit 1; }
 fi
