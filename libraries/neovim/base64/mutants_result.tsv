@@ -1,0 +1,36 @@
+id	status	detail
+enc64-overread	caught	WP 254/259 (post-annotate), newly failing: typed_cast_base64_encode_loop_invariant_3_preserved, typed_cast_base64_encode_assert_rte_mem_access_8, typed_cast_base64_encode_assert, typed_cast_base64_encode_assert_12
+enc64-shift-c3	caught	WP 256/259 (post-annotate), newly failing: typed_cast_base64_encode_loop_invariant_3_preserved
+enc64-mask-c7	caught	WP 256/259 (post-annotate), newly failing: typed_cast_base64_encode_loop_invariant_3_preserved
+enc64-step	caught	WP 257/259 (post-annotate), newly failing: typed_cast_base64_encode_loop_invariant_2_preserved
+enc32-overread	caught	WP 253/259 (post-annotate), newly failing: typed_cast_base64_encode_assert_rte_mem_access_20, typed_cast_base64_encode_assert_37, typed_cast_base64_encode_loop_invariant_8_established, typed_cast_base64_encode_assert_112
+enc32-shift-c2	caught	WP 257/259 (post-annotate), newly failing: typed_cast_base64_encode_loop_invariant_6_preserved
+enc-tail3-c3	caught	WP 255/259 (post-annotate), newly failing: typed_cast_base64_encode_assert_76, typed_cast_base64_encode_loop_invariant_8_established, typed_cast_base64_encode_assert_112
+enc-tail2-c2	caught	WP 255/259 (post-annotate), newly failing: typed_cast_base64_encode_ensures_encodes, typed_cast_base64_encode_assert_96, typed_cast_base64_encode_assert_112
+enc-tail1-c1	caught	WP 254/259 (post-annotate), newly failing: typed_cast_base64_encode_assert_rte_index_bound_29, typed_cast_base64_encode_assert_rte_index_bound_30, typed_cast_base64_encode_assert_rte_signed_overflow_5, typed_cast_base64_encode_assert_108
+enc-tail3-c2	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_encode_assert_rte_index_bound_18
+enc-pad-char	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_encode_loop_invariant_9_preserved
+enc-outlen	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_encode_ensures_encodes
+enc-alloc-size	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_encode_loop_invariant_2_preserved
+enc-nul	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_encode_ensures_encodes
+dec-len-mod	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_2
+dec-outlen	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_2
+dec-acc-len-sub	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_loop_invariant_2_preserved
+dec-emit-threshold	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_loop_invariant_3_preserved
+dec-emit-shift	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_loop_invariant_9_preserved
+dec-leftover-bits-len	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_36
+dec-canonical-mask	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_36
+dec-padding-len	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_35
+dec-padding-count	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_36
+dec-padding-char	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_loop_invariant_16_preserved
+dec-leftover-index	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_29
+dec-pad2-index	caught	annotate.py refused (tool-patch text changed): tool_patches.py: patch pad_second: original text found 0 times (want 1)
+dec-fixed-sentinel	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_loop_invariant_14_established
+dec-fixed-padding-len	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_35
+htobe64-shift	caught	equiv: FAILED  equiv_load64.c [vim_htobe]
+htobe32-drop-byte	caught	equiv: FAILED  equiv_load32.c [vim_htobe]
+enc-load64-offset	caught	annotate.py refused (tool-patch text changed): tool_patches.py: patch load64: original text found 0 times (want 1)
+G-alphabet-urlsafe	caught	annotate.py refused (tool-patch text changed): tool_patches.py: patch alphabet: original text found 0 times (want 1)
+G-index-urlsafe	caught	WP dec 0/1 (post-annotate), newly failing: typed_cast_base64_decode_assert_5
+G-leak-on-invalid	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_ensures_no_leak
+G-use-after-free	caught	WP 0/1 (post-annotate), newly failing: typed_cast_base64_decode_ensures_allocation

@@ -35,9 +35,23 @@ def run(cmd, cwd=None):
     return r.returncode, r.stdout + r.stderr
 
 
-def wp_failures(path, part, cwd):
+def wp_failures(path, part, cwd, stop_unless=None):
+    """Run WP. With stop_unless (a set of goal names), stop at the first failing
+    goal not in that set: one such goal already decides the verdict."""
     fn = "base64_decode" if part == "dec" else "base64_encode"
-    rc, out = run(FRAMA + [os.path.basename(path)] + WP + ["-wp-fct", fn], cwd=cwd)
+    p = subprocess.Popen(FRAMA + [os.path.basename(path)] + WP + ["-wp-fct", fn], cwd=cwd,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                         start_new_session=True)
+    lines = []
+    for l in p.stdout:
+        lines.append(l)
+        m = re.search(r"\[(Timeout|Unknown|Failed)\] (\S+)", l)
+        if stop_unless is not None and m and m.group(2) not in stop_unless:
+            os.killpg(p.pid, 9)
+            lines.append(f"[wp] Proved goals: 0 / 1 (stopped at first new failure)\n")
+            break
+    p.wait()
+    out = "".join(lines)
     g = re.search(r"Proved goals: +(\d+) / (\d+)", out)
     bad = [l.split("] ", 2)[-1].split(" (")[0] for l in out.splitlines()
            if re.search(r"\[(Timeout|Unknown|Failed)\]", l)]
@@ -82,32 +96,40 @@ def check(m):
     rc, out = run(["bash", os.path.join(HERE, "bridge/run_bridge.sh"), nv])
     if rc:
         return "caught", "bridge: CBMC " + ("failed" if "VERIFICATION FAILED" in out else "error")
-    # 3. WP on the function containing the mutation
-    part = "dec" if src.index(m["original"]) > src.index("char *base64_decode(") else "enc"
-    if src.index(m["original"]) < src.index("char *base64_encode("):
-        part = "enc"   # tables and htobe helpers sit above the encoder
+    # 3. WP on the function containing the mutation (both, for the shared
+    #    tables and helpers that sit above the encoder)
+    pos = src.index(m["original"])
+    if pos < src.index("char *base64_encode("):
+        parts = ["enc", "dec"]
+    elif pos > src.index("char *base64_decode("):
+        parts = ["dec"]
+    else:
+        parts = ["enc"]
     shutil.copytree(os.path.join(HERE, "wp/stubs"), os.path.join(w, "stubs"))
-    out_c = os.path.join(w, f"b64_{part}.c")
-    rc, out = run([sys.executable, "-I", os.path.join(HERE, "wp/annotate.py"),
-                   os.path.join(tree, "src/nvim/base64.c"), out_c, part])
-    ann = open(out_c).read()
-    if ann.count(m["original"]) == 1:
-        open(out_c, "w").write(ann.replace(m["original"], m["mutated"]))
-        how = "post-annotate"
-    else:   # the text was rewritten by a tool patch: mutate the source instead
+    results = []
+    for part in parts:
+        out_c = os.path.join(w, f"b64_{part}.c")
         rc, out = run([sys.executable, "-I", os.path.join(HERE, "wp/annotate.py"),
-                       os.path.join(nv, "src/nvim/base64.c"), out_c, part])
-        if rc:
-            return "caught", "annotate.py refused (tool-patch text changed): " + out.strip().splitlines()[-1][:150]
-        how = "pre-annotate"
-    base = baseline(m.get("tree", "upstream"), tree, part)
-    g, bad, out = wp_failures(out_c, part, w)
-    if not g:
-        return "caught", f"WP error ({how}): " + out.strip().splitlines()[-1][:150]
-    new = [b for b in bad if b not in base]
-    if new:
-        return "caught", f"WP {g.group(1)}/{g.group(2)} ({how}), newly failing: " + ", ".join(new[:4])
-    return "SURVIVED", f"WP {g.group(1)}/{g.group(2)} ({how}); only baseline-slow goals failed" if bad else f"WP {g.group(1)}/{g.group(2)} ({how})"
+                       os.path.join(tree, "src/nvim/base64.c"), out_c, part])
+        ann = open(out_c).read()
+        if ann.count(m["original"]) == 1:
+            open(out_c, "w").write(ann.replace(m["original"], m["mutated"]))
+            how = "post-annotate"
+        else:   # the text was rewritten by a tool patch: mutate the source instead
+            rc, out = run([sys.executable, "-I", os.path.join(HERE, "wp/annotate.py"),
+                           os.path.join(nv, "src/nvim/base64.c"), out_c, part])
+            if rc:
+                return "caught", "annotate.py refused (tool-patch text changed): " + out.strip().splitlines()[-1][:150]
+            how = "pre-annotate"
+        base = baseline(m.get("tree", "upstream"), tree, part)
+        g, bad, out = wp_failures(out_c, part, w, stop_unless=base)
+        if not g:
+            return "caught", f"WP {part} error ({how}): " + out.strip().splitlines()[-1][:150]
+        new = [b for b in bad if b not in base]
+        if new:
+            return "caught", f"WP {part} {g.group(1)}/{g.group(2)} ({how}), newly failing: " + ", ".join(new[:4])
+        results.append(f"WP {part} {g.group(1)}/{g.group(2)} ({how})")
+    return "SURVIVED", "; ".join(results) + " (only baseline-slow goals failed, if any)"
 
 
 ms = tomllib.load(open(os.path.join(HERE, "mutants.toml"), "rb"))["mutant"]

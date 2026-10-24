@@ -66,11 +66,11 @@ as "none") is proved with no size limit.
 |---|---|---|
 | Bit lemmas | `python3 -I wp/lemmas.py` | 44 / 44 proved |
 | Tool patch equivalence | `bash equiv/run_equiv.sh <nvim>` | 10 / 10 proved (5 patches x 2 builds) |
-| WP encoder | `bash wp/run_wp.sh <nvim>` | PENDING final run |
-| WP decoder (upstream) | `bash wp/run_wp.sh <nvim>` | PENDING final run |
-| WP decoder (fixed) | `bash wp/run_wp.sh <verified_neovim>` | PENDING final run |
+| WP encoder | `bash wp/run_wp.sh <nvim>` | 259 / 259 goals, from clean |
+| WP decoder (upstream) | `bash wp/run_wp.sh <nvim>` | 118 / 118 goals, from clean |
+| WP decoder (fixed) | `bash wp/run_wp.sh <verified_neovim>` | 116 / 116 goals, from clean |
 | htobe bridge | `bash bridge/run_bridge.sh <nvim>` | proved |
 | Differential test | `python3 -I difftest/difftest.py <nvim>` | 79,534 cases x 3 builds, 0 mismatches (fixed fork: 19,908, 0) |
-| Planted bugs | `python3 -I run_mutants.py <nvim> <fixed>` | PENDING (35 chosen by the reviewer) |
-| Independent review | `REVIEW.md` | 2 blocking spec gaps found and fixed; re-review pending |
+| Planted bugs | `python3 -I run_mutants.py <nvim> <fixed> --timeout 120` | 35 / 35 caught (`mutants_result.tsv`): 30 by WP goals that pass on the real code, 2 by the tool-patch equivalence harnesses, 3 because they change text a tool patch pins (annotate.py refuses) |
+| Independent review | `REVIEW.md` | 2 blocking spec gaps found and fixed (all 4 gap probes now caught); re-review pending |
 | Owner review | Yerin | pending |
