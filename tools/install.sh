@@ -11,7 +11,9 @@ if ! command -v cbmc >/dev/null || ! cbmc --version | grep -q "$CBMC_VER"; then
   tmp=$(mktemp -d)
   curl -fsSL -o "$tmp/cbmc.deb" \
     "https://github.com/diffblue/cbmc/releases/download/cbmc-$CBMC_VER/ubuntu-24.04-cbmc-$CBMC_VER-Linux.deb"
-  $SUDO dpkg -i "$tmp/cbmc.deb" || ($SUDO apt-get update -qq && $SUDO apt-get -f install -y -qq)
+  # apt resolves the .deb's dependencies itself (dpkg -i alone fails in a bare container).
+  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get update -qq
+  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$tmp/cbmc.deb"
 fi
 if ! command -v nix >/dev/null && [ ! -x /nix/var/nix/profiles/default/bin/nix ]; then
   curl -fsSL https://nixos.org/nix/install | sh -s -- --no-daemon --yes
