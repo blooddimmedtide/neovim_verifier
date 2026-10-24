@@ -41,7 +41,7 @@ jobs:
           git checkout -q FETCH_HEAD
       - name: Install provers
         run: |
-          bash tools/install.sh > install.log 2>&1 || { echo "::error title=install failed::$(grep -v '^Selecting\|^Preparing\|^Unpacking\|^Setting up\|^(Reading' install.log | tail -25 | tr '\n' '|' | cut -c1-1500)"; exit 1; }
+          bash tools/install.sh > install.log 2>&1 || { echo "::error title=install failed::$(grep -v '^Selecting\|^Preparing\|^Unpacking\|^Setting up\|^(Reading' install.log | tail -10 | tr '\n' '|' | cut -c1-1500)"; exit 1; }
           tail -3 install.log
           echo "$HOME/.nix-profile/bin" >> "$GITHUB_PATH"
           echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"

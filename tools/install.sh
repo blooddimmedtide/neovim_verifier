@@ -16,7 +16,9 @@ if ! command -v cbmc >/dev/null || ! cbmc --version | grep -q "$CBMC_VER"; then
   $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "$tmp/cbmc.deb"
 fi
 if ! command -v nix >/dev/null && [ ! -x /nix/var/nix/profiles/default/bin/nix ]; then
-  curl -fsSL https://nixos.org/nix/install | sh -s -- --no-daemon --yes
+  curl -fsSL -o /tmp/nix-install.sh https://nixos.org/nix/install
+  sh /tmp/nix-install.sh --no-daemon --yes 2>&1 | grep -v "^ *[0-9]*  *[0-9.]*[kMG]* *[0-9]* " || true
+  [ -x "$HOME/.nix-profile/bin/nix" ] || [ -x /nix/var/nix/profiles/default/bin/nix ] || { echo "nix install failed"; exit 1; }
 fi
 export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$PATH"
 # Pinned nixpkgs snapshot (the one the published proofs were run with).
