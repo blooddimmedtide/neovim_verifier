@@ -1,0 +1,76 @@
+# Neovim, verified file by file. Layout follows the shared vpipe library format.
+name = "neovim"
+lang = "c"
+tool = "framac+cbmc"
+upstream = "https://github.com/neovim/neovim"
+commit = "7b87ce822e6fd45a4d9993599c2854afdb0dc4dd"   # master, 2026-10-23
+version = "master-2026-10-23"
+thread = "Start verifying Neovim"
+
+[targets.base64]
+file = "src/nvim/base64.c"
+functions = ["base64_encode", "base64_decode", "vim_htobe64", "vim_htobe32"]
+annotate = "base64/wp/annotate.py"          # applies tool patches, then inserts ACSL into a pristine copy
+prove = ["bash base64/wp/run_wp.sh {src}", "bash base64/bridge/run_bridge.sh {src}"]   # run_wp.sh also runs lemmas.py and equiv/
+check = ["python3 -I base64/difftest/difftest.py {src}", "bash base64/cbmc/run_all.sh {src} 32 24 16"]
+mutants = "python3 -I base64/run_mutants.py {src} {fixed}"   # reviewer-chosen planted bugs, base64/mutants.toml
+
+[framac]
+per_function = true
+
+[[framac.tool_patch]]
+id = "load64"
+file = "src/nvim/base64.c"
+original = "    uint64_t bits_h;\n    memcpy(&bits_h, &s[src_i], sizeof(uint64_t));\n    const uint64_t bits_be = htobe64(bits_h);"
+rewritten = "    const uint64_t bits_be = ((uint64_t)s[src_i] << 56) | ((uint64_t)s[src_i + 1] << 48)\n      | ((uint64_t)s[src_i + 2] << 40) | ((uint64_t)s[src_i + 3] << 32)\n      | ((uint64_t)s[src_i + 4] << 24) | ((uint64_t)s[src_i + 5] << 16)\n      | ((uint64_t)s[src_i + 6] << 8) | (uint64_t)s[src_i + 7];"
+harness = "cbmc base64/equiv/equiv_load64.c --function harness -I base64/cbmc/stubs -I {tree}/src -DNVIM_BASE64_C='\"{tree}/src/nvim/base64.c\"' --unwinding-assertions --bounds-check --pointer-check --conversion-check"
+harness_files = ["base64/equiv/equiv_load64.c"]
+
+[[framac.tool_patch]]
+id = "load32"
+file = "src/nvim/base64.c"
+original = "    uint32_t bits_h;\n    memcpy(&bits_h, &s[src_i], sizeof(uint32_t));\n    const uint32_t bits_be = htobe32(bits_h);"
+rewritten = "    const uint32_t bits_be = ((uint32_t)s[src_i] << 24) | ((uint32_t)s[src_i + 1] << 16)\n      | ((uint32_t)s[src_i + 2] << 8) | (uint32_t)s[src_i + 3];"
+harness = "cbmc base64/equiv/equiv_load32.c --function harness -I base64/cbmc/stubs -I {tree}/src -DNVIM_BASE64_C='\"{tree}/src/nvim/base64.c\"' --unwinding-assertions --bounds-check --pointer-check --conversion-check"
+harness_files = ["base64/equiv/equiv_load32.c"]
+
+[[framac.tool_patch]]
+id = "alphabet"
+file = "src/nvim/base64.c"
+original = "static const char alphabet[] = \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\";"
+rewritten = "static const char alphabet[] = {\n  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',\n  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd',\n  'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',\n  't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7',\n  '8', '9', '+', '/', 0\n};"
+harness = "cbmc base64/equiv/equiv_alphabet.c --function harness -I base64/cbmc/stubs -I {tree}/src -DNVIM_BASE64_C='\"{tree}/src/nvim/base64.c\"' --unwinding-assertions --bounds-check --pointer-check --conversion-check"
+harness_files = ["base64/equiv/equiv_alphabet.c"]
+
+[[framac.tool_patch]]
+id = "pad_last"
+file = "src/nvim/base64.c"
+original = "  if (src_len >= 1 && src[src_len - 1] == '=') {"
+rewritten = "  if (src_len >= 1 && ((const uint8_t *)src)[src_len - 1] == '=') {"
+harness = "cbmc base64/equiv/equiv_pad_last.c --function harness -I base64/cbmc/stubs -I {tree}/src -DNVIM_BASE64_C='\"{tree}/src/nvim/base64.c\"' --unwinding-assertions --bounds-check --pointer-check --conversion-check"
+harness_files = ["base64/equiv/equiv_pad_last.c"]
+
+[[framac.tool_patch]]
+id = "pad_second"
+file = "src/nvim/base64.c"
+original = "  if (src_len >= 2 && src[src_len - 2] == '=') {"
+rewritten = "  if (src_len >= 2 && ((const uint8_t *)src)[src_len - 2] == '=') {"
+harness = "cbmc base64/equiv/equiv_pad_second.c --function harness -I base64/cbmc/stubs -I {tree}/src -DNVIM_BASE64_C='\"{tree}/src/nvim/base64.c\"' --unwinding-assertions --bounds-check --pointer-check --conversion-check"
+harness_files = ["base64/equiv/equiv_pad_second.c"]
+[scope]
+properties = [
+  "base64_encode: output equals RFC 4648 Base64 of the input, NUL-terminated, for every input up to 4 EiB",
+  "base64_decode: returns non-NULL exactly when the input is canonical padded Base64",
+  "base64_decode: on success, the output length and every output byte match RFC 4648 decoding",
+  "vim_htobe64/vim_htobe32: result equals the big-endian reading of the input, for every input (CBMC, no loops)",
+  "all: no out-of-bounds access, signed overflow, invalid shift or other runtime error (-wp-rte)",
+]
+assumptions = [
+  "xmalloc never returns NULL and returns memory separate from the input and from the static tables (true: it allocates max(n,1) bytes and exits on out-of-memory)",
+  "C implementation as gcc/clang on x86_64: char is signed 8-bit, (char) of an int keeps the low 8 bits",
+  "Frama-C WP 33 (Typed+Cast model), Z3 and CVC5 are sound apart from the known string-literal bug, which no proved file triggers; CBMC 6.4.1 is sound",
+  "bit lemmas in base64/wp/lemmas.py hold: each is proved there with Z3 bit-vectors, not by WP",
+  "the 5 tool patches are proved equal to the original code by base64/equiv (CBMC, every input, both htobe64 builds); one of them works around a Frama-C 33 soundness bug (verification-notes/toolchain-bugs/framac33-wp-string-init.md)",
+  "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
+  "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
+]

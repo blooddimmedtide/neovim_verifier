@@ -1,0 +1,38 @@
+name: verify
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Space-separated target names (empty = all)"
+        required: false
+        default: ""
+permissions:
+  contents: read
+jobs:
+  neovim:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read pinned Neovim commit
+        id: pin
+        run: echo "commit=$(python3 -c 'import tomllib;print(tomllib.load(open("libraries/neovim/vpipe.toml","rb"))["commit"])')" >> "$GITHUB_OUTPUT"
+      - name: Fetch Neovim at the pinned commit
+        run: |
+          git init -q nvim-src && cd nvim-src
+          git fetch -q --depth 1 https://github.com/neovim/neovim ${{ steps.pin.outputs.commit }}
+          git checkout -q FETCH_HEAD
+      - name: Install provers
+        run: |
+          bash tools/install.sh
+          echo "$HOME/.nix-profile/bin" >> "$GITHUB_PATH"
+          echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
+      - name: Prove and check
+        run: python3 -I tools/run_target.py libraries/neovim nvim-src ${{ github.event.inputs.targets }}
+      - name: Status must be up to date
+        run: |
+          python3 -I tools/status.py libraries/neovim > /tmp/STATUS.md
+          diff -u STATUS.md /tmp/STATUS.md

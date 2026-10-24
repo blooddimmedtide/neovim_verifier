@@ -1,0 +1,5 @@
+file	function	status	evidence	notes
+src/nvim/base64.c	base64_encode	candidate	base64/wp (Frama-C WP), base64/equiv (CBMC)	RFC 4648 output for every input, one allocation returned; see base64/CLAIM.md. Needs reviews + mutants before full-correctness
+src/nvim/base64.c	base64_decode	fixed-candidate	base64/wp (Frama-C WP, upstream 118/118 under 2 GiB, fixed 116/116 no limit)	upstream wrong at >= 2 GiB (findings/base64-decode-over-2gib.md); fix in verified_neovim proved for all inputs. Needs reviews + mutants
+src/nvim/base64.c	vim_htobe64	candidate	base64/bridge (CBMC, no loops, all inputs)	equals big-endian reading of the bytes
+src/nvim/base64.c	vim_htobe32	candidate	base64/bridge (CBMC, no loops, all inputs)	equals big-endian reading of the bytes

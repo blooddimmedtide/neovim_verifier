@@ -1,0 +1,351 @@
+# Planted bugs for the base64.c proof, chosen by the independent adversarial reviewer
+# (see REVIEW.md). Each `original` is an exact substring occurring exactly once in the
+# pristine upstream file (commit 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd), or, where
+# tree = "fixed", in the fixed fork /home/claude/verified_neovim/src/nvim/base64.c.
+#
+# Extra keys (beyond id/file/original/mutated/expect/why):
+#   tree      = "upstream" (default) | "fixed"
+#   caught_by = which part of `prove` is expected to reject it
+#   predicted = only on the gap probes (G-*): the reviewer's prediction that the
+#               current proof does NOT fail, i.e. a gap that blocks gate 6.
+#
+# Expected outcome for every mutant: at least one command in vpipe.toml `prove` exits
+# non-zero. "annotate abort" (a tool-patch or anchor text no longer matches) counts as
+# caught only because it is documented here and in REVIEW.md.
+
+# ---------------- encoder: 64-bit fast path ----------------
+
+[[mutant]]
+id = "enc64-overread"
+file = "src/nvim/base64.c"
+original = "  for (; src_i + 7 < src_len; src_i += 6) {"
+mutated = "  for (; src_i + 6 < src_len; src_i += 6) {"
+expect = "proof fails"
+caught_by = "naive runner (mutate pristine, then annotate.py): annotate abort, the line is an annotation anchor; post-annotate runner (REVIEW.md R4): WP -wp-rte (rte_mem_access on s[src_i + 7] in the patched load)"
+anchor_line = true
+why = "src_len = 7: the 8-byte load reads s[7], one byte past the input"
+
+[[mutant]]
+id = "enc64-shift-c3"
+file = "src/nvim/base64.c"
+original = "    dest[out_i + 3] = alphabet[(bits_be >> 40) & 0x3F];"
+mutated = "    dest[out_i + 3] = alphabet[(bits_be >> 41) & 0x3F];"
+expect = "proof fails"
+caught_by = "WP assert sextet m=3 / loop invariant on dest"
+why = "any input of >= 8 bytes whose 4th output char differs, e.g. \"\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\""
+
+[[mutant]]
+id = "enc64-mask-c7"
+file = "src/nvim/base64.c"
+original = "    dest[out_i + 7] = alphabet[(bits_be >> 16) & 0x3F];"
+mutated = "    dest[out_i + 7] = alphabet[(bits_be >> 16) & 0x1F];"
+expect = "proof fails"
+caught_by = "WP assert sextet m=7"
+why = "8 bytes with byte 5 having bit 5 set, e.g. byte5 = 0x20: char 7 becomes 'A' instead of 'g'"
+
+[[mutant]]
+id = "enc64-step"
+file = "src/nvim/base64.c"
+original = "    out_i += sizeof(uint64_t);"
+mutated = "    out_i += sizeof(uint64_t) - 1;"
+expect = "proof fails"
+caught_by = "WP loop invariant out_i == src_i / 3 * 4"
+why = "any input >= 8 bytes: the 8th output char of each block is overwritten by the next block"
+
+# ---------------- encoder: 32-bit path ----------------
+
+[[mutant]]
+id = "enc32-overread"
+file = "src/nvim/base64.c"
+original = "  for (; src_i + 3 < src_len; src_i += 3) {"
+mutated = "  for (; src_i + 2 < src_len; src_i += 3) {"
+expect = "proof fails"
+caught_by = "naive runner (mutate pristine, then annotate.py): annotate abort, the line is an annotation anchor; post-annotate runner (REVIEW.md R4): WP -wp-rte (s[src_i + 3] out of bounds)"
+anchor_line = true
+why = "src_len = 3: the 4-byte load reads s[3], past the input"
+
+[[mutant]]
+id = "enc32-shift-c2"
+file = "src/nvim/base64.c"
+original = "    dest[out_i + 2] = alphabet[(bits_be >> 14) & 0x3F];"
+mutated = "    dest[out_i + 2] = alphabet[(bits_be >> 15) & 0x3F];"
+expect = "proof fails"
+caught_by = "WP assert sextet (32-bit m=2)"
+why = "src = \"\\x00\\x00\\x40\\x00\" (4 bytes, takes the 32-bit loop): 3rd char changes"
+
+# ---------------- encoder: tail and padding ----------------
+
+[[mutant]]
+id = "enc-tail3-c3"
+file = "src/nvim/base64.c"
+original = "    dest[out_i + 3] = alphabet[(s[src_i + 2] & 0x3F)];"
+mutated = "    dest[out_i + 3] = alphabet[(s[src_i + 2] & 0x1F)];"
+expect = "proof fails"
+caught_by = "WP tail asserts / encodes postcondition"
+why = "src = \"\\x00\\x00\\x20\": last char 'A' instead of 'g'"
+
+[[mutant]]
+id = "enc-tail2-c2"
+file = "src/nvim/base64.c"
+original = "    dest[out_i + 2] = alphabet[(s[src_i + 1] & 0xF) << 2];"
+mutated = "    dest[out_i + 2] = alphabet[(s[src_i + 1] & 0x7) << 2];"
+expect = "proof fails"
+caught_by = "WP tail2 asserts / encodes postcondition"
+why = "src = \"\\x00\\x08\": third char 'A' instead of 'g' (\"AAg=\" expected)"
+
+[[mutant]]
+id = "enc-tail1-c1"
+file = "src/nvim/base64.c"
+original = "    dest[out_i + 1] = alphabet[(s[src_i] & 0x3) << 4];"
+mutated = "    dest[out_i + 1] = alphabet[(s[src_i] & 0x3) << 3];"
+expect = "proof fails"
+caught_by = "WP tail1 asserts / encodes postcondition"
+why = "src = \"\\x01\": \"AQ==\" expected, mutant gives \"AI==\""
+
+[[mutant]]
+id = "enc-tail3-c2"
+file = "src/nvim/base64.c"
+original = "    dest[out_i + 2] = alphabet[(s[src_i + 1] & 0xF) << 2 | (s[src_i + 2] >> 6)];"
+mutated = "    dest[out_i + 2] = alphabet[(s[src_i + 1] & 0xF) << 2 | (s[src_i + 2] >> 5)];"
+expect = "proof fails"
+caught_by = "WP tail3 asserts / encodes postcondition"
+why = "src = \"\\x00\\x00\\x20\": third char 'B' instead of 'A' (\"AAAg\" expected)"
+
+[[mutant]]
+id = "enc-pad-char"
+file = "src/nvim/base64.c"
+original = "    dest[out_i] = '=';"
+mutated = "    dest[out_i] = '.';"
+expect = "proof fails"
+caught_by = "WP padding loop invariant / encodes postcondition"
+why = "any src_len not a multiple of 3, e.g. \"a\" -> \"YQ..\""
+
+[[mutant]]
+id = "enc-outlen"
+file = "src/nvim/base64.c"
+original = "  const size_t out_len = ((src_len + 2) / 3) * 4;"
+mutated = "  const size_t out_len = ((src_len + 3) / 3) * 4;"
+expect = "proof fails"
+caught_by = "WP terminated postcondition (result[enc_len] must be 0)"
+why = "src_len % 3 == 0, e.g. \"abc\": output gets an extra \"====\" group"
+
+[[mutant]]
+id = "enc-alloc-size"
+file = "src/nvim/base64.c"
+original = "  char *dest = xmalloc(out_len + 1);"
+mutated = "  char *dest = xmalloc(out_len);"
+expect = "proof fails"
+caught_by = "WP -wp-rte (dest[out_len] write out of bounds)"
+why = "every input: the NUL terminator is written one byte past the allocation"
+
+[[mutant]]
+id = "enc-nul"
+file = "src/nvim/base64.c"
+original = "  dest[out_len] = NUL;"
+mutated = "  dest[out_len] = '\\n';"
+expect = "proof fails"
+caught_by = "naive runner (mutate pristine, then annotate.py): annotate abort, the line is an annotation anchor; post-annotate runner (REVIEW.md R4): WP terminated postcondition"
+anchor_line = true
+why = "every input: result is not NUL-terminated"
+
+# ---------------- decoder: length, accumulator ----------------
+
+[[mutant]]
+id = "dec-len-mod"
+file = "src/nvim/base64.c"
+original = "  if (src_len % 4 != 0) {"
+mutated = "  if (src_len % 2 != 0) {"
+expect = "proof fails"
+caught_by = "WP accepts_only_valid and -wp-rte (dest overflow)"
+why = "\"QUFBQQ\" (len 6) accepted; out_len 3 but 4 bytes are written"
+
+[[mutant]]
+id = "dec-outlen"
+file = "src/nvim/base64.c"
+original = "  size_t out_len = (src_len / 4) * 3;"
+mutated = "  size_t out_len = (src_len / 4) * 3 + (src_len > 4);"
+expect = "proof fails"
+caught_by = "WP length postcondition / loop invariant on out_len"
+why = "any valid input longer than 4 chars, e.g. \"QUFBQUFB\": out_len 7 instead of 6"
+
+[[mutant]]
+id = "dec-acc-len-sub"
+file = "src/nvim/base64.c"
+original = "      acc_len -= 8;"
+mutated = "      acc_len -= 7;"
+expect = "proof fails"
+caught_by = "WP loop invariants on acc_len / bytes postcondition"
+why = "\"QUFB\": bytes come out shifted and the leftover-bits check rejects valid input"
+
+[[mutant]]
+id = "dec-emit-threshold"
+file = "src/nvim/base64.c"
+original = "    if (acc_len >= 8) {"
+mutated = "    if (acc_len > 8) {"
+expect = "proof fails"
+caught_by = "WP loop invariant out_i*8 + acc_len == 6*src_i / bytes postcondition"
+why = "every 4th char (acc_len exactly 8): third byte of each group is dropped, e.g. \"QUFB\""
+
+[[mutant]]
+id = "dec-emit-shift"
+file = "src/nvim/base64.c"
+original = "      dest[out_i] = (char)(acc >> acc_len);"
+mutated = "      dest[out_i] = (char)((acc >> acc_len) | (acc_len == 2));"
+expect = "proof fails"
+caught_by = "naive runner (mutate pristine, then annotate.py): annotate abort, the line is an annotation anchor; post-annotate runner (REVIEW.md R4): WP bytes postcondition"
+anchor_line = true
+why = "only the second byte of each group changes (low bit forced to 1): \"AAAA\" -> 00 01 00"
+
+# ---------------- decoder: canonical bits and padding ----------------
+
+[[mutant]]
+id = "dec-leftover-bits-len"
+file = "src/nvim/base64.c"
+original = "  if (acc_len > 4 || ((acc & ((1 << acc_len) - 1)) != 0)) {"
+mutated = "  if (acc_len > 6 || ((acc & ((1 << acc_len) - 1)) != 0)) {"
+expect = "proof fails"
+caught_by = "naive runner (mutate pristine, then annotate.py): annotate abort, the line is an annotation anchor; post-annotate runner (REVIEW.md R4): WP accepts_only_valid (and length: out_i < out_len, uninitialised byte returned)"
+anchor_line = true
+why = "\"A===\" accepted: one char of data plus three '=' (non-canonical)"
+
+[[mutant]]
+id = "dec-canonical-mask"
+file = "src/nvim/base64.c"
+original = "((acc & ((1 << acc_len) - 1)) != 0)"
+mutated = "((acc & ((1 << acc_len) - 1) & ~1) != 0)"
+expect = "proof fails"
+caught_by = "naive runner (mutate pristine, then annotate.py): annotate abort, the line is an annotation anchor; post-annotate runner (REVIEW.md R4): WP accepts_only_valid"
+anchor_line = true
+why = "\"QR==\" (unused low bit set) is accepted; canonical form is \"QQ==\""
+
+[[mutant]]
+id = "dec-padding-len"
+file = "src/nvim/base64.c"
+original = "    int padding_len = acc_len / 2;"
+mutated = "    int padding_len = acc_len / 3;"
+expect = "proof fails"
+caught_by = "WP accepts_all_valid"
+why = "\"QQ==\" (acc_len 4, two '=') rejected although valid"
+
+[[mutant]]
+id = "dec-padding-count"
+file = "src/nvim/base64.c"
+original = "    if (padding_chars != padding_len) {"
+mutated = "    if (padding_chars < padding_len) {"
+expect = "proof fails"
+caught_by = "WP accepts_only_valid"
+why = "\"QUFB====\" (a whole group of '=') accepted. Note: '>' would be an EQUIVALENT mutant (chars < len is unreachable)"
+
+[[mutant]]
+id = "dec-padding-char"
+file = "src/nvim/base64.c"
+original = "      if (c != '=') {"
+mutated = "      if (c != '=' && c != 'A') {"
+expect = "proof fails"
+caught_by = "WP accepts_only_valid"
+why = "\"QQ=A\" accepted (alphabet char after padding)"
+
+[[mutant]]
+id = "dec-leftover-index"
+file = "src/nvim/base64.c"
+original = "        leftover_i = (int)src_i;"
+mutated = "        leftover_i = (int)src_i + 1;"
+expect = "proof fails"
+caught_by = "WP accepts_all_valid"
+why = "\"QQ==\": counts one '=' instead of two, so valid input is rejected"
+
+[[mutant]]
+id = "dec-pad2-index"
+file = "src/nvim/base64.c"
+original = "  if (src_len >= 2 && src[src_len - 2] == '=') {"
+mutated = "  if (src_len >= 3 && src[src_len - 3] == '=') {"
+expect = "proof fails"
+caught_by = "annotate abort: tool patch pad_second no longer matches (documented, counts as caught)"
+why = "\"QQ==\": out_len 2 instead of 1; would also be a WP length failure if the patch followed the edit"
+
+[[mutant]]
+id = "dec-fixed-sentinel"
+tree = "fixed"
+file = "src/nvim/base64.c"
+original = "  if (leftover_i != SIZE_MAX) {"
+mutated = "  if (leftover_i != 0) {"
+expect = "proof fails"
+caught_by = "WP (fixed decoder) accepts_only_valid"
+why = "\"====\": first '=' at index 0 skips the padding check, accepted with out_len 1"
+
+[[mutant]]
+id = "dec-fixed-padding-len"
+tree = "fixed"
+file = "src/nvim/base64.c"
+original = "    size_t padding_len = (size_t)acc_len / 2;"
+mutated = "    size_t padding_len = (size_t)acc_len / 2 + (acc_len == 2);"
+expect = "proof fails"
+caught_by = "WP (fixed decoder) accepts_all_valid"
+why = "\"QUE=\" (acc_len 2, one '=') rejected although valid"
+
+# ---------------- vim_htobe64 / vim_htobe32 (not seen by WP; caught by CBMC) ----------------
+
+[[mutant]]
+id = "htobe64-shift"
+file = "src/nvim/base64.c"
+original = "    ret |= ((uint64_t)buf[i - 1]) << ((8 - i) * 8);"
+mutated = "    ret |= ((uint64_t)buf[i - 1]) << ((8 - i) * 7);"
+expect = "proof fails"
+caught_by = "equiv_load64 [vim_htobe build] (run_wp.sh step 2) and bridge.c"
+why = "host value 0x0001000000000000 (buf[6] = 1): result 0x80 instead of 0x100"
+
+[[mutant]]
+id = "htobe32-drop-byte"
+file = "src/nvim/base64.c"
+original = "  for (size_t i = 4; i; i--) {"
+mutated = "  for (size_t i = 3; i; i--) {"
+expect = "proof fails"
+caught_by = "equiv_load32 [vim_htobe build] and bridge.c"
+why = "host bytes 00 00 00 01 (buf[3] = 1, value 0x01000000): result 0 instead of 1; also every other byte lands one position off"
+
+[[mutant]]
+id = "enc-load64-offset"
+file = "src/nvim/base64.c"
+original = "    memcpy(&bits_h, &s[src_i], sizeof(uint64_t));"
+mutated = "    memcpy(&bits_h, &s[src_i + 1], sizeof(uint64_t));"
+expect = "proof fails"
+caught_by = "annotate abort: tool patch load64 no longer matches (documented, counts as caught)"
+why = "every input >= 8 bytes is encoded shifted by one byte (and reads 1 byte past the end at the last block)"
+
+# ---------------- gap probes: the reviewer predicts these SURVIVE the current proof ----------------
+
+[[mutant]]
+id = "G-alphabet-urlsafe"
+file = "src/nvim/base64.c"
+original = "0123456789+/\";"
+mutated = "0123456789-_\";"
+expect = "proof fails"
+predicted = "survives WP: enc_char is defined as alphabet[...] (the code's own table); only the bounded CBMC `check` catches it"
+why = "any input producing sextet 62 or 63, e.g. \"\\xfb\\xff\" -> \"-_8=\" instead of \"+/8=\""
+
+[[mutant]]
+id = "G-index-urlsafe"
+file = "src/nvim/base64.c"
+original = "['+'] = 63, ['/'] = 64,"
+mutated = "['-'] = 63, ['_'] = 64,"
+expect = "proof fails"
+predicted = "survives WP: valid_b64 and V are defined from char_to_index (the code's own table)"
+why = "\"+/8=\" rejected and \"-_8=\" accepted, contrary to RFC 4648 section 4"
+
+[[mutant]]
+id = "G-leak-on-invalid"
+file = "src/nvim/base64.c"
+original = "    xfree((void *)dest);"
+mutated = "    (void)dest;"
+expect = "proof fails"
+predicted = "survives: xfree stub is `assigns \\nothing` and no contract tracks allocation, so leaks are invisible"
+why = "every invalid input whose length is a multiple of 4 (e.g. \"!!!!\") leaks out_len bytes"
+
+[[mutant]]
+id = "G-use-after-free"
+file = "src/nvim/base64.c"
+original = "  *out_lenp = out_len;"
+mutated = "  *out_lenp = out_len;\n  xfree(dest);"
+expect = "proof fails"
+predicted = "survives: the xfree stub does not end validity of p, so \\valid(\\result+...) still holds after the free"
+why = "every valid input: the caller receives a freed pointer and xfree's it again (double free)"
