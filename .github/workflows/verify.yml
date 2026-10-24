@@ -41,7 +41,8 @@ jobs:
           git checkout -q FETCH_HEAD
       - name: Install provers
         run: |
-          bash tools/install.sh
+          bash tools/install.sh > install.log 2>&1 || { echo "::error title=install failed::$(tail -20 install.log | tr '\n' '|' | cut -c1-1500)"; exit 1; }
+          tail -3 install.log
           echo "$HOME/.nix-profile/bin" >> "$GITHUB_PATH"
           echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
       - name: Prove and check
