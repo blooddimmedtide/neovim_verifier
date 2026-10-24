@@ -25,7 +25,7 @@ if "--timeout" in args:
     i = args.index("--timeout"); T = args[i + 1]; del args[i:i + 2]
 UP, FIX = os.path.abspath(args[0]), os.path.abspath(args[1])
 only = set(args[2:])
-FRAMA = ["frama-c", "-cpp-extra-args=-I stubs -DNDEBUG", "-machdep", "x86_64"]
+FRAMA = ["frama-c", "-cpp-extra-args=-I stubs", "-machdep", "x86_64"]
 WP = ["-wp", "-wp-rte", "-wp-model", "Typed+Cast", "-wp-prover", "z3,cvc5",
       "-wp-timeout", T, "-wp-par", str(os.cpu_count()), "-wp-cache", "none"]
 

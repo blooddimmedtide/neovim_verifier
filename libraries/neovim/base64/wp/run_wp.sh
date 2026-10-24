@@ -16,7 +16,7 @@ for part in enc dec; do
   fn=$([ $part = enc ] && echo base64_encode || echo base64_decode)
   python3 -I "$HERE/annotate.py" "$NV/src/nvim/base64.c" "$W/b64_$part.c" $part || exit 1
   if grep -nE '\b(admit|axiom|assumes|check)\b' "$W/b64_$part.c" "$W"/stubs/*.h "$W"/stubs/*/*.h; then echo "forbidden clause"; status=1; fi
-  (cd "$W" && frama-c -cpp-extra-args="-I stubs -DNDEBUG" -machdep x86_64 "b64_$part.c" \
+  (cd "$W" && frama-c -cpp-extra-args="-I stubs" -machdep x86_64 "b64_$part.c" \
      -wp -wp-fct "$fn" -wp-rte -wp-model Typed+Cast -wp-prover z3,cvc5 \
      -wp-timeout "$T" -wp-par "$(nproc)" -wp-cache none > "wp_$part.log" 2>&1)
   grep -E "Proved goals|Timeout\]|Unknown\]|Failed\]" "$W/wp_$part.log"

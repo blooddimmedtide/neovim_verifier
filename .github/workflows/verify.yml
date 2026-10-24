@@ -14,8 +14,16 @@ permissions:
 jobs:
   neovim:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 240
+    container: ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
+    env:
+      USER: root
+    defaults:
+      run:
+        shell: bash
     steps:
+      - name: Base packages
+        run: apt-get update -qq && apt-get install -y -qq git curl xz-utils python3 python3-pip gcc ca-certificates >/dev/null
       - uses: actions/checkout@v4
       - name: Read pinned Neovim commit
         id: pin
@@ -25,13 +33,19 @@ jobs:
           git init -q nvim-src && cd nvim-src
           git fetch -q --depth 1 https://github.com/neovim/neovim ${{ steps.pin.outputs.commit }}
           git checkout -q FETCH_HEAD
+      - name: Fetch the fixed fork at its pinned commit
+        run: |
+          read repo commit < <(python3 -c 'import tomllib;d=tomllib.load(open("libraries/neovim/vpipe.toml","rb"));print(d["fixed_repo"], d["fixed_commit"])')
+          git init -q fixed-src && cd fixed-src
+          git fetch -q --depth 1 "$repo" "$commit"
+          git checkout -q FETCH_HEAD
       - name: Install provers
         run: |
           bash tools/install.sh
           echo "$HOME/.nix-profile/bin" >> "$GITHUB_PATH"
           echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
       - name: Prove and check
-        run: python3 -I tools/run_target.py libraries/neovim nvim-src ${{ github.event.inputs.targets }}
+        run: python3 -I tools/run_target.py libraries/neovim nvim-src --fixed fixed-src ${{ github.event.inputs.targets }}
       - name: Status must be up to date
         run: |
           python3 -I tools/status.py libraries/neovim > /tmp/STATUS.md

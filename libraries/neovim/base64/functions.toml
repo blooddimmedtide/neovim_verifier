@@ -1,0 +1,33 @@
+# Per-function claims for src/nvim/base64.c (vpipe functions.toml format).
+# Labels are capped by the evidence; nothing here is admitted until both reviews pass.
+
+[[function]]
+name = "base64_encode"
+file = "src/nvim/base64.c"
+verified_by = "framac"
+label = "full-correctness"
+evidence = "wp/run_wp.sh (260/260 goals), equiv/, lemmas.py"
+
+[[function]]
+name = "base64_decode"
+file = "src/nvim/base64.c"
+verified_by = "framac"
+label = "full-correctness"
+scope = "fixed fork, every input; upstream only below 2 GiB (finding)"
+evidence = "wp/run_wp.sh on upstream (120/120) and fixed (118/118), equiv/, lemmas.py"
+
+[[function]]
+name = "vim_htobe64"
+file = "src/nvim/base64.c"
+verified_by = "cbmc"
+complete = true
+harness_files = ["bridge/bridge.c"]
+label = "full-correctness"
+
+[[function]]
+name = "vim_htobe32"
+file = "src/nvim/base64.c"
+verified_by = "cbmc"
+complete = true
+harness_files = ["bridge/bridge.c"]
+label = "full-correctness"

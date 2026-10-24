@@ -16,8 +16,8 @@ edited for a proof; annotations go into a pristine copy at proof time.
 
 | Function | Result | How |
 |---|---|---|
-| `base64_encode` | Output is exactly the RFC 4648 Base64 of the input, NUL-terminated, for every input (up to 4 EiB). No runtime errors; one allocation, returned. | Frama-C WP, 259/259 goals |
-| `base64_decode` | Returns a buffer **exactly when** the input is canonical padded Base64, and then the length and every byte match RFC 4648. No runtime errors, no leak, no double free. Upstream: inputs under 2 GiB (118/118 goals). Fixed version: every input (116/116 goals). | Frama-C WP |
+| `base64_encode` | Output is exactly the RFC 4648 Base64 of the input, NUL-terminated, for every input (up to 4 EiB). No runtime errors; one allocation, returned. | Frama-C WP, 260/260 goals |
+| `base64_decode` | Returns a buffer **exactly when** the input is canonical padded Base64, and then the length and every byte match RFC 4648. No runtime errors, no leak, no double free. Upstream: inputs under 2 GiB (120/120 goals). Fixed version: every input (118/118 goals). | Frama-C WP |
 | `vim_htobe64`, `vim_htobe32` | Equal to the big-endian reading of the bytes, for every input. | CBMC, no loops |
 
 No `admit`s or axioms. The few statements Frama-C can't read are rewritten for the proof,

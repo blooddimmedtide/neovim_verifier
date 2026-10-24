@@ -92,6 +92,7 @@ INSERTS = [
     ("static inline uint32_t vim_htobe32(uint32_t host_32bits)", "before",
      "/*@ assigns \\nothing; */"),
     ("char *base64_encode(const char *src, size_t src_len)", "before", r'''/*@ requires src_len <= 0x3fffffffffffffff;  // 4 EiB; keeps out_len + 1 from overflowing
+    requires src != \null;  // FUNC_ATTR_NONNULL_ALL; the function asserts it
     requires \valid_read((uint8_t *)src + (0 .. src_len - 1));
     requires 0 <= vp_live < 2147483647;
     ensures allocation: vp_live == \old(vp_live) + 1 && (char *)vp_last == \result;
@@ -225,7 +226,8 @@ def dec_inserts(variant):
     return [
         ("/// Decode a Base64 encoded string.", "before", DEC_SPEC),
         ("char *base64_decode(const char *src, size_t src_len, size_t *out_lenp)", "before",
-         "/*@\n" + bound + r"""    requires \valid_read((uint8_t *)src + (0 .. src_len - 1));
+         "/*@\n" + bound + r"""    requires src != \null;  // FUNC_ATTR_NONNULL_ALL; the function asserts it
+    requires \valid_read((uint8_t *)src + (0 .. src_len - 1));
     requires \valid(out_lenp);
     requires \separated(out_lenp, (uint8_t *)src + (0 .. src_len - 1));
     requires 0 <= vp_live < 2147483647;

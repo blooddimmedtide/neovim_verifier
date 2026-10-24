@@ -17,9 +17,11 @@ if ! command -v nix >/dev/null && [ ! -x /nix/var/nix/profiles/default/bin/nix ]
   curl -fsSL https://nixos.org/nix/install | sh -s -- --no-daemon --yes
 fi
 export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$PATH"
+# Pinned nixpkgs snapshot (the one the published proofs were run with).
+NIXPKGS='https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1097770.5adc50831c25/nixexprs.tar.zst?narHash=sha256-hVMDyAXU0kxRuG3GygbZkzf5x%2BaBNEC0NYEJ6KwHtD4%3D'
 nix --extra-experimental-features 'nix-command flakes' profile install \
-  nixpkgs#framac nixpkgs#z3 nixpkgs#cvc5 nixpkgs#why3
+  "tarball+$NIXPKGS#framac" "tarball+$NIXPKGS#z3" "tarball+$NIXPKGS#cvc5" "tarball+$NIXPKGS#why3"
 why3 config detect >/dev/null
-python3 -c "import z3" 2>/dev/null || pip install --quiet z3-solver || pip install --quiet --break-system-packages z3-solver
+python3 -c "import z3" 2>/dev/null || pip install --quiet z3-solver==5.3.1.0 || pip install --quiet --break-system-packages z3-solver==5.3.1.0
 echo "Installed. Add to PATH: $HOME/.nix-profile/bin"
 cbmc --version; frama-c -version
