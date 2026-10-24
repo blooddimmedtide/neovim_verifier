@@ -4,7 +4,7 @@
 #   Frama-C 33 + Why3 + Z3 + CVC5 (Nix binary cache; Ubuntu's frama-c has no WP plugin)
 #   z3-solver (pip) for the bit-lemma checker
 # Usage: bash tools/install.sh   (uses sudo for dpkg/apt when not root)
-set -eu
+set -eux
 SUDO=$([ "$(id -u)" -eq 0 ] || echo sudo)
 CBMC_VER=6.4.1
 if ! command -v cbmc >/dev/null || ! cbmc --version | grep -q "$CBMC_VER"; then
@@ -13,7 +13,7 @@ if ! command -v cbmc >/dev/null || ! cbmc --version | grep -q "$CBMC_VER"; then
     "https://github.com/diffblue/cbmc/releases/download/cbmc-$CBMC_VER/ubuntu-24.04-cbmc-$CBMC_VER-Linux.deb"
   # apt resolves the .deb's dependencies itself (dpkg -i alone fails in a bare container).
   $SUDO env DEBIAN_FRONTEND=noninteractive apt-get update -qq
-  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$tmp/cbmc.deb"
+  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "$tmp/cbmc.deb"
 fi
 if ! command -v nix >/dev/null && [ ! -x /nix/var/nix/profiles/default/bin/nix ]; then
   curl -fsSL https://nixos.org/nix/install | sh -s -- --no-daemon --yes
