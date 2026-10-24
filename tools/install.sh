@@ -17,6 +17,9 @@ if ! command -v cbmc >/dev/null || ! cbmc --version | grep -q "$CBMC_VER"; then
 fi
 if ! command -v nix >/dev/null && [ ! -x /nix/var/nix/profiles/default/bin/nix ]; then
   curl -fsSL -o /tmp/nix-install.sh https://nixos.org/nix/install
+  # The installer wants sudo to create /nix; do it ourselves (root in a container).
+  [ -d /nix ] || $SUDO sh -c 'mkdir -m 0755 /nix && chown "$(id -un)" /nix' 2>/dev/null || \
+    { [ -z "$SUDO" ] && mkdir -m 0755 /nix; }
   sh /tmp/nix-install.sh --no-daemon --yes 2>&1 | grep -v "^ *[0-9]*  *[0-9.]*[kMG]* *[0-9]* " || true
   [ -x "$HOME/.nix-profile/bin/nix" ] || [ -x /nix/var/nix/profiles/default/bin/nix ] || { echo "nix install failed"; exit 1; }
 fi
