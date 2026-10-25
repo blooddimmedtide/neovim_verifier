@@ -74,8 +74,7 @@ as "none") is proved with no size limit.
 - Targets other than x86_64. A trial on Frama-C's ppc_32 machine (32-bit, big-endian,
   unsigned `char`) leaves 6 of 116 fixed-decoder goals unproved, so other targets need
   their own proof work.
-- Owner sign-off on the spec (Yerin) and a CI run in the pinned container, twice
-  from clean, are still open.
+- Owner sign-off on the spec (Yerin) is still open.
 
 ## Evidence
 
@@ -90,4 +89,5 @@ as "none") is proved with no size limit.
 | Differential test | `python3 -I difftest/difftest.py <nvim>` | 79,534 cases x 3 builds, 0 mismatches (fixed fork: 19,908, 0) |
 | Planted bugs | `python3 -I run_mutants.py <nvim> <fixed> --timeout 120` | 35 / 35 caught (`mutants_result.tsv`): 30 by WP goals that pass on the real code, 2 by the tool-patch equivalence harnesses, 3 because they change text a tool patch pins (annotate.py refuses) |
 | Independent review | `REVIEW.md` | 2 blocking spec gaps found and fixed; of the 4 gap probes, 3 are now caught by WP and the url-safe alphabet probe is caught only because the alphabet tool patch pins the exact RFC text. Fresh re-review: REVIEW2.md |
+| CI, pinned container, twice from clean | `.github/workflows/verify.yml` | passed: [run 40129216377](https://github.com/blooddimmedtide/neovim_verifier/actions/runs/40129216377) and [run 40140031727](https://github.com/blooddimmedtide/neovim_verifier/actions/runs/40140031727), commit f18ed86 |
 | Owner review | Yerin | pending |
