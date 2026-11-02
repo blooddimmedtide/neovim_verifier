@@ -40,7 +40,7 @@ Findings (in `../findings/`):
 | `regexp-nfa-backslash-multibyte.md`: NFA never matches `\é` | fixed (fork dd5213f), proof pending (NFA compiler spec) |
 | `regexp-bt-position-wrap.md`: `\%4294967297l` means `\%1l` (backtracking) | fixed (fork b2bbb00), proof pending |
 | `regexp-bt-composing-atom-ends-match.md`: composing-char atom ends the whole match (backtracking) | open; first fix broke an upstream test, needs redesign |
-| `regexp-nfa-huge-count-exit.md`: `\%#=2x\{3,15555555}` makes Neovim exit (E41) | open; limit needs a decision |
+| `regexp-nfa-huge-count-exit.md`: `\%#=2x\{3,15555555}` (and `x\{300,15555555}` with the default engine) makes Neovim exit (E41) | fixed (fork b5ad208): falls back to backtracking; proof pending (NFA compiler spec) |
 | `regexp-nfa-lone-composing-at-start.md`: engines disagree on a leading lone composing char | open; spec question |
 | `search-csearch-overflow.md`: `setcharsearch()` with 40 composing chars writes past `lastc_bytes`; stale bytes after a shorter char | fixed (fork 01c749d), proved with CBMC for every input (`../search/`) |
 
