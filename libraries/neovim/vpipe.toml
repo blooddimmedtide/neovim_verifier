@@ -99,7 +99,7 @@ harness_files = ["base64/equiv/equiv_pad_second.c"]
 id = "ga_append_store"
 file = "src/nvim/garray.c"
 original = "((uint8_t *)(gap)->ga_data)[(gap)->ga_len] = (c);"
-rewritten = "((char *)(gap)->ga_data)[(gap)->ga_len] = (char)(c);"
+rewritten = "((char *)(gap)->ga_data)[(gap)->ga_len] = (char)((c) - ((c) > 127 ? 256 : 0));"
 harness = "bash garray/equiv/run_equiv.sh"
 harness_files = ["garray/equiv/append_store.c"]
 

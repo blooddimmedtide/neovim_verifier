@@ -18,11 +18,12 @@ writes past it.
 
 ## Reachability
 
-Needs a true length of 2^64 bytes or more: for example `nelem = 2^31 - 1` copies of one pointer to
-an 8 GiB string, or a separator of 2^33 bytes with 2^31 elements. That takes 16 GiB for the pointer
-array plus the string; possible only on very large machines, and no current caller is known to
-pass such an array. Found by the proof (the upstream contract needs `total <= SIZE_MAX`), not
-observed.
+Needs a true length of 2^64 bytes or more. `ga_len` is an `int`, so at most 2^31 - 1 items: for
+example 2^31 - 1 copies of one pointer to a string of 2^33 + 5 bytes, or a separator of 2^33 + 5
+bytes with 2^31 - 1 items. That takes 16 GiB for the pointer array plus the 8 GiB string. Every
+current caller passes separate heap strings and a separator of at most one byte, so it cannot wrap
+today (checked by the independent review). Found by the proof (the upstream contract needs
+`total <= SIZE_MAX`), not observed.
 
 ## Fix (verified_neovim, branch `claude/project-thread-aslfna`, commit dec9b23)
 
@@ -32,5 +33,5 @@ WP (`garray/wp`, mode `fixed`).
 
 ## Severity
 
-Low in practice (needs more than 16 GiB of carefully built input), but it is an out-of-bounds
-heap write when it happens.
+Low and latent: no current caller can reach it; it would be an out-of-bounds heap write if a
+future caller did.

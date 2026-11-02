@@ -13,6 +13,10 @@
 // which pointers a function frees.
 /*@ ghost long vp_live; */
 /*@ ghost size_t vp_nfree; */
+// vp_oom: whether an allocation may run out of memory (then memory.c calls
+// preserve_exit()). Never assigned: contracts say "exits when vp_oom or <cond>", so with
+// vp_oom false they state exactly when a function exits.
+/*@ ghost int vp_oom; */
 /*@ ghost void *vp_freelog[4294967296]; */
 
 /*@ // a block returned by an allocator is either p's own block or one that was
@@ -34,6 +38,7 @@
     ensures \forall integer i; 0 <= i < old && i < n ==> ((char *)\result)[i] == \old(((char *)p)[i]);
     ensures vp_new_or_same{Pre}(\result, p);
     ensures vp_live == \old(vp_live) + (p == \null ? 1 : 0);
+    exits vp_oom;   // preserve_exit() when memory runs out
 */
 void *xrealloc(void *p, size_t n) /*@ ghost (size_t old) */;
 
@@ -50,7 +55,7 @@ void xfree(void *p);
     assigns \result \from size;
     assigns vp_live;
     allocates \result;
-    exits size == SIZE_MAX;
+    exits vp_oom || size == SIZE_MAX;   // out of memory, or size + 1 wraps
     behavior fits:
       assumes size < SIZE_MAX;
       ensures \result != \null && \valid((char *)\result + (0 .. size)) && ((char *)\result)[size] == 0;
@@ -73,6 +78,7 @@ void *xmallocz(size_t size);
             && \forall integer i; 0 <= i <= n ==> \result[i] == \old(str[i]);
     ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr(\result);
     ensures vp_live == \old(vp_live) + 1;
+    exits vp_oom;   // preserve_exit() when memory runs out
 */
 char *xstrdup(const char *str) /*@ ghost (size_t n) */;
 
@@ -114,6 +120,7 @@ typedef enum {
   kPathCmpFull    = 1 << 2,  ///< Compare full names when FileIds are unavailable.
 } PathCmpFlags;
 extern int p_fic;  // 'fileignorecase' (option_vars.h), read by path_equal
+extern void *capture_ga;  // message.c: the growing array output is captured into, or NULL
 
 /*@ // The order sort_strings() (strings.c: qsort with strcmp) gives a[0 .. n-1].
     // Uninterpreted: the proof holds for whatever order it produces.

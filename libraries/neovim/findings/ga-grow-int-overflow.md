@@ -8,8 +8,8 @@ n = MAX(n, gap->ga_len / 2);
 int new_maxlen = gap->ga_len + n;
 ```
 
-`ga_grow` always grows by at least half the current length. When `ga_len > (INT_MAX - 1) * 2 / 3`
-(about 1,431,655,765 items) and the array is full, `ga_len + ga_len / 2` does not fit in an `int`:
+`ga_grow` always grows by at least half the current length. When `ga_len >= 1,431,655,766`
+(the smallest length with `ga_len + ga_len / 2 > INT_MAX`) and the array is full, `ga_len + ga_len / 2` does not fit in an `int`:
 signed overflow, which is undefined behavior (Neovim is not built with `-fwrapv`). In practice the
 sum wraps negative, `(size_t)new_maxlen` becomes about 1.8e19, `xrealloc` fails and Nvim exits
 through `preserve_exit()` with "E41: Out of memory!", although the request (a few more bytes)
@@ -33,13 +33,17 @@ E41: Out of memory!
 Vim: Finished.
 $ nvim --clean --headless -c "let s = join([repeat('a', 1400000000), 'x'], '') | echo strlen(s) | qa!"
 1400000001
+$ nvim --clean --headless -c "let s = repeat('a', 1500000000) | let t = string(s) | qa!"
+E41: Out of memory!
 ```
 
 ## Reachability
 
-Every growing array: `join()`, `string()`, `json_encode()` and `msgpackdump()` output, `:redir`
-into a variable, register and buffer text joined into strings, and so on. Any string built in a
-garray that passes about 1.43e9 bytes and then grows once more ends Nvim.
+Every growing array: `join()`, `string()`, `:echo`, `json_encode()` and `msgpackdump()` output,
+`:redir` into a variable, and so on. Any string built in a garray that passes 1,431,655,766 bytes
+and then grows once more ends Nvim. Both commands above exit; the independent review traced the
+`join` case to the growing array `encode_tv2echo()` uses (its final `ga_append(NUL)`), so echoing or
+stringifying any string of that size is enough.
 
 ## Fix (verified_neovim, branch `claude/project-thread-aslfna`, commit 850a906)
 

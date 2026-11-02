@@ -20,6 +20,8 @@ LOGIC = r"""
       len + imax(imax(n, imin(gs, INT_MAX - len)), imin(len / 2, INT_MAX - len));
     // number of non-NULL pointers among a[0 .. n-1]
     logic integer nn{L}(void **a, integer n) = n <= 0 ? 0 : nn(a, n - 1) + (a[n - 1] != \null ? 1 : 0);
+    // integer division bound (the fixed ga_concat_strings overflow test uses it)
+    lemma div_bound: \forall integer a, b, c; 0 <= a && 0 < b && 0 <= c ==> (c > a / b <==> c * b > a);
     // a string has one length (proved below)
     lemma str_len_unique{L}: \forall char *s, integer n, m; str_len(s, n) && str_len(s, m) ==> n == m;
 */
@@ -136,7 +138,7 @@ def contracts(fixed):
     ensures gap->ga_growsize == (growsize < 1 ? 1 : growsize);"""
 
     C["ga_grow"] = rf"""requires ga_ok(gap) && vp_live < LONG_MAX;
-    {'exits \\old(gap->ga_maxlen - gap->ga_len < n && n > INT_MAX - gap->ga_len);   // preserve_exit()' if fixed else ''}
+    exits vp_oom{' || \\old(gap->ga_maxlen - gap->ga_len < n && n > INT_MAX - gap->ga_len)' if fixed else ''};   // out of memory{', or preserve_exit() for too many items' if fixed else ''}
     assigns gap->ga_maxlen, gap->ga_data, vp_live,
             ((char *)\at(gap->ga_data, Post))[0 .. \at(ga_bytes(gap), Post) - 1];
     behavior room:
@@ -157,6 +159,8 @@ def contracts(fixed):
       ensures \\forall integer i; 0 <= i < \\old(gap->ga_len) ==>
                 ((char *)gap->ga_data)[i] == \\old(((char *)gap->ga_data)[i]);
       ensures {src};
+      ensures \\forall integer i; \\old(gap->ga_len) + {n} <= i < ga_bytes(gap) ==>
+                ((char *)gap->ga_data)[i] == (i < \\old(ga_bytes(gap)) ? \\old(((char *)gap->ga_data)[i]) : 0);
       ensures vp_new_or_same{{Pre}}(gap->ga_data, \\old(gap->ga_data));
       ensures vp_live == \\old(vp_live) + (\\old(gap->ga_data) == \\null && \\old(gap->ga_maxlen - gap->ga_len) < {n} ? 1 : 0);"""
     unchanged = r"""ensures gap->ga_len == \old(gap->ga_len) && gap->ga_maxlen == \old(gap->ga_maxlen)
@@ -165,9 +169,11 @@ def contracts(fixed):
       requires gap->ga_maxlen - gap->ga_len < {n} ==> grown_up(gap->ga_len, gap->ga_growsize, {n}) <= INT_MAX;   // upstream only"""
 
     C["ga_concat_len"] = rf"""requires ga_ok(gap) && gap->ga_itemsize == 1 && vp_live < LONG_MAX;
+    requires (void *)gap != capture_ga;   // emsg() appends to the capture array (see stubs)
     requires \valid_read(s + (0 .. len - 1));
     requires \base_addr(s) != \base_addr((char *)gap->ga_data);   // "may not overlap with the growing array"
     requires \separated(s + (0 .. len - 1), gap);
+    exits vp_oom;   // only when memory runs out
     assigns gap->ga_len, gap->ga_maxlen, gap->ga_data, vp_live,
             ((char *)\at(gap->ga_data, Post))[0 .. \at(ga_bytes(gap), Post) - 1];
     behavior empty:
@@ -181,8 +187,10 @@ def contracts(fixed):
     complete behaviors; disjoint behaviors;"""
 
     C["ga_concat"] = rf"""requires ga_ok(gap) && gap->ga_itemsize == 1 && vp_live < LONG_MAX;
+    requires (void *)gap != capture_ga;   // emsg() appends to the capture array (see stubs)
     requires s != \null ==> str_len((char *)s, n);
     requires s != \null ==> \base_addr(s) != \base_addr((char *)gap->ga_data) && \separated(s + (0 .. n), gap);
+    exits vp_oom;   // only when memory runs out
     assigns gap->ga_len, gap->ga_maxlen, gap->ga_data, vp_live,
             ((char *)\at(gap->ga_data, Post))[0 .. \at(ga_bytes(gap), Post) - 1];
     behavior nothing:   // NULL or the empty string
@@ -197,7 +205,7 @@ def contracts(fixed):
 
     full = "gap->ga_maxlen == gap->ga_len"
     C["ga_append"] = rf"""requires ga_ok(gap) && gap->ga_itemsize == 1 && vp_live < LONG_MAX;
-    {'exits \\old(gap->ga_maxlen == gap->ga_len && gap->ga_len == INT_MAX);' if fixed else ''}
+    exits vp_oom{' || \\old(gap->ga_maxlen == gap->ga_len && gap->ga_len == INT_MAX)' if fixed else ''};
     assigns gap->ga_len, gap->ga_maxlen, gap->ga_data, vp_live,
             ((char *)\at(gap->ga_data, Post))[0 .. \at(ga_bytes(gap), Post) - 1];
     behavior append:
@@ -206,7 +214,7 @@ def contracts(fixed):
 
     C["ga_append_via_ptr"] = rf"""requires ga_ok(gap) && vp_live < LONG_MAX;
     requires item_size == gap->ga_itemsize;   // the WLOG names a wrong size as a caller error
-    {'exits \\old(gap->ga_maxlen == gap->ga_len && gap->ga_len == INT_MAX);' if fixed else ''}
+    exits vp_oom{' || \\old(gap->ga_maxlen == gap->ga_len && gap->ga_len == INT_MAX)' if fixed else ''};
     assigns gap->ga_len, gap->ga_maxlen, gap->ga_data, vp_live,
             ((char *)\at(gap->ga_data, Post))[0 .. \at(ga_bytes(gap), Post) - 1];
     behavior append:   // one more item; returns its address (its bytes are zero if the array grew)
@@ -229,7 +237,7 @@ def contracts(fixed):
     requires \forall integer k; 0 <= k < gap->ga_len ==> str_len({S}[k], Ls[k]) && Ls[k] < PTRDIFF_MAX;
     requires str_len((char *)sep, m) && m < PTRDIFF_MAX;{'' if fixed else f"""
     requires gap->ga_len > 0 ==> {T} <= SIZE_MAX;   // upstream only: the sum does not wrap (see findings)"""}
-    exits \old(gap->ga_len > 0 && {T} >= SIZE_MAX);   // preserve_exit() / xmallocz()
+    exits vp_oom || \old(gap->ga_len > 0 && {T} >= SIZE_MAX);   // out of memory, or the length does not fit
     assigns vp_live;
     ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr(\result);
     behavior empty:   // a new empty string
@@ -301,6 +309,19 @@ def annotations(fixed):
       loop variant nelem - 1 - i;"""),
         ("after", "s = xstpcpy(s, strings[i])", "ghost (Ls[i])"),
         ("after", "s = xstpcpy(s, sep)", "ghost (m)"),
+    ] + ([] if not fixed else [
+        ("before", "  len += (nelem - 1) * seplen;",
+         r"assert seplen == m && (nelem - 1) * seplen <= SIZE_MAX - len;"),
+        ("after", "    if (slen > SIZE_MAX - len) {",
+         r"assert slen == Ls[i] && sumL(Ls, i + 1) > SIZE_MAX && total(Ls, m, nelem) >= SIZE_MAX;"),
+        ("after", "  if (seplen != 0 && nelem - 1 > (SIZE_MAX - len) / seplen) {",
+         r"assert total(Ls, m, nelem) >= SIZE_MAX;"),
+        ("after", "  if (seplen != 0 && nelem - 1 > (SIZE_MAX - len) / seplen) {",
+         r"assert seplen == m && len == sumL(Ls, nelem);"),
+        ("after", "  if (seplen != 0 && nelem - 1 > (SIZE_MAX - len) / seplen) {",
+         r"assert (nelem - 1) * seplen > SIZE_MAX - len;"),
+        ("before", "  char *const ret = xmallocz(len);", r"assert len == total(Ls, m, nelem);"),
+    ]) + [
         ("after", "strcpy(s, strings[nelem - 1])", "ghost (Ls[nelem - 1])"),
     ]
     A["ga_concat_len"] = [
@@ -310,7 +331,7 @@ def annotations(fixed):
          r"assert \forall integer i; 0 <= i < gap->ga_len ==> ((char *)gap->ga_data)[i] == \at(((char *)gap->ga_data)[i], Pre);"),
     ]
     A["ga_append"] = [
-        ("inline", "((char *)(gap)->ga_data)[(gap)->ga_len] = (char)(c);",
+        ("inline", "((char *)(gap)->ga_data)[(gap)->ga_len] = (char)((c) - ((c) > 127 ? 256 : 0));",
          r"assert \forall integer i; 0 <= i < gap->ga_len ==> ((char *)gap->ga_data)[i] == \at(((char *)gap->ga_data)[i], Pre);"),
     ]
     A["ga_append_via_ptr"] = [

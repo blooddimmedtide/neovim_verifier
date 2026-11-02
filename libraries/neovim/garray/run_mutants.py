@@ -21,7 +21,7 @@ if "--timeout" in args:
 TREES = {"upstream": os.path.abspath(args[0]), "fixed": os.path.abspath(args[1])}
 only = set(args[2:])
 FRAMA = ["frama-c", "-machdep", "x86_64", "-cpp-extra-args=-I stubs"]
-WP = ["-wp", "-wp-rte", "-wp-model", "Typed+Cast", "-wp-prover", "z3,cvc5",
+WP = ["-wp", "-wp-rte", "-warn-signed-downcast", "-wp-model", "Typed+Cast", "-wp-prover", "z3,cvc5",
       "-wp-timeout", T, "-wp-par", str(os.cpu_count()), "-wp-cache", "none"]
 
 
@@ -38,7 +38,8 @@ def built(tree):
 
 
 def function_span(text, fn):
-    m = re.search(r"^[A-Za-z_][\w \*]*\b" + re.escape(fn) + r"\(", text, re.M)
+    # a definition, not a prototype in the prelude (review R1)
+    m = re.search(r"^[A-Za-z_][\w \*]*\b" + re.escape(fn) + r"\((?![^\n]*\);\s*$)", text, re.M)
     if not m:
         sys.exit(f"function {fn} not found in the built file")
     end = text.index("\n}\n", m.start())
