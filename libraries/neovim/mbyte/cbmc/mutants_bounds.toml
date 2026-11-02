@@ -1,0 +1,175 @@
+# Planted bugs for the CBMC proof of utf_cp_bounds_len / utf_cp_bounds / utf_is_trail_byte
+# (independent review of harness_bounds.c, see REVIEW_BOUNDS.md).
+# Same format as mutants.toml: each `original` occurs exactly once in the build.py output
+# for commit 7b87ce8. A mutant is caught when h_cp_bounds_len or h_cp_bounds fails
+# (results per harness are in REVIEW_BOUNDS.md). `expect` is the reviewer's prediction.
+# Two mutants put `#define NVIM_FIXED_CP_BOUNDS 1` in front of the changed line so the
+# harnesses run without the upstream-only precondition p - base <= INT_MAX.
+
+[[mutant]]
+id = "ascii-le-80"
+function = "utf_cp_bounds_len"
+original = "  if (*p < 0x80U) {  // be quick for ASCII"
+mutated = "  if (*p <= 0x80U) {  // be quick for ASCII"
+why = "fast path also takes 0x80, a continuation byte (p on the 2nd byte of C3 80 gives (0,1))"
+expect = "caught"
+
+[[mutant]]
+id = "ascii-lt-c0"
+function = "utf_cp_bounds_len"
+original = "  if (*p < 0x80U) {  // be quick for ASCII"
+mutated = "  if (*p < 0xC0U) {  // be quick for ASCII"
+why = "every continuation byte takes the fast path: the backward scan never runs"
+expect = "caught"
+
+[[mutant]]
+id = "no-ascii-fast-path"
+function = "utf_cp_bounds_len"
+original = "  if (*p < 0x80U) {  // be quick for ASCII\n    return (CharBoundsOff){ 0, 1 };\n  }\n"
+mutated = ""
+why = "removes the fast path; an ASCII byte is not a trail byte and announces length 1, so the general path also gives (0,1)"
+expect = "equivalent"
+
+[[mutant]]
+id = "back-six"
+function = "utf_cp_bounds_len"
+original = "MIN((int)(p - b), MB_MAXCHAR - 1)"
+mutated = "MIN((int)(p - b), MB_MAXCHAR)"
+why = "scans up to 6 bytes back. Same results (a lead 6 back announces at most 6 < 7 bytes), but reads p[-6]; the harness cannot see an in-bounds read, so this contradicts the card's 'reads nothing more than 5 bytes back'"
+expect = "equivalent"
+
+[[mutant]]
+id = "back-four"
+function = "utf_cp_bounds_len"
+original = "MIN((int)(p - b), MB_MAXCHAR - 1)"
+mutated = "MIN((int)(p - b), MB_MAXCHAR - 2)"
+why = "scans only 4 bytes back: p on the last byte of a 6-byte sequence gives (0,1)"
+expect = "caught"
+
+[[mutant]]
+id = "no-base-clamp"
+function = "utf_cp_bounds_len"
+original = "-MIN((int)(p - b), MB_MAXCHAR - 1);"
+mutated = "-(MB_MAXCHAR - 1);"
+why = "ignores base: reads before base when p - base < 5 and the bytes are continuation bytes"
+expect = "caught"
+
+[[mutant]]
+id = "back-check-lt"
+function = "utf_cp_bounds_len"
+original = "    if (first_off == max_first_off) {  // failed to find first byte"
+mutated = "    if (first_off < max_first_off) {  // failed to find first byte"
+why = "stop test one step late: reads one byte before the limit (before base when p - base <= 5)"
+expect = "caught"
+
+[[mutant]]
+id = "end-minus-first"
+function = "utf_cp_bounds_len"
+original = "utf8len_tab[p[first_off]] + first_off;"
+mutated = "utf8len_tab[p[first_off]] - first_off;"
+why = "end offset counted from the lead instead of from p"
+expect = "caught"
+
+[[mutant]]
+id = "illegal-lt0"
+function = "utf_cp_bounds_len"
+original = "  if (max_end_off <= 0 || max_end_off > p_len) {"
+mutated = "  if (max_end_off < 0 || max_end_off > p_len) {"
+why = "a sequence that ends exactly before p (C3 80 | 80) gives (2,0) instead of (0,1)"
+expect = "caught"
+
+[[mutant]]
+id = "plen-ge"
+function = "utf_cp_bounds_len"
+original = "  if (max_end_off <= 0 || max_end_off > p_len) {"
+mutated = "  if (max_end_off <= 0 || max_end_off >= p_len) {"
+why = "a codepoint ending exactly at p + p_len is treated as cut off"
+expect = "caught"
+
+[[mutant]]
+id = "plen-ignored"
+function = "utf_cp_bounds_len"
+original = "  if (max_end_off <= 0 || max_end_off > p_len) {"
+mutated = "  if (max_end_off <= 0) {"
+why = "p_len not checked: reads p[p_len] and past it for a cut-off sequence"
+expect = "caught"
+
+[[mutant]]
+id = "end-loop-from-0"
+function = "utf_cp_bounds_len"
+original = "  for (int end_off = 1; end_off < max_end_off; end_off++) {"
+mutated = "  for (int end_off = 0; end_off < max_end_off; end_off++) {"
+why = "also requires p[0] to be a trail byte: p on a lead byte always gives (0,1)"
+expect = "caught"
+
+[[mutant]]
+id = "end-loop-le"
+function = "utf_cp_bounds_len"
+original = "  for (int end_off = 1; end_off < max_end_off; end_off++) {"
+mutated = "  for (int end_off = 1; end_off <= max_end_off; end_off++) {"
+why = "requires one trail byte too many and reads one byte past the codepoint"
+expect = "caught"
+
+[[mutant]]
+id = "begin-sign"
+function = "utf_cp_bounds_len"
+original = ".begin_off = (int8_t)-first_off,"
+mutated = ".begin_off = (int8_t)first_off,"
+why = "begin offset returned negative"
+expect = "caught"
+
+[[mutant]]
+id = "trail-top-bit"
+function = "utf_is_trail_byte"
+original = "  return (uint8_t)(byte & 0xC0U) == 0x80U;"
+mutated = "  return (uint8_t)(byte & 0x80U) == 0x80U;"
+why = "lead bytes 11xxxxxx counted as trail bytes"
+expect = "caught"
+
+[[mutant]]
+id = "trail-ge"
+function = "utf_is_trail_byte"
+original = "  return (uint8_t)(byte & 0xC0U) == 0x80U;"
+mutated = "  return (uint8_t)(byte & 0xC0U) >= 0x40U;"
+why = "01xxxxxx (ASCII letters) and 11xxxxxx counted as trail bytes"
+expect = "caught"
+
+[[mutant]]
+id = "trail-no-cast"
+function = "utf_is_trail_byte"
+original = "  return (uint8_t)(byte & 0xC0U) == 0x80U;"
+mutated = "  return (byte & 0xC0U) == 0x80U;"
+why = "drops the uint8_t cast that is only a hint for clang; the value is already 0..0xC0"
+expect = "equivalent"
+
+[[mutant]]
+id = "wrapper-plen-6"
+function = "utf_cp_bounds"
+original = "  return utf_cp_bounds_len(base, p_in, INT_MAX);"
+mutated = "  return utf_cp_bounds_len(base, p_in, MB_MAXCHAR);"
+why = "p_len 6 instead of INT_MAX: max_end_off = L - k <= 6, so the limit never bites"
+expect = "equivalent"
+
+[[mutant]]
+id = "wrapper-plen-5"
+function = "utf_cp_bounds"
+original = "  return utf_cp_bounds_len(base, p_in, INT_MAX);"
+mutated = "  return utf_cp_bounds_len(base, p_in, MB_MAXCHAR - 1);"
+why = "p_len 5: p on the lead of a complete 6-byte sequence gives (0,1). Only h_cp_bounds can see it"
+expect = "caught"
+
+[[mutant]]
+id = "finding-no-precondition"
+function = "utf_cp_bounds_len"
+original = "  int const max_first_off = -MIN((int)(p - b), MB_MAXCHAR - 1);"
+mutated = "#define NVIM_FIXED_CP_BOUNDS 1\n  int const max_first_off = -MIN((int)(p - b), MB_MAXCHAR - 1);"
+why = "upstream code proved without p - base <= INT_MAX: must reproduce the finding (overflow / wrong result past 2^31)"
+expect = "caught"
+
+[[mutant]]
+id = "fix-wrong-past-2pow56"
+function = "utf_cp_bounds_len"
+original = "  int const max_first_off = -MIN((int)(p - b), MB_MAXCHAR - 1);"
+mutated = "#define NVIM_FIXED_CP_BOUNDS 1\n  int const max_first_off = -(int)MIN((p - b) & 0xFFFFFFFFFFFFFF, MB_MAXCHAR - 1);"
+why = "a 'fix' that keeps only 56 bits of the distance: wrong for p - base >= 2^56 (e.g. 2^56 + 2 gives (0,1) for a lead 3 back). CBMC's default pointer encoding has 56 offset bits, so the fixed-fork harness cannot see distances >= 2^56 - 6"
+expect = "caught"

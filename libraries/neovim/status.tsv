@@ -11,3 +11,26 @@ src/nvim/mbyte.c	utf_ptr2char	candidate	mbyte/cbmc (CBMC, all inputs)	decoded va
 src/nvim/mbyte.c	utf_ptr2len_len	candidate	mbyte/cbmc (CBMC, all inputs)	always reads p[0]; never reads past p[size-1]
 src/nvim/mbyte.c	utf_cp_bounds_len	fixed-candidate	mbyte/cbmc (CBMC, upstream for p - base <= INT_MAX, fixed for every distance)	upstream UB / out-of-bounds read at >= 2 GiB (findings/cp-bounds-over-2gib.md); fix in verified_neovim. Reviewer mutants for this function still to do
 src/nvim/mbyte.c	utf_cp_bounds	fixed-candidate	mbyte/cbmc (CBMC, same as utf_cp_bounds_len)	wrapper with p_len = INT_MAX on a NUL-terminated stream; inherits the 2 GiB bug and its fix
+src/mpack/mpack_core.c	mpack_tokbuf_init	candidate	mpack/cbmc (CBMC, all inputs)	sets the empty state. Review + planted bugs pending
+src/mpack/mpack_core.c	mpack_rtoken	candidate	mpack/cbmc (CBMC, all inputs)	spec token, consumes exactly its header. Review + planted bugs pending
+src/mpack/mpack_core.c	mpack_read	fixed-candidate	mpack/cbmc (CBMC, all inputs)	streaming reader; any split gives the same tokens; upstream hangs with a multiple of 4 GiB of input left (findings/mpack-chunk-over-4gib.md), fixed in verified_neovim. Review + planted bugs pending
+src/mpack/mpack_core.c	mpack_write	candidate	mpack/cbmc (CBMC, all inputs)	streaming writer; shortest encoding in order. Review + planted bugs pending
+src/mpack/mpack_core.c	mpack_rpending	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_rvalue	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_rblob	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wtoken	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wpending	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wpint	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wnint	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wfloat	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wstr	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wbin	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wext	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_warray	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_wmap	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_w1	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_w2	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_w4	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_value	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_blob	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass
+src/mpack/mpack_core.c	mpack_byte	candidate	mpack/cbmc (CBMC, through its callers)	static helper, proved for every input its callers can pass

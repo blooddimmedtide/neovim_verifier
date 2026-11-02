@@ -3,7 +3,9 @@
 Machine-checked proofs about [Neovim](https://github.com/neovim/neovim)'s C code, built
 function by function, plus the tooling for many agents to work on it in parallel.
 
-**Status: 0 of 8,107 functions admitted; 4 are proved and waiting for review.** Live table: [STATUS.md](STATUS.md).
+**Status: 0 of 8,556 functions admitted; 35 are proved (candidates) and waiting for review or sign-off.** Three bugs found and fixed so far (see `libraries/neovim/findings/`; fixes on branch `verified` of [verified_neovim](https://github.com/blooddimmedtide/verified_neovim/tree/verified)). Live table: [STATUS.md](STATUS.md).
+
+Scope: every C function Neovim builds from its own tree: `src/nvim` (8,107) and the libraries vendored in `src/` (mpack, cjson, lpeg, xdiff, xxd, tee, ...).
 Neovim is finished here only when every function is verified or has a verified fix.
 A result counts only under the verified-libs admission standard: full functional
 correctness on the real code, for every input, no `admit`s, planted bugs caught, and two
@@ -55,7 +57,7 @@ CI runs the same on every pull request (`.github/workflows/verify.yml`).
 ```
 libraries/neovim/
   vpipe.toml          pinned commit, targets, proved properties, assumptions
-  inventory.tsv       every C function in src/nvim (tools/inventory.py)
+  inventory.tsv       every C function in src/ (tools/inventory.py)
   status.tsv          per-function status and evidence -> STATUS.md (tools/status.py)
   base64/             CLAIM.md, REVIEW.md, mutants.toml; wp/ (annotate.py, lemmas.py,
                       tool_patches.py, stubs), equiv/, bridge/, difftest/, cbmc/ (bounded, older)

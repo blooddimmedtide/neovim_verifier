@@ -1,4 +1,4 @@
-"""List every C function defined in Neovim's source, for the per-function tracker.
+"""List every C function defined in Neovim's source tree (src/), for the per-function tracker.
 
 Usage: python3 -I tools/inventory.py <neovim checkout> > libraries/neovim/inventory.tsv
 
@@ -14,9 +14,19 @@ NAME = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 SKIP = {"if", "for", "while", "switch", "return", "sizeof"}
 
 
+SAME_LINE = re.compile(r"^(?!(?:if|for|while|switch|else|do|typedef|struct|enum|union|return)\b)"
+                       r"[A-Za-z_][\w \*]*?\b([A-Za-z_]\w*)\s*\([^;]*\)\s*\{\s*$")
+
+
 def scan(path, rel):
     lines = open(path, errors="replace").read().split("\n")
     for i, line in enumerate(lines):
+        # Vendored libraries (lpeg, cjson, xdiff) often put the brace on the
+        # signature line: "static int f (lua_State *L) {".
+        m = SAME_LINE.match(line)
+        if m and m.group(1) not in SKIP:
+            yield rel, i + 1, m.group(1), "yes" if re.match(r"^(static|inline)\b", line) else "no"
+            continue
         if line != "{":
             continue
         j = i - 1
@@ -45,13 +55,21 @@ def scan(path, rel):
         yield rel, j + 1, name, "yes" if re.match(r"^(static|inline)\b", head) else "no"
 
 
+# Everything Neovim compiles from its own tree: the editor (src/nvim) and the
+# libraries vendored into src/ (mpack, cjson, xdiff, xxd, tee, ...).
+# coverity-model.c is a model for a static analyzer, not part of Neovim.
+SKIP_FILES = {"src/coverity-model.c"}
+
+
 def main(root):
-    base = os.path.join(root, "src", "nvim")
+    base = os.path.join(root, "src")
     print("file\tline\tfunction\tstatic")
     for d, _, files in sorted(os.walk(base)):
         for f in sorted(files):
             if f.endswith(".c"):
                 p = os.path.join(d, f)
+                if os.path.relpath(p, root) in SKIP_FILES:
+                    continue
                 for row in scan(p, os.path.relpath(p, root)):
                     print("\t".join(map(str, row)))
 

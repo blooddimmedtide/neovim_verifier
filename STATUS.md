@@ -1,12 +1,13 @@
 # Neovim verification status
 
-**0 / 8107 functions done** (verified, or a verified fix) across 189 files.
+**0 / 8556 functions done** (verified, or a verified fix) across 215 files.
 A function is done only when every property in its contract is proved; partial results stay open.
 
 ## Files with work in progress or done
 
 | File | Done | Partial | Open | Total |
 |---|---|---|---|---|
+| src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 
@@ -26,11 +27,51 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/mbyte.c | `utf_ptr2len_len` | candidate | mbyte/cbmc (CBMC, all inputs) | always reads p[0]; never reads past p[size-1] |
 | src/nvim/mbyte.c | `utf_cp_bounds_len` | fixed-candidate | mbyte/cbmc (CBMC, upstream for p - base <= INT_MAX, fixed for every distance) | upstream UB / out-of-bounds read at >= 2 GiB (findings/cp-bounds-over-2gib.md); fix in verified_neovim. Reviewer mutants for this function still to do |
 | src/nvim/mbyte.c | `utf_cp_bounds` | fixed-candidate | mbyte/cbmc (CBMC, same as utf_cp_bounds_len) | wrapper with p_len = INT_MAX on a NUL-terminated stream; inherits the 2 GiB bug and its fix |
+| src/mpack/mpack_core.c | `mpack_tokbuf_init` | candidate | mpack/cbmc (CBMC, all inputs) | sets the empty state. Review + planted bugs pending |
+| src/mpack/mpack_core.c | `mpack_rtoken` | candidate | mpack/cbmc (CBMC, all inputs) | spec token, consumes exactly its header. Review + planted bugs pending |
+| src/mpack/mpack_core.c | `mpack_read` | fixed-candidate | mpack/cbmc (CBMC, all inputs) | streaming reader; any split gives the same tokens; upstream hangs with a multiple of 4 GiB of input left (findings/mpack-chunk-over-4gib.md), fixed in verified_neovim. Review + planted bugs pending |
+| src/mpack/mpack_core.c | `mpack_write` | candidate | mpack/cbmc (CBMC, all inputs) | streaming writer; shortest encoding in order. Review + planted bugs pending |
+| src/mpack/mpack_core.c | `mpack_rpending` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_rvalue` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_rblob` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wtoken` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wpending` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wpint` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wnint` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wfloat` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wstr` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wbin` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wext` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_warray` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_wmap` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_w1` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_w2` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_w4` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_value` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_blob` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/mpack/mpack_core.c | `mpack_byte` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
 
 ## All files
 
 | File | Done / Total |
 |---|---|
+| src/bit.c | 0 / 4 |
+| src/nlua0.c | 0 / 1 |
+| src/static_ts_registry.c | 0 / 1 |
+| src/cjson/fpconv.c | 0 / 7 |
+| src/cjson/lua_cjson.c | 0 / 56 |
+| src/cjson/strbuf.c | 0 / 9 |
+| src/lpeg/lpcap.c | 0 / 24 |
+| src/lpeg/lpcode.c | 0 / 37 |
+| src/lpeg/lpcset.c | 0 / 5 |
+| src/lpeg/lpprint.c | 0 / 12 |
+| src/lpeg/lptree.c | 0 / 74 |
+| src/lpeg/lpvm.c | 0 / 6 |
+| src/mpack/conv.c | 0 / 23 |
+| src/mpack/lmpack.c | 0 / 34 |
+| src/mpack/mpack_core.c | 0 / 23 |
+| src/mpack/object.c | 0 / 9 |
+| src/mpack/rpc.c | 0 / 16 |
 | src/nvim/arabic.c | 0 / 10 |
 | src/nvim/arglist.c | 0 / 41 |
 | src/nvim/autocmd.c | 0 / 76 |
@@ -220,3 +261,12 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/vterm/screen.c | 0 / 41 |
 | src/nvim/vterm/state.c | 0 / 47 |
 | src/nvim/vterm/vterm.c | 0 / 17 |
+| src/tee/tee.c | 0 / 2 |
+| src/wasm/wasm_stubs.c | 0 / 23 |
+| src/xdiff/xdiffi.c | 0 / 19 |
+| src/xdiff/xemit.c | 0 / 8 |
+| src/xdiff/xhistogram.c | 0 / 8 |
+| src/xdiff/xpatience.c | 0 / 10 |
+| src/xdiff/xprepare.c | 0 / 8 |
+| src/xdiff/xutils.c | 0 / 14 |
+| src/xxd/xxd.c | 0 / 16 |
