@@ -1,0 +1,26 @@
+id	function	result	expected	goals
+xmemcpyz-nul-off-by-one	xmemcpyz	caught	caught	Proved goals:    7 / 11
+xstrnlen-plus-one	xstrnlen	caught	caught	Proved goals:    9 / 11
+xstrchrnul-past-nul	xstrchrnul	caught	caught	Proved goals:   11 / 12
+xmemscan-last-byte	xmemscan	caught	caught	Proved goals:    9 / 10
+strchrsub-preincrement	strchrsub	caught	caught	Proved goals:   32 / 35
+memchrsub-overread	memchrsub	caught	caught	Proved goals:   29 / 32
+memchrsub-split-increment	memchrsub	survived	equivalent	Proved goals:   31 / 31
+strcnt-no-skip	strcnt	caught	caught	Proved goals:   35 / 36
+memcnt-short-end	memcnt	caught	caught	Proved goals:   33 / 35
+memcnt-drop-null-compare	memcnt	survived	equivalent	Proved goals:   35 / 35
+xstpcpy-no-nul	xstpcpy	caught	caught	Proved goals:   14 / 15
+xstpncpy-short-pad	xstpncpy	caught	caught	Proved goals:   24 / 25
+xstpncpy-return-dst	xstpncpy	caught	caught	Proved goals:   23 / 25
+xstrlcpy-min-dsize	xstrlcpy	caught	caught	Proved goals:   15 / 18
+xstrlcpy-dsize-gt-1	xstrlcpy	caught	caught	Proved goals:   17 / 18
+xstrlcat-trunc-overflow	xstrlcat	survived	equivalent	Proved goals:   26 / 26
+xstrlcat-return-truncated	xstrlcat	caught	caught	Proved goals:   26 / 27
+xstrlcat-ge-boundary	xstrlcat	survived	equivalent	Proved goals:   26 / 26
+xmemrchr-predecrement	xmemrchr	caught	caught	Proved goals:   13 / 18
+xmemrchr-signed-compare	xmemrchr	caught	caught	Proved goals:   17 / 20
+strequal-or-null	strequal	caught	caught	Proved goals:   13 / 14
+strnequal-n-minus-one	strnequal	caught	caught	Proved goals:   11 / 13
+xstrlcat-fits-no-nul	xstrlcat	caught	caught	Proved goals:   25 / 26
+xmemrchr-char-view-control	xmemrchr	caught	caught	Proved goals:   17 / 20
+xmemrchr-int8-c	xmemrchr	caught	caught	Proved goals:   18 / 20

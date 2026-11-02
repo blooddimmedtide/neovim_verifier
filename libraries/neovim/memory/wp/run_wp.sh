@@ -12,6 +12,9 @@ W=$(mktemp -d); cp -r "$HERE/stubs" "$W/"; status=0
 python3 -I "$HERE/build.py" "$NV" "$W/mem.c" || exit 1
 # Behaviors' "assumes" are checked (complete/disjoint) and allowed; nothing unchecked.
 if grep -nE '\b(admit|axiom|check)\b' "$W/mem.c" "$W"/stubs/*.h; then echo "forbidden clause"; exit 1; fi
+# Frama-C 33 WP is unsound on string-literal array initializers (it assumes all zeros);
+# refuse to run if one appears in the proved code.
+if grep -nE '\[[^]]*\][[:space:]]*=[[:space:]]*"' "$W/mem.c"; then echo "string-literal array initializer (WP bug)"; exit 1; fi
 run() {  # $1 = label, rest = frama-c selection options
   local l=$1; shift
   (cd "$W" && frama-c -machdep x86_64 -cpp-extra-args="-I stubs" mem.c -wp "$@" -wp-rte \
