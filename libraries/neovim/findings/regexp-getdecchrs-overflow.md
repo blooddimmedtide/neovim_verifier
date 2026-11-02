@@ -5,7 +5,8 @@
 **Found by:** libFuzzer + UBSan (`../regexp_search/fuzz/fuzz_regexp.c`), then the WP proof
 (`../regexp/wp`), which only goes through with the precondition below.
 **Fix:** `blooddimmedtide/verified_neovim`, branch `claude/project-thread-legcap`, commit
-`3336e2d` (`fix(regexp): no overflow on long digit runs in patterns`). Proved for every input.
+`3336e2d` (`fix(regexp): no overflow on long digit runs in patterns`). `getdecchrs` itself is proved for every input; the two caller changes
+in the same commit are reviewed by hand and tested, not proved.
 
 ## What goes wrong
 

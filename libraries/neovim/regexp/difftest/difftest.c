@@ -7,7 +7,7 @@
 #include "../cbmc/spec.h"
 #include REGEXP_NUM_C   // build.py output, with getdecchrs appended
 
-static const char ALPHA[] = "0179afAFgG/:@`\x80\xff";
+static const char ALPHA[] = "01789afAFgG/:@`\x80\xff";
 static long fails = 0, checks = 0;
 
 static int64_t ref_dec(const char *s, int *n) {   // min(value, INT_MAX + 1), or -1
@@ -57,7 +57,8 @@ int main(void) {
     memset(big, '0' + d, (size_t)len); big[len] = 'x'; big[len + 1] = 0; check(big);
   }
   const char *edge[] = { "2147483647x", "2147483648x", "9223372036854775807", "9223372036854775808",
-                         "18446744073709551681", "000000000000000000000000000001" };
+                         "18446744073709551681", "000000000000000000000000000001",
+                         "21474836470x", "21474836479", "2147483646x", "21474836480" };
   for (unsigned i = 0; i < sizeof edge / sizeof *edge; i++) check(edge[i]);
 #endif
   printf("%ld checks, %ld mismatches\n", checks, fails);

@@ -34,7 +34,10 @@ large" (both from the doc comment and the fix), and the octal stop rule (from th
 
 `getdecchrs` overflows `int64_t` on 19 or more digits and its `int` counter on 2^31 digits
 (undefined behavior; wrapped values make `\%d18446744073709551681` match `A`). Details:
-`../findings/regexp-getdecchrs-overflow.md`. Fixed in the fork and proved for every input.
+`../findings/regexp-getdecchrs-overflow.md`. Fixed in the fork; the fixed `getdecchrs` is proved
+for every input. The two caller changes in the same commit (`regpiece`, `nfa_regpiece`: a
+look-behind limit above `INT_MAX` means no limit) and the property "every caller rejects or
+clamps `INT_MAX + 1`" are checked by hand in `REVIEW.md` and by Neovim's tests, not proved.
 
 ## What the proof relies on
 
@@ -58,7 +61,8 @@ large" (both from the doc comment and the fix), and the octal stop rule (from th
 |---|---|---|
 | WP, upstream | `bash regexp/wp/run_wp.sh <upstream>` | dval_mono 15/15, getdecchrs 43/43 |
 | WP, fixed | `bash regexp/wp/run_wp.sh <fixed>` | dval_mono 15/15, getdecchrs 41/41 |
-| CBMC | `bash regexp/cbmc/run_cbmc.sh <checkout>` | 4/4 harnesses (2 functions x 2 char signednesses), upstream and fixed |
-| Differential | `bash regexp/difftest/run_difftest.sh <checkout>` | 279,620 (upstream) / 351,505 (fixed, with getdecchrs) checks per signedness, 0 mismatches |
+| CBMC | `bash regexp/cbmc/run_cbmc.sh <checkout>` | 4/4 harnesses (2 functions x 2 char signednesses), upstream and fixed; input is any NUL-terminated string, exactly allocated |
+| Differential | `bash regexp/difftest/run_difftest.sh <checkout>` | 354,964 (upstream) / 445,705 (fixed, with getdecchrs) checks per signedness, 0 mismatches |
+| Review | `REVIEW.md` (independent), `python3 -I regexp/run_mutants.py <upstream> <fixed>` | accepted with changes, all addressed; 24/24 non-equivalent planted bugs caught, 5 equivalent |
 
-Still to do before `verified`: independent review with planted bugs, owner sign-off.
+Still to do before `verified`: owner sign-off.

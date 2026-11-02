@@ -1,7 +1,9 @@
 // CBMC proofs of full functional correctness of regexp.c's gethexchrs and
-// getoctchrs, for every input. The input object holds exactly the bytes the
-// function may read, with arbitrary contents (NUL included), so a read past them
-// fails the pointer check.
+// getoctchrs, for every input. The input is what callers guarantee: a
+// NUL-terminated string. The harness allocates exactly L bytes for every L from 1
+// to max + 1 (the function never needs more), the last one NUL and the others
+// arbitrary, so any read past the string's NUL fails the pointer check. The
+// bytes must stay unchanged (frame; regparse is the only global in scope).
 #include <stdint.h>
 #include <stdlib.h>
 #include "spec.h"
@@ -15,12 +17,22 @@ int nondet_int(void);
 void h_gethexchrs(void) {
   int max = nondet_int();
   __CPROVER_assume(max == 2 || max == 4 || max == 8);   // the callers' values
-  char *buf = malloc((size_t)max);                      // any bytes
+  int len = nondet_int();
+  __CPROVER_assume(len >= 1 && len <= max + 1);
+  char *buf = malloc((size_t)len);                      // any bytes, then NUL
+  buf[len - 1] = '\0';
+  char before[9];
+  for (int i = 0; i < len; i++) {
+    before[i] = buf[i];
+  }
   regparse = buf;
   int64_t r = gethexchrs(max);
+  for (int i = 0; i < len; i++) {
+    __CPROVER_assert(buf[i] == before[i], "input unchanged");
+  }
   int n = 0;
   int64_t v = 0;
-  while (n < max && spec_hexdigit((unsigned char)buf[n]) >= 0) {
+  while (n < max && n < len && spec_hexdigit((unsigned char)buf[n]) >= 0) {
     v = v * 16 + spec_hexdigit((unsigned char)buf[n]);
     n++;
   }
@@ -36,12 +48,22 @@ void h_gethexchrs(void) {
 // at most 0377; returns its value and moves past it, or -1 when the first byte
 // is not an octal digit.
 void h_getoctchrs(void) {
-  char *buf = malloc(3);   // any bytes
+  int len = nondet_int();
+  __CPROVER_assume(len >= 1 && len <= 4);
+  char *buf = malloc((size_t)len);   // any bytes, then NUL
+  buf[len - 1] = '\0';
+  char before[4];
+  for (int i = 0; i < len; i++) {
+    before[i] = buf[i];
+  }
   regparse = buf;
   int64_t r = getoctchrs();
+  for (int i = 0; i < len; i++) {
+    __CPROVER_assert(buf[i] == before[i], "input unchanged");
+  }
   int n = 0;
   int64_t v = 0;
-  while (n < 3 && spec_octdigit((unsigned char)buf[n]) >= 0
+  while (n < 3 && n < len && spec_octdigit((unsigned char)buf[n]) >= 0
          && v * 8 + spec_octdigit((unsigned char)buf[n]) <= 0377) {
     v = v * 8 + spec_octdigit((unsigned char)buf[n]);
     n++;

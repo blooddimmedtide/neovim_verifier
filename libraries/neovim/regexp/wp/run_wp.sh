@@ -3,7 +3,7 @@
 # Full-correctness proof of regexp.c's getdecchrs with Frama-C WP, no admits.
 # The pinned upstream text is proved under its overflow precondition
 # (findings/regexp-getdecchrs-overflow.md); the fixed fork's text for every input.
-# Needs CVC5 behind tools/bin/cvc5-fsq (tools/install.sh sets it up).
+# -wp-prover cvc5 runs tools/bin/cvc5-fsq: tools/install.sh points Why3's CVC5 entry at it.
 # Exit 0 = every goal proved.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd); T=${2:-60}

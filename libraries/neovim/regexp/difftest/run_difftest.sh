@@ -15,6 +15,6 @@ if python3 -I "$HERE/../wp/build.py" "$NV" "$W/dec.c" | grep -q "getdecchrs/fixe
 fi
 for sign in -fsigned-char -funsigned-char; do
   gcc -O2 $sign $dec -I "$HERE" -DREGEXP_NUM_C="\"$W/num.c\"" "$HERE/difftest.c" -o "$W/dt" || exit 1
-  echo -n "$sign: "; "$W/dt" | tail -1 || status=1
+  echo -n "$sign: "; "$W/dt" > "$W/out"; rc=$?; tail -1 "$W/out"; [ $rc -eq 0 ] || status=1
 done
 rm -rf "$W"; exit $status
