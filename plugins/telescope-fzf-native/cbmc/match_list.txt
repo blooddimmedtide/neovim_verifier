@@ -1,0 +1,16 @@
+harness_match.c:h_prefix:8:-DREALLOC_UNREACHABLE
+harness_match.c:h_suffix:8:-DREALLOC_UNREACHABLE
+harness_match.c:h_equal:8:-DREALLOC_UNREACHABLE
+harness_match.c:h_exact:8:--unwindset,fzf_exact_match_naive.0:17,-DREALLOC_UNREACHABLE
+harness_match.c:h_calculate_score:8:-DREALLOC_UNREACHABLE
+harness_match.c:h_v1:8:-DREALLOC_UNREACHABLE
+harness_match.c:h_v2:8:-DREALLOC_UNREACHABLE,-DCODE_MALLOC_UNREACHABLE
+harness_match.c:h_v2_noslab:8:-DREALLOC_UNREACHABLE,-DCODE_MALLOC_MAX=18,--unwindset,fzfv_code_malloc.0:20,--object-bits,10,-DNB=3
+harness_match.c:h_v2_full:8:-DREALLOC_UNREACHABLE,-DCODE_MALLOC_UNREACHABLE,--unwindset,big_slab.0:48,--unwindset,big_slab.1:12,--unwindset,ref_v2.3:17
+harness_match.c:h_v2_fallback:8:-DREALLOC_UNREACHABLE,-DCODE_MALLOC_UNREACHABLE
+harness_match.c:h_v2_slab_independent:8:-DREALLOC_UNREACHABLE,-DCODE_MALLOC_UNREACHABLE,--unwindset,big_slab.0:48,--unwindset,big_slab.1:12
+harness_api.c:h_parse:5:--memory-leak-check,-DPL=2,-DCODE_MALLOC_MAX=40,-DREALLOC_MAX=80,-DSTRDUP_MAX=6,--unwindset,fzfv_code_malloc.0:42,--unwindset,realloc.0:22,--unwindset,realloc.1:82,--unwindset,strdup.0:8,--object-bits,12
+harness_api.c:h_score_positions:5:--memory-leak-check,-DQL=2,-DCODE_MALLOC_MAX=64,-DREALLOC_MAX=80,-DSTRDUP_MAX=5,--unwindset,fzfv_code_malloc.0:66,--unwindset,realloc.0:22,--unwindset,realloc.1:82,--unwindset,strdup.0:7,--object-bits,12
+harness_api.c:h_parse_alpha:5:--memory-leak-check,-DPL=4,-DCODE_MALLOC_MAX=40,-DREALLOC_MAX=80,-DSTRDUP_MAX=6,--unwindset,fzfv_code_malloc.0:42,--unwindset,realloc.0:22,--unwindset,realloc.1:82,--unwindset,strdup.0:8,--object-bits,12
+harness_compose.c:h_compose:8:--memory-leak-check,-DREALLOC_MAX=16,--unwindset,realloc.0:22,--unwindset,realloc.1:82
+harness_compose.c:h_slab:8:--memory-leak-check
