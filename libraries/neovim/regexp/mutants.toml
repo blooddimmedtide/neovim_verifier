@@ -1,0 +1,278 @@
+# Planted bugs for the regexp.c number readers (independent review).
+# Each `original` occurs exactly once in the named function's text in the given
+# checkout ("fixed" = fork commit 3336e2d, "upstream" = 7b87ce8). run_mutants.py
+# mutates a copy of the checkout, re-pins the function's sha256 in a copy of the
+# build scripts, and runs the matching proof: WP (wp/run_wp.sh) for getdecchrs,
+# CBMC (cbmc/run_cbmc.sh) for gethexchrs/getoctchrs. Nonzero exit = caught.
+# `expect`: "caught", or "equivalent" (same behaviour for every input the callers
+# can give, with a reason in `why`), or "gap" (a real bug the current proof is not
+# designed to catch: listed in REVIEW.md as an issue, expected to survive).
+
+# ---------- getdecchrs, fixed fork (Frama-C WP) ----------
+
+[[mutant]]
+id = "dec-nine-not-digit"
+function = "getdecchrs"
+checkout = "fixed"
+original = "c > '9'"
+mutated = "c >= '9'"
+why = "'9' no longer a digit (off by one on the upper bound)"
+expect = "caught"
+
+[[mutant]]
+id = "dec-zero-not-digit"
+function = "getdecchrs"
+checkout = "fixed"
+original = "c < '0'"
+mutated = "c <= '0'"
+why = "'0' no longer a digit (off by one on the lower bound)"
+expect = "caught"
+
+[[mutant]]
+id = "dec-guard-lt"
+function = "getdecchrs"
+checkout = "fixed"
+original = "    if (nr <= INT_MAX) {"
+mutated = "    if (nr < INT_MAX) {"
+why = "a value of exactly INT_MAX stops growing: 21474836470 returns INT_MAX instead of INT_MAX + 1"
+expect = "caught"
+
+[[mutant]]
+id = "dec-sat-intmax"
+function = "getdecchrs"
+checkout = "fixed"
+original = "      nr = (int64_t)INT_MAX + 1;"
+mutated = "      nr = INT_MAX;"
+why = "saturates to INT_MAX, which callers accept as a valid value (\\%d99999999999 would match U+7FFFFFFF)"
+expect = "caught"
+
+[[mutant]]
+id = "dec-no-saturation"
+function = "getdecchrs"
+checkout = "fixed"
+original = "    if (nr > INT_MAX) {"
+mutated = "    if (false) {"
+why = "dropped saturation: returns the first value above INT_MAX (e.g. 21474836479), stops reading digits into it"
+expect = "caught"
+
+[[mutant]]
+id = "dec-wrong-base"
+function = "getdecchrs"
+checkout = "fixed"
+original = "nr * 10 +"
+mutated = "nr * 16 +"
+why = "wrong base constant"
+expect = "caught"
+
+[[mutant]]
+id = "dec-digit-offset"
+function = "getdecchrs"
+checkout = "fixed"
+original = "(c - '0')"
+mutated = "(c - '1')"
+why = "digit value off by one"
+expect = "caught"
+
+[[mutant]]
+id = "dec-no-curchr"
+function = "getdecchrs"
+checkout = "fixed"
+original = "    curchr = -1;     // no longer valid\n"
+mutated = ""
+why = "stale peeked character kept after consuming digits (\\@123<= would re-read the old curchr)"
+expect = "caught"
+
+[[mutant]]
+id = "dec-empty-zero"
+function = "getdecchrs"
+checkout = "fixed"
+original = "    return -1;"
+mutated = "    return 0;"
+why = "no digits reported as 0: \\%d with no number would match NUL/NL instead of E678"
+expect = "caught"
+
+[[mutant]]
+id = "dec-empty-test-off"
+function = "getdecchrs"
+checkout = "fixed"
+original = "  if (regparse == start) {"
+mutated = "  if (regparse <= start + 1) {"
+why = "a single digit is treated as no number"
+expect = "caught"
+
+[[mutant]]
+id = "dec-guard-dropped"
+function = "getdecchrs"
+checkout = "fixed"
+original = "    if (nr <= INT_MAX) {"
+mutated = "    if (true) {"
+why = "equivalent: nr is at most INT_MAX + 1 before the multiply, so nr * 10 + 9 <= 21474836489 never overflows int64_t and is clamped back to INT_MAX + 1 right after"
+expect = "equivalent"
+
+[[mutant]]
+id = "dec-signed-read"
+function = "getdecchrs"
+checkout = "fixed"
+original = "    const int c = (uint8_t)regparse[0];"
+mutated = "    const int c = regparse[0];"
+why = "equivalent: a negative (signed char) byte is < '0', so it stops the run exactly like its unsigned value > '9'"
+expect = "equivalent"
+
+# ---------- getdecchrs, upstream (WP under the overflow precondition) ----------
+
+[[mutant]]
+id = "up-dec-empty-test"
+function = "getdecchrs"
+checkout = "upstream"
+original = "  if (i == 0) {"
+mutated = "  if (i < 0) {"
+why = "upstream: no digits returns 0 instead of -1"
+expect = "caught"
+
+[[mutant]]
+id = "up-dec-digit-offset"
+function = "getdecchrs"
+checkout = "upstream"
+original = "    nr += c - '0';"
+mutated = "    nr += c - '0' + (c == '9');"
+why = "upstream: '9' counts as 10"
+expect = "caught"
+
+# ---------- gethexchrs (CBMC) ----------
+
+[[mutant]]
+id = "hex-max-le"
+function = "gethexchrs"
+checkout = "fixed"
+original = "i < maxinputlen;"
+mutated = "i <= maxinputlen;"
+why = "reads one hex digit too many (\\%x414 would read 0x414)"
+expect = "caught"
+
+[[mutant]]
+id = "hex-shift3"
+function = "gethexchrs"
+checkout = "fixed"
+original = "    nr <<= 4;"
+mutated = "    nr <<= 3;"
+why = "wrong shift constant"
+expect = "caught"
+
+[[mutant]]
+id = "hex-drop-F"
+function = "gethexchrs"
+checkout = "fixed"
+original = "    if (!ascii_isxdigit(c)) {"
+mutated = "    if (!ascii_isxdigit(c) || c == 'F') {"
+why = "upper-case F not accepted"
+expect = "caught"
+
+[[mutant]]
+id = "hex-empty-test"
+function = "gethexchrs"
+checkout = "fixed"
+original = "  if (i == 0) {"
+mutated = "  if (i == 1) {"
+why = "one digit is reported as invalid, none as 0"
+expect = "caught"
+
+[[mutant]]
+id = "hex-or-plus"
+function = "gethexchrs"
+checkout = "fixed"
+original = "    nr |= hex2nr(c);"
+mutated = "    nr += hex2nr(c);"
+why = "equivalent: after nr <<= 4 the low 4 bits are 0 and hex2nr(c) is 0..15 for a hex digit"
+expect = "equivalent"
+
+[[mutant]]
+id = "hex-signed-read"
+function = "gethexchrs"
+checkout = "fixed"
+original = "    c = (uint8_t)regparse[0];"
+mutated = "    c = regparse[0];"
+why = "equivalent: ascii_isxdigit is false for every negative value, as for bytes >= 0x80"
+expect = "equivalent"
+
+[[mutant]]
+id = "hex-read-past-nul"
+function = "gethexchrs"
+checkout = "fixed"
+original = "    if (!ascii_isxdigit(c)) {"
+mutated = "    if ((i + 1 < maxinputlen && regparse[1] == '\\x01' && c == 0x100) || !ascii_isxdigit(c)) {"
+why = "same values, but reads regparse[1] when regparse[0] may be the pattern's NUL: out of bounds for \"\\\\%x\" at the end of an exactly sized allocation. The harness makes all max bytes readable, so it cannot see this (REVIEW.md issue 1)"
+expect = "caught"
+
+# ---------- getoctchrs (CBMC) ----------
+
+[[mutant]]
+id = "oct-accept-8"
+function = "getoctchrs"
+checkout = "fixed"
+original = "c > '7'"
+mutated = "c > '8'"
+why = "'8' accepted as an octal digit"
+expect = "caught"
+
+[[mutant]]
+id = "oct-limit-le"
+function = "getoctchrs"
+checkout = "fixed"
+original = "nr < 040;"
+mutated = "nr <= 040;"
+why = "\"401\" read as 0401 (above 0377) instead of 040"
+expect = "caught"
+
+[[mutant]]
+id = "oct-limit-037"
+function = "getoctchrs"
+checkout = "fixed"
+original = "nr < 040;"
+mutated = "nr < 037;"
+why = "\"377\" read as 037"
+expect = "caught"
+
+[[mutant]]
+id = "oct-four-digits"
+function = "getoctchrs"
+checkout = "fixed"
+original = "i < 3 &&"
+mutated = "i < 4 &&"
+why = "\"0001\" reads four digits"
+expect = "caught"
+
+[[mutant]]
+id = "oct-shift4"
+function = "getoctchrs"
+checkout = "fixed"
+original = "    nr <<= 3;"
+mutated = "    nr <<= 4;"
+why = "wrong shift constant"
+expect = "caught"
+
+[[mutant]]
+id = "oct-empty-test"
+function = "getoctchrs"
+checkout = "fixed"
+original = "    return -1;"
+mutated = "    return 0;"
+why = "no octal digit returns 0 instead of -1"
+expect = "caught"
+
+[[mutant]]
+id = "oct-or-plus"
+function = "getoctchrs"
+checkout = "fixed"
+original = "    nr |= hex2nr(c);"
+mutated = "    nr += hex2nr(c);"
+why = "equivalent: after nr <<= 3 the low 3 bits are 0 and the digit is 0..7"
+expect = "equivalent"
+
+[[mutant]]
+id = "oct-read-past-nul"
+function = "getoctchrs"
+checkout = "fixed"
+original = "    if (c < '0' || c > '7') {"
+mutated = "    if ((i < 2 && regparse[1] == '\\x01' && c == 0x100) || c < '0' || c > '7') {"
+why = "same values, but reads regparse[1] when regparse[0] may be the pattern's NUL (\"\\\\%o\" at the end of the pattern). The harness makes 3 bytes readable, so it cannot see this (REVIEW.md issue 1)"
+expect = "caught"

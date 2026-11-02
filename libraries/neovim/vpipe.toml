@@ -45,6 +45,27 @@ annotate = "memory/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as 
 prove = ["bash memory/wp/run_wp.sh {src} 120"]
 check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
 
+[targets.regexp_numbers]
+file = "src/nvim/regexp.c"
+functions = ["getdecchrs", "gethexchrs", "getoctchrs"]
+annotate = "regexp/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only
+prove = ["bash regexp/wp/run_wp.sh {src} 60", "bash regexp/wp/run_wp.sh {fixed} 60", "bash regexp/cbmc/run_cbmc.sh {src}"]
+check = ["bash regexp/difftest/run_difftest.sh {src}"]
+
+[targets.regexp_leaves]
+file = "src/nvim/regexp.c"
+functions = ["no_Magic", "toggle_Magic", "re_multi_type", "backslash_trans", "re_multiline", "vim_regcomp_had_eol", "re_num_cmp", "nfa_re_num_cmp"]
+annotate = "regexp/leaves/build.py"   # verbatim extraction, sha256 pinned
+prove = ["bash regexp/leaves/run_cbmc.sh {src}", "bash regexp/leaves/run_cbmc.sh {fixed}"]
+check = ["bash regexp/leaves/run_mutants.sh {src}"]
+
+[targets.search_csearch]
+file = "src/nvim/search.c"
+functions = ["set_last_csearch", "get_search_pat", "last_search_pattern", "last_search_pattern_len", "last_csearch", "last_csearch_forward", "last_csearch_until", "set_csearch_direction", "set_csearch_until", "set_search_direction", "first_submatch", "search_pattern_cleared", "set_last_used_pattern", "search_was_last_used"]
+annotate = "search/cbmc/build.py"   # verbatim extraction, sha256 pinned
+prove = ["bash search/cbmc/run_cbmc.sh {fixed}", "bash search/cbmc/run_cbmc.sh {src}"]   # fixed: proved; upstream: must be refuted
+check = ["bash search/cbmc/run_mutants.sh {fixed}"]
+
 [framac]
 per_function = true
 
