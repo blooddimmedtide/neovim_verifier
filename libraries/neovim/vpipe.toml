@@ -47,7 +47,7 @@ check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
 
 [targets.charset_str]
 file = "src/nvim/charset.c"
-functions = ["nr2hex", "skipwhite", "skipwhite_len", "getwhitecols", "skipdigits", "skipbin", "skiphex", "skiptodigit", "skiptobin", "skiptohex", "skiptowhite", "skiptowhite_esc", "skip_to_newline", "vim_isblankline", "hex2nr", "hexhex2nr", "rem_backslash", "backslash_halve", "backslash_halve_save"]
+functions = ["nr2hex", "skipwhite", "skipwhite_len", "getwhitecols", "skipdigits", "skipbin", "skiphex", "skiptodigit", "skiptobin", "skiptohex", "skiptowhite", "skiptowhite_esc", "skip_to_newline", "vim_isblankline", "hex2nr", "hexhex2nr", "rem_backslash", "backslash_halve", "backslash_halve_save", "try_getdigits", "getdigits", "getdigits_int", "getdigits_long", "getdigits_int32"]
 annotate = "charset/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only; one declared tool patch
 prove = ["bash charset/wp/run_wp.sh {src} 120", "bash charset/equiv/run_equiv.sh {src} 12"]
 check = ["bash charset/difftest/run_difftest.sh {src} 1000000"]

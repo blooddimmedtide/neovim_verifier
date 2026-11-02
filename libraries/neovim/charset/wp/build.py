@@ -1,6 +1,8 @@
 """Annotated standalone copy of charset.c's string helpers for Frama-C WP.
 
-Usage: python3 -I build.py <neovim checkout> <out.c> [function]
+Usage: python3 -I build.py <neovim checkout> <out.c> [--fixed]
+--fixed: the checkout is the fixed fork; functions in FIXED_SHA use the fork's pinned
+text and drop their "// upstream only" preconditions.
 Exact upstream text of each function (sha256 pinned), from charset.c and the
 ascii_defs.h inline helpers it calls, with an ACSL contract placed before each
 function and annotations inserted as comments. The C code is not changed:
@@ -12,7 +14,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "..", "tools"))
 from extract_c import find
-from contracts import CONTRACTS, LOOPS, LOGIC, GHOST_PARAMS, GHOST_ARGS, PIECES
+from contracts import CONTRACTS, LOOPS, LOGIC, GHOST_PARAMS, GHOST_ARGS, PIECES, FIXED_SHA, PRELUDE_EXTRA, PRELUDE_CHECKS
 import lemmas, tool_patches
 
 PRELUDE = """\
@@ -42,20 +44,22 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
 GHOST_RE = r" /\*@ ghost \(.*?\) \*/"
 
 
-def main(tree, out, only=None):
-    for path, text in CHECKS:
+def main(tree, out, fixed=False):
+    for path, text in CHECKS + PRELUDE_CHECKS:
         if text not in open(f"{tree}/{path}").read().split("\n"):
             sys.exit(f"build: {path} no longer contains: {text}")
     for d in ("BACKSLASH_IN_FILENAME",):
         if re.search(r"#\s*define\s+" + d + r"\b", open(f"{tree}/src/nvim/os/os_defs.h").read()
                      + open(f"{tree}/src/nvim/os/unix_defs.h").read()):
             sys.exit(f"build: {d} is defined on Unix now")
-    parts, cache = [PRELUDE, lemmas.acsl(), LOGIC], {}
+    parts, cache = [PRELUDE, PRELUDE_EXTRA, lemmas.acsl(), LOGIC], {}
     for path, name, want in PIECES:
         lines = cache.setdefault(path, open(f"{tree}/{path}").read().split("\n"))
         s, e = find(lines, name)
         piece = "\n".join(lines[s:e + 1])
         h = hashlib.sha256(piece.encode()).hexdigest()
+        if fixed and name in FIXED_SHA:
+            want = FIXED_SHA[name]
         if h != want:
             sys.exit(f"build: {name} ({path}:{s + 1}) changed upstream: sha256 {h}")
         patched = tool_patches.apply(name, piece)   # declared rewrites (equiv/ proves them)
@@ -69,16 +73,26 @@ def main(tree, out, only=None):
             if a.count(call) != 1:
                 sys.exit(f"build: {name}: call not found once: {call!r}")
             a = a.replace(call, f"{call} /*@ ghost ({arg}) */")
-        for anchor, annot in LOOPS.get(name, []):
-            if a.count(anchor) != 1:
-                sys.exit(f"build: {name}: anchor not found once: {anchor!r}")
+        for entry in LOOPS.get(name, []):
+            # (anchor, annotation[, nth occurrence (default: must be unique)])
+            anchor, annot = entry[0], entry[1]
+            nth = entry[2] if len(entry) > 2 else None
+            k = a.count(anchor)
+            if (nth is None and k != 1) or (nth is not None and k <= nth):
+                sys.exit(f"build: {name}: anchor not found {'once' if nth is None else nth + 1}: {anchor!r}")
+            pos = -1
+            for _ in range((nth or 0) + 1):
+                pos = a.index(anchor, pos + 1)
             indent = re.match(r"\s*", anchor).group(0)
-            a = a.replace(anchor, f"{indent}/*@ {annot} */\n{anchor}")
+            a = a[:pos] + f"{indent}/*@ {annot} */\n" + a[pos:]
         stripped = re.sub(GHOST_RE, "", a)
         assert re.sub(r"[ \t]*/\*@.*?\*/\n", "", stripped, flags=re.S) == patched, name
-        parts.append(f"// {path}:{s + 1} (verbatim, plus ACSL comments)\n/*@ {CONTRACTS[name]} */\n{a}\n")
+        contract = CONTRACTS[name]
+        if fixed:   # upstream-only preconditions (the bug's input range) are dropped
+            contract = "\n".join(l for l in contract.split("\n") if "// upstream only" not in l)
+        parts.append(f"// {path}:{s + 1} ({'fixed fork' if fixed and name in FIXED_SHA else 'verbatim'}, plus ACSL comments)\n/*@ {contract} */\n{a}\n")
     open(out, "w").write("\n".join(parts))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
+    main(sys.argv[1], sys.argv[2], "--fixed" in sys.argv[3:])

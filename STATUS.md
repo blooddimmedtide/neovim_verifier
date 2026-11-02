@@ -9,7 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
-| src/nvim/charset.c | 0 | 19 | 38 | 57 |
+| src/nvim/charset.c | 0 | 24 | 33 | 57 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -94,6 +94,11 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/charset.c | `rem_backslash` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | backslash followed by non-NUL (Unix build); see charset/CLAIM.md. Review pending |
 | src/nvim/charset.c | `backslash_halve` | candidate | charset/wp (Frama-C WP, every length), charset/difftest, charset/equiv (CBMC) | backslash halving in place (goto rewritten by a declared tool patch, CBMC-checked up to length 12); see charset/CLAIM.md. Review pending |
 | src/nvim/charset.c | `backslash_halve_save` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | backslash halving into one new allocation; see charset/CLAIM.md. Review pending |
+| src/nvim/charset.c | `try_getdigits` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | strtoimax base 10: pointer past the number, clamped value, false exactly on overflow (strtoimax contract in charset/wp/stubs); see charset/CLAIM.md. Review pending |
+| src/nvim/charset.c | `getdigits` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | the number, 0 without digits, def on overflow; strict: precondition no overflow (else abort); see charset/CLAIM.md. Review pending |
+| src/nvim/charset.c | `getdigits_int` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | as getdigits within int range; strict: precondition in range (else assert/abort); see charset/CLAIM.md. Review pending |
+| src/nvim/charset.c | `getdigits_long` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | as getdigits (long = intmax_t on x86_64); see charset/CLAIM.md. Review pending |
+| src/nvim/charset.c | `getdigits_int32` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | as getdigits within int32 range; strict: precondition in range (else assert/abort); see charset/CLAIM.md. Review pending |
 
 ## All files
 
