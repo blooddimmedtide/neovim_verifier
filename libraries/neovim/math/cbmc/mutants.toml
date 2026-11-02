@@ -1,0 +1,198 @@
+# Planted bugs for the CBMC proof of src/nvim/math.c (independent review).
+# Each `original` occurs exactly once in the build.py output for commit 7b87ce8
+# (the same text in the builtin and --fallback outputs).
+# Run: apply to a copy of the generated (non-fallback) file, then
+# `bash run_cbmc.sh <checkout> <copy>`, which proves both the builtin and the
+# fallback build of the copy; nonzero exit = caught. `expect` is the reviewer's
+# prediction: "caught" or "equivalent" (semantically identical on the documented
+# domain). `result` is what the run gave.
+
+[[mutant]]
+id = "cls-exp-shift"
+function = "xfpclassify"
+original = "int e = 0x7ff & (m >> 52);"
+mutated = "int e = 0x7ff & (m >> 53);"
+why = "exponent field read one bit too high (sign bit leaks in, low exponent bit lost)"
+expect = "caught"
+result = "caught (h_classify (builtin), h_classify (fallback))"
+
+[[mutant]]
+id = "cls-mantissa-mask"
+function = "xfpclassify"
+original = "m = 0xfffffffffffffULL & m;"
+mutated = "m = 0x7ffffffffffffULL & m;"
+why = "51-bit mantissa mask drops the quiet bit: qNaN 0x7ff8000000000000 classified as infinite"
+expect = "caught"
+result = "caught (h_classify (builtin), h_classify (fallback))"
+
+[[mutant]]
+id = "cls-flush-subnormal"
+function = "xfpclassify"
+original = "return m ? FP_SUBNORMAL : FP_ZERO;"
+mutated = "return FP_ZERO;"
+why = "subnormals reported as zero (flush-to-zero thinking)"
+expect = "caught"
+result = "caught (h_classify (builtin), h_classify (fallback))"
+
+[[mutant]]
+id = "cls-nan-inf-swap"
+function = "xfpclassify"
+original = "return m ? FP_NAN : FP_INFINITE;"
+mutated = "return m ? FP_INFINITE : FP_NAN;"
+why = "NaN and infinity swapped for all-ones exponent"
+expect = "caught"
+result = "caught (h_classify (builtin), h_classify (fallback))"
+
+[[mutant]]
+id = "cls-case-7fe"
+function = "xfpclassify"
+original = "case 0x7ff:"
+mutated = "case 0x7fe:"
+why = "wrong special exponent: largest finite binade treated as inf/NaN, inf/NaN as normal"
+expect = "caught"
+result = "caught (h_classify (builtin), h_classify (fallback))"
+
+[[mutant]]
+id = "isinf-includes-nan"
+function = "xisinf"
+original = "return FP_INFINITE == xfpclassify(d);"
+mutated = "return FP_INFINITE == xfpclassify(d) || FP_NAN == xfpclassify(d);"
+why = "xisinf true for NaN (non-finite instead of infinite)"
+expect = "caught"
+result = "caught (h_classify (builtin), h_classify (fallback))"
+
+[[mutant]]
+id = "isnan-self-compare"
+function = "xisnan"
+original = "return FP_NAN == xfpclassify(d);"
+mutated = "return d != d;"
+why = "the classic NaN test; equal under IEEE 754 semantics (CBMC, no -ffast-math)"
+expect = "equivalent"
+result = "survived (10/10 proved); equivalent, see why"
+
+[[mutant]]
+id = "ctz-zero-63"
+function = "xctz"
+original = "return 8 * sizeof(x);"
+mutated = "return 8 * sizeof(x) - 1;"
+why = "ctz(0) returns 63 instead of 64"
+expect = "caught"
+result = "caught (h_ctz (builtin), h_ctz (fallback))"
+
+[[mutant]]
+id = "ctz-builtin-32bit"
+function = "xctz"
+original = "return __builtin_ctzll(x);"
+mutated = "return __builtin_ctz(x);"
+why = "32-bit builtin truncates x: 1<<40 gives garbage / UB (low word zero)"
+expect = "caught"
+result = "caught (h_ctz (builtin))"
+
+[[mutant]]
+id = "ctz-fallback-noshift"
+function = "xctz"
+original = "x = (x ^ (x - 1)) >> 1;"
+mutated = "x = (x ^ (x - 1));"
+why = "fallback loop off by one (counts the lowest set bit too)"
+expect = "caught"
+result = "caught (h_ctz (fallback))"
+
+[[mutant]]
+id = "ctz-fallback-loop-cond"
+function = "xctz"
+original = "while (x) {"
+mutated = "while (x > 1) {"
+why = "fallback loop stops one bit early"
+expect = "caught"
+result = "caught (h_ctz (fallback))"
+
+[[mutant]]
+id = "pop-builtin-32bit"
+function = "xpopcount"
+original = "return (unsigned)__builtin_popcountll(x);"
+mutated = "return (unsigned)__builtin_popcount(x);"
+why = "32-bit builtin ignores the high word"
+expect = "caught"
+result = "caught (h_popcount (builtin))"
+
+[[mutant]]
+id = "pop-builtin-long"
+function = "xpopcount"
+original = "return (unsigned)__builtin_popcountll(x);"
+mutated = "return (unsigned)__builtin_popcountl(x);"
+why = "long is 64-bit on x86_64 (LP64), so identical on the proved platform; would be caught on LLP64 Windows"
+expect = "equivalent"
+result = "survived (10/10 proved); equivalent, see why"
+
+[[mutant]]
+id = "pop-fallback-cond"
+function = "xpopcount"
+original = "for (; x != 0; x >>= 1) {"
+mutated = "for (; x > 1; x >>= 1) {"
+why = "fallback loop misses the top set bit"
+expect = "caught"
+result = "caught (h_popcount (fallback))"
+
+[[mutant]]
+id = "digit-bound-ignores-digit"
+function = "vim_append_digit_int"
+original = "if (x > ((INT_MAX - digit) / 10)) {"
+mutated = "if (x > (INT_MAX / 10)) {"
+why = "bound ignores the digit: 214748364*10+8 overflows"
+expect = "caught"
+result = "caught (h_append_digit (builtin), h_append_digit (fallback))"
+
+[[mutant]]
+id = "digit-bound-ge"
+function = "vim_append_digit_int"
+original = "if (x > ((INT_MAX - digit) / 10)) {"
+mutated = "if (x >= ((INT_MAX - digit) / 10)) {"
+why = "rejects the largest value that still fits (2147483647 itself is refused)"
+expect = "caught"
+result = "caught (h_append_digit (builtin), h_append_digit (fallback))"
+
+[[mutant]]
+id = "digit-reject-negative"
+function = "vim_append_digit_int"
+original = "if (x > ((INT_MAX - digit) / 10)) {"
+mutated = "if (x > ((INT_MAX - digit) / 10) || x < 0) {"
+why = "extra guard only differs for v < 0, which the precondition (and the only caller) excludes"
+expect = "equivalent"
+result = "survived (10/10 proved); equivalent, see why"
+
+[[mutant]]
+id = "digit-clobber-on-fail"
+function = "vim_append_digit_int"
+original = "    return FAIL;"
+mutated = "    *value = INT_MAX;\n    return FAIL;"
+why = "saturates the value on overflow instead of leaving it unchanged"
+expect = "caught"
+result = "caught (h_append_digit (builtin), h_append_digit (fallback))"
+
+[[mutant]]
+id = "trim-min-off-by-one"
+function = "trim_to_int"
+original = "x < INT_MIN ? INT_MIN"
+mutated = "x < INT_MIN ? -INT_MAX"
+why = "symmetric clamp: low side clamps to -INT_MAX"
+expect = "caught"
+result = "caught (h_trim (builtin), h_trim (fallback))"
+
+[[mutant]]
+id = "trim-ge-max"
+function = "trim_to_int"
+original = "x > INT_MAX ? INT_MAX"
+mutated = "x >= INT_MAX ? INT_MAX"
+why = "boundary rewrite; INT_MAX maps to INT_MAX either way"
+expect = "equivalent"
+result = "survived (10/10 proved); equivalent, see why"
+
+[[mutant]]
+id = "trim-truncate"
+function = "trim_to_int"
+original = "return x > INT_MAX ? INT_MAX : x < INT_MIN ? INT_MIN : (int)x;"
+mutated = "return (int)x;"
+why = "no clamp, plain truncation"
+expect = "caught"
+result = "caught (h_trim (builtin), h_trim (fallback))"
+
