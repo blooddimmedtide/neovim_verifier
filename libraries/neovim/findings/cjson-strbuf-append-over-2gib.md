@@ -35,5 +35,6 @@ is not reachable from a default Neovim build today, but the function is wrong fo
 ## Fix
 
 `size_t i` (fork branch `claude/project-thread-gritim` of blooddimmedtide/verified_neovim, commit
-"fix(cjson): strbuf_append_string on strings of 2 GiB or more"). Proved for every string in
-`../cjson_strbuf/` (see its CLAIM.md for what is proved and how).
+"fix(cjson): strbuf_append_string on strings of 2 GiB or more"). Proof status in
+`../cjson_strbuf/CLAIM.md`: CBMC proves the fixed function for strings of up to 5 bytes; the
+proof for strings of every length is still open.

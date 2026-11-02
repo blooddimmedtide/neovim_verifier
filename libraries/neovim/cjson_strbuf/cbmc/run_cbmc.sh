@@ -22,7 +22,7 @@ for hu in h_init:66 h_new:66 h_free:4 h_free_to_string:4 h_calculate_new_size:66
   if [ -n "${ONLY:-}" ] && ! [[ $h =~ $ONLY ]]; then continue; fi
   out=$(cbmc "$HERE/harness.c" --function "$h" -I "$HERE" -I "$W" -DSTRBUF_C="\"$W/strbuf.c\"" \
         --arch x86_64 ${sign#signed} --bounds-check --pointer-check --signed-overflow-check --conversion-check \
-        --unwind "$u" --unwinding-assertions --sat-solver cadical 2>&1)
+        --unwind "$u" --unwindset calculate_new_size.0:66 --unwinding-assertions --sat-solver cadical 2>&1)
   if echo "$out" | grep -q "VERIFICATION SUCCESSFUL"; then echo "$h ($sign): proved"
   else echo "$h ($sign): FAILED"; echo "$out" | grep -E 'FAILURE|rror' | head -5; status=1; fi
 done
