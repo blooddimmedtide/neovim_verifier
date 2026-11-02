@@ -73,6 +73,6 @@ Details and reproducer: `../findings/cp-bounds-over-2gib.md`. The fix is proved 
 | CBMC, fixed fork | `bash cbmc/run_cbmc.sh <verified_neovim>` | 10 / 10 harnesses, signed and unsigned char |
 | Differential test (gcc -O2 -fsigned-char vs the references) | `bash cbmc/run_difftest.sh <nvim>` | 4,341,614,208 cases, 0 mismatches |
 | Independent review | `cbmc/REVIEW.md` | accept with changes; the required claim wording is in this card |
-| Planted bugs | `python3 -I cbmc/run_mutants.py <nvim>` | reviewer's 27 for the six helpers: 24 caught, 3 equivalent (REVIEW.md); bounds functions: second review in progress |
+| Planted bugs | `python3 -I cbmc/run_mutants.py <nvim>` | reviewer's 27 for the six helpers: 24 caught, 3 equivalent (REVIEW.md; rerun in the repo: `mutants_result.tsv`); bounds functions: second review in progress |
 | CI, pinned container, twice | `.github/workflows/verify.yml` | pending |
 | Owner review | Yerin | pending |
