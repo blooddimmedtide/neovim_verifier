@@ -13,7 +13,7 @@
 /*@ ghost void *vp_last; */
 
 /*@ requires vp_live < 2147483647;
-    requires \valid_read(avoid + (0 .. avoid_len));
+    requires \valid_read(avoid + (0 .. avoid_len - 1));
     assigns \result \from n;
     assigns vp_live, vp_last;
     allocates \result;
@@ -21,9 +21,10 @@
     ensures \valid((char *)\result + (0 .. n - 1));
     ensures \fresh(\result, n);
     // \fresh spelled out for one live object the caller names (WP ignores \fresh):
-    // the new block does not overlap avoid[0 .. avoid_len], which is readable at the call.
+    // the new block does not overlap avoid[0 .. avoid_len - 1], which is readable at the call.
     // True of any allocator: a new block never overlaps a live object.
-    ensures \separated((char *)\result + (0 .. n - 1), avoid + (0 .. avoid_len));
+    ensures \separated((char *)\result + (0 .. n - 1), avoid + (0 .. avoid_len - 1));
+    ensures \base_addr(\result) != \base_addr(avoid);   // a new object
     ensures vp_live == \old(vp_live) + 1 && vp_last == \result;
 */
 void *xmalloc(size_t n) /*@ ghost (char *avoid, size_t avoid_len) */;

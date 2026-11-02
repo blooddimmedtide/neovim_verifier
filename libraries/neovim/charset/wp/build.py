@@ -74,9 +74,10 @@ def main(tree, out, fixed=False):
                 sys.exit(f"build: {name}: call not found once: {call!r}")
             a = a.replace(call, f"{call} /*@ ghost ({arg}) */")
         for entry in LOOPS.get(name, []):
-            # (anchor, annotation[, nth occurrence (default: must be unique)])
+            # (anchor, annotation[, nth occurrence (None: must be unique)[, "after"]])
             anchor, annot = entry[0], entry[1]
             nth = entry[2] if len(entry) > 2 else None
+            after = len(entry) > 3 and entry[3] == "after"   # insert after the anchor text
             k = a.count(anchor)
             if (nth is None and k != 1) or (nth is not None and k <= nth):
                 sys.exit(f"build: {name}: anchor not found {'once' if nth is None else nth + 1}: {anchor!r}")
@@ -84,7 +85,11 @@ def main(tree, out, fixed=False):
             for _ in range((nth or 0) + 1):
                 pos = a.index(anchor, pos + 1)
             indent = re.match(r"\s*", anchor).group(0)
-            a = a[:pos] + f"{indent}/*@ {annot} */\n" + a[pos:]
+            if after:
+                end = pos + len(anchor)
+                a = a[:end] + f"{indent}/*@ {annot} */\n" + a[end:]
+            else:
+                a = a[:pos] + f"{indent}/*@ {annot} */\n" + a[pos:]
         stripped = re.sub(GHOST_RE, "", a)
         assert re.sub(r"[ \t]*/\*@.*?\*/\n", "", stripped, flags=re.S) == patched, name
         contract = CONTRACTS[name]

@@ -89,7 +89,7 @@ GHOST_PARAMS = {
 GHOST_ARGS = {
     "getwhitecols": [("skipwhite(p)", "n")],
     "vim_isblankline": [("skipwhite(lbuf)", "n")],
-    "backslash_halve_save": [("xmalloc(strlen(p) + 1)", "(char *)p, n")],
+    "backslash_halve_save": [("xmalloc(strlen(p) + 1)", "(char *)p, n + 1")],
 }
 
 

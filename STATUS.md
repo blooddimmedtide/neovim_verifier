@@ -13,6 +13,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/strings.c | 0 | 12 | 62 | 74 |
 
 ## Function details
 
@@ -99,6 +100,18 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/charset.c | `getdigits_int` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | as getdigits within int range; strict: precondition in range (else assert/abort); see charset/CLAIM.md. Review pending |
 | src/nvim/charset.c | `getdigits_long` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | as getdigits (long = intmax_t on x86_64); see charset/CLAIM.md. Review pending |
 | src/nvim/charset.c | `getdigits_int32` | candidate | charset/wp (Frama-C WP, every length), charset/difftest | as getdigits within int32 range; strict: precondition in range (else assert/abort); see charset/CLAIM.md. Review pending |
+| src/nvim/strings.c | `xstrnsave` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | copy up to len bytes, NUL-padded, len+1 block; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `vim_strup` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | ASCII upper case in place; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `vim_strcpy_up` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | strcpy plus ASCII upper case; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `vim_strncpy_up` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | strncpy (one NUL) plus ASCII upper case; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `vim_memcpy_up` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | memcpy plus ASCII upper case; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `vim_strsave_up` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | upper-cased copy in a new block; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `vim_strnsave_up` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | upper-cased copy of up to len bytes in a new block; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `del_trailing_spaces` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | trailing blanks removed unless escaped; first byte kept; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `vim_strnicmp_asc` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | ASCII case-insensitive compare of up to len bytes; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `has_non_ascii` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | some byte >= 128 before NUL; NULL gives false; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `has_non_ascii_len` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | some byte >= 128 in len bytes; NULL gives false; see strings/CLAIM.md. Review pending |
+| src/nvim/strings.c | `concat_str` | candidate | strings/wp (Frama-C WP, every length), strings/difftest | a then b in a new block; see strings/CLAIM.md. Review pending |
 
 ## All files
 
