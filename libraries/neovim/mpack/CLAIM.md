@@ -21,15 +21,21 @@ no tool patch). The reference (`cbmc/spec.h`) is written from the MessagePack sp
 |---|---|
 | `mpack_rtoken(buf, len, tok)` | Reads the token the MessagePack spec defines for the bytes at `buf` and consumes exactly its header; `MPACK_ERROR` for 0xc1; `MPACK_EOF` when the header is incomplete, with `tok->length` = header size - 1. Reads nothing past `len` or past the header |
 | `mpack_wtoken` (static) | For every token Neovim builds (see preconditions), writes the shortest encoding the spec allows, which decodes back to the same value; `MPACK_ERROR` for a float that is not 4 or 8 bytes |
-| `mpack_read(tb, buf, len, tok)` | From any tokbuf state the invariant allows: an empty input changes nothing; while payload is due, returns one CHUNK of min(input, remaining payload) bytes pointing into the input; otherwise returns the spec token of (pending header bytes + input), consumes only the rest of its header and sets the payload count for str/bin/ext, or keeps an incomplete header in `pending` and consumes all input, or returns `MPACK_ERROR` without changing the state. The invariant holds again after every call. Fixed fork: any input length. Upstream: input under 4 GiB (see Finding) |
-| `mpack_write(tb, buf, len, tok)` | From any tokbuf state the invariant allows: writes the next min(room, rest) bytes of the encoding of the pending token, or of `tok` (shortest encoding), or of a CHUNK's bytes, in order; returns `MPACK_OK` when the token is complete, else `MPACK_EOF` with the rest kept |
+| `mpack_read(tb, buf, len, tok)` | From any tokbuf state the invariant allows: an empty input changes nothing; while payload is due, returns one CHUNK of min(input, remaining payload) bytes pointing into the input; otherwise returns the spec token of (pending header bytes + input), consumes only the rest of its header and sets the payload count for str/bin/ext, or keeps an incomplete header in `pending` and consumes all input, or returns `MPACK_ERROR` without changing the state, the input pointer or its length. The invariant holds again after every call. Fixed fork: any input length. Upstream: input under 4 GiB (see Finding) |
+| `mpack_write(tb, buf, len, tok)` | From any tokbuf state the invariant allows: writes the next min(room, rest) bytes of the encoding of the pending token, or of `tok` (shortest encoding), or of a CHUNK's bytes, in order; returns `MPACK_OK` when the token is complete, else `MPACK_EOF` with the rest kept: the pending token (type, length, value or ext type) is recorded and kept across calls, and the pending bytes stay unchanged |
 | `mpack_tokbuf_init` | sets the empty state, which satisfies both invariants |
 | the 18 static helpers (`mpack_rpending`, `mpack_rvalue`, `mpack_rblob`, `mpack_wpending`, `mpack_wpint`, `mpack_wnint`, `mpack_wfloat`, `mpack_wstr`, `mpack_wbin`, `mpack_wext`, `mpack_warray`, `mpack_wmap`, `mpack_w1`, `mpack_w2`, `mpack_w4`, `mpack_value`, `mpack_blob`, `mpack_byte`) | proved through the functions above, for every input those functions can pass them (memory safety, no overflow, results as above). They are static, so no other caller exists |
 
 **Streams.** Because each call is proved from any state the invariant allows, and returns to
 such a state, induction over calls gives: reading a byte stream split into buffers at any
-points yields the same tokens as reading it whole, and writing tokens into buffers of any
-sizes produces the concatenated encodings.
+points yields the same non-CHUNK tokens as reading it whole, and the CHUNK tokens of each
+str/bin/ext carry its payload bytes in order (how the payload is cut into chunks follows the
+buffer splits). Writing tokens into buffers of any sizes produces the concatenated encodings,
+provided the caller, after `MPACK_EOF`, calls again with the same token until `MPACK_OK`
+(every caller in Neovim does this by checking `tb->plen`).
+
+After `MPACK_EOF`, where `mpack_rtoken` leaves the buffer pointer is not specified (callers
+retry with the tokbuf, which keeps the bytes).
 
 ## Finding
 
@@ -52,13 +58,21 @@ multiple of 4 GiB of input left it returns empty chunks forever and `mpack_parse
    - Reader state: nothing pending, or a partial header whose size matches its first byte;
      never both a pending header and pending payload. `mpack_tokbuf_init` and every call keep this.
 4. **Long inputs:** reads never go past the 9-byte header (pointer checks on exact-size objects).
-5. **Not sign-extended:** tokens returned by `mpack_read` keep the raw bits of the integer
-   (libmpack's documented format); `mpack_unpack_sint` (conv.c, not covered here) sign-extends.
+5. **libmpack's own choices** (from the code, not the MessagePack spec, and not documented
+   in mpack_core.h; part of the owner's spec sign-off): an integer with the sign bit clear is
+   reported as UINT; tokens keep the raw unsigned bits (`mpack_unpack_sint` in conv.c, not
+   covered here, sign-extends); an ext type is reported as 0..255; on EOF `tok->length` is
+   the header size - 1.
+6. **Harness objects:** the input object can be up to SIZE_MAX bytes in the model; every
+   offset actually read is below 2^32 + 9.
+7. **Which proof runs:** `run_cbmc.sh` drops the "under 4 GiB" assumption only when it finds
+   the fixed line's exact text; an equivalent rewrite would get the weaker upstream proof,
+   and the log line says `fixed` only when the full proof ran.
 
 ## Not covered
 
 - `conv.c`, `object.c`, `rpc.c`, `lmpack.c` (the rest of src/mpack).
-- Owner sign-off on the spec (Yerin). Independent review and planted bugs: pending.
+- Owner sign-off on the spec (Yerin).
 
 ## Evidence
 
@@ -67,7 +81,7 @@ multiple of 4 GiB of input left it returns empty chunks forever and `mpack_parse
 | CBMC, upstream | `bash cbmc/run_cbmc.sh <nvim>` | 5 / 5 harnesses, signed and unsigned char |
 | CBMC, fixed fork | `bash cbmc/run_cbmc.sh <verified_neovim>` | 5 / 5 harnesses, signed and unsigned char |
 | Differential test | `bash cbmc/run_difftest.sh <nvim>` | 92,445,377 checks, 0 mismatches (every input up to 3 bytes; random 9-byte inputs; 2,000,000 random token streams written and read back with random buffer splits) |
-| Independent review | `cbmc/REVIEW.md` | pending |
-| Planted bugs | `python3 -I cbmc/run_mutants.py <nvim>` | pending (reviewer's choice) |
+| Independent review | `cbmc/REVIEW.md` | accept with changes: two missing post-call checks (writer pending token, reader buffer on ERROR) added to `harness.c`; the wording changes are in this card. All 20 runs proved again after the change |
+| Planted bugs | `cbmc/mutants.toml` (each with its result) | reviewer's 49: 43 of 45 non-equivalent caught at first, 4 equivalent with reasons; the 2 escapes (`wr-hdr-save-tok`, `rd-error-moves-buf`) are caught by the strengthened harness |
 | CI, pinned container, twice | `.github/workflows/verify.yml` | pending |
 | Owner review | Yerin | pending |

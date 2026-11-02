@@ -1,0 +1,26 @@
+--- ../tfn/src/fzf.c	2026-11-02 00:57:32.499144826 +0000
++++ fzf.c	2026-11-02 01:49:56.372771073 +0000
+@@ -84,8 +84,8 @@
+ 
+ static size_t trailing_whitespaces(fzf_string_t *str) {
+   size_t whitespaces = 0;
+-  for (size_t i = str->size - 1; i >= 0; i--) {
+-    if (!isspace((uint8_t)str->data[i])) {
++  for (size_t i = str->size; i > 0; i--) {
++    if (!isspace((uint8_t)str->data[i - 1])) {
+       break;
+     }
+     whitespaces++;
+@@ -878,10 +878,10 @@
+   if (M == 0) {
+     return (fzf_result_t){(int32_t)trimmed_len, (int32_t)trimmed_len, 0};
+   }
+-  size_t diff = trimmed_len - M;
+-  if (diff < 0) {
++  if (trimmed_len < M) {
+     return (fzf_result_t){-1, -1, 0};
+   }
++  size_t diff = trimmed_len - M;
+ 
+   for (size_t idx = 0; idx < M; idx++) {
+     char c = text->data[idx + diff];

@@ -15,6 +15,10 @@ src = open(base).read()
 ok, rows = True, ["id\tfunction\tresult\texpected"]
 files = [f for f in ("mutants.toml", "mutants_bounds.toml") if os.path.exists(os.path.join(HERE, f))]
 mutants = [m for f in files for m in tomllib.load(open(os.path.join(HERE, f), "rb"))["mutant"]]
+# IDS=a,b runs only those mutants and leaves mutants_result.tsv alone.
+ids = [i for i in os.environ.get("IDS", "").split(",") if i]
+if ids:
+    mutants = [m for m in mutants if m["id"] in ids]
 for m in mutants:
     if src.count(m["original"]) != 1:
         print(m["id"], "original text not found exactly once"); ok = False; continue
@@ -30,5 +34,5 @@ for m in mutants:
         ok = False
     rows.append(f"{m['id']}\t{m['function']}\t{res}\t{m['expect']}")
     print(rows[-1], flush=True)
-open(os.path.join(HERE, "mutants_result.tsv"), "w").write("\n".join(rows) + "\n")
+if not ids: open(os.path.join(HERE, "mutants_result.tsv"), "w").write("\n".join(rows) + "\n")
 sys.exit(0 if ok else 1)

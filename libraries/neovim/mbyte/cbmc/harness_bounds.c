@@ -39,10 +39,14 @@ void h_cp_bounds_len(void) {
 #ifndef NVIM_FIXED_CP_BOUNDS
   __CPROVER_assume(d <= INT_MAX);   // upstream is wrong past this (findings/cp-bounds-over-2gib.md)
 #else
-  __CPROVER_assume(d <= PTRDIFF_MAX - 6);   // any distance a C object allows
+  // Any distance below 2^60. run_cbmc.sh uses --object-bits 3 (61 offset bits)
+  // for these harnesses, and the assertion below checks that p really is d bytes
+  // past base in CBMC's pointer model (with the default 56 bits it would wrap).
+  __CPROVER_assume(d < ((size_t)1 << 60) - 6);
 #endif
   uint8_t *obj = malloc(d + ahead);
   const char *base = (const char *)obj, *p = (const char *)obj + d;
+  __CPROVER_assert((size_t)(p - base) == d, "pointer model holds distance d");
   CharBoundsOff r = utf_cp_bounds_len(base, p, p_len);
   int b, e; ref_bounds(obj, obj + d, p_len, &b, &e);
   __CPROVER_assert(r.begin_off == b && r.end_off == e, "cp_bounds_len");
@@ -58,7 +62,7 @@ void h_cp_bounds(void) {
 #ifndef NVIM_FIXED_CP_BOUNDS
   __CPROVER_assume(d <= INT_MAX);
 #else
-  __CPROVER_assume(d <= PTRDIFF_MAX - 7);
+  __CPROVER_assume(d < ((size_t)1 << 60) - 7);   // see h_cp_bounds_len
 #endif
   int n = nondet_int();
   __CPROVER_assume(0 <= n && n <= 6);
@@ -66,6 +70,7 @@ void h_cp_bounds(void) {
   uint8_t *obj = malloc(d + ahead);
   for (int i = 0; i < n && i < 6; i++) __CPROVER_assume(obj[d + i] != 0);
   if (n < 6) obj[d + n] = 0;
+  __CPROVER_assert((size_t)((obj + d) - obj) == d, "pointer model holds distance d");
   CharBoundsOff r = utf_cp_bounds((const char *)obj, (const char *)obj + d);
   int b, e; ref_bounds(obj, obj + d, INT_MAX, &b, &e);
   __CPROVER_assert(r.begin_off == b && r.end_off == e, "cp_bounds");

@@ -1,0 +1,449 @@
+# Planted bugs for src/mpack/mpack_core.c (Neovim 7b87ce8), chosen by the independent reviewer.
+# Each `original` occurs exactly once in the upstream file. `harnesses` (optional) is the ONLY=
+# regex tried first (cheap harness); if the mutant survives it, every harness is run.
+
+# ---------------------------------------------------------------- reader: first byte / tables
+[[mutant]]
+id = "rt-fixmap-bound"
+function = "mpack_rtoken"
+original = "} else if (t < 0x90) {"
+mutated = "} else if (t < 0x8f) {"
+why = "0x8f (fixmap 15) decoded as fixarray"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-fixstr-mask"
+function = "mpack_rtoken"
+original = "mpack_blob(MPACK_TOKEN_STR, t & 0x1f, 0, tok)"
+mutated = "mpack_blob(MPACK_TOKEN_STR, t & 0x0f, 0, tok)"
+why = "fixstr length mask loses bit 4 (lengths 16..31)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-negfixint-bound"
+function = "mpack_rtoken"
+original = "} else if (t < 0xe0) {"
+mutated = "} else if (t < 0xdf) {"
+why = "map 32 (0xdf) decoded as a negative fixint"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-float-width"
+function = "mpack_rtoken"
+original = "TLEN(t, 0xc8)"
+mutated = "TLEN(t, 0xc9)"
+why = "float 32/64 header sizes halved (2 and 4 bytes)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-array-width"
+function = "mpack_rtoken"
+original = "TLEN(t, 0xdb)"
+mutated = "TLEN(t, 0xdc)"
+why = "array 16/32 length fields read as 1/2 bytes"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-fixext-eof-len"
+function = "mpack_rtoken"
+original = "tok->length = 1;\n          return MPACK_EOF;"
+mutated = "tok->length = 2;\n          return MPACK_EOF;"
+why = "incomplete fixext reports a 3-byte header; pending buffer sized wrongly"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-nil-length"
+function = "mpack_rtoken"
+original = "mpack_value(MPACK_TOKEN_NIL, 0, mpack_byte(0), tok)"
+mutated = "mpack_value(MPACK_TOKEN_NIL, 1, mpack_byte(0), tok)"
+why = "nil token reports length 1"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-true-value"
+function = "mpack_rtoken"
+original = "mpack_value(MPACK_TOKEN_BOOLEAN, 1, mpack_byte(1), tok)"
+mutated = "mpack_value(MPACK_TOKEN_BOOLEAN, 1, mpack_byte(0xc3), tok)"
+why = "true carries the raw byte instead of 1"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rt-advance-signed"
+function = "ADVANCE (macro, all readers)"
+original = "#define ADVANCE(buf, buflen) ((*buflen)--, (unsigned char)*((*buf)++))"
+mutated = "#define ADVANCE(buf, buflen) ((*buflen)--, *((*buf)++))"
+why = "bytes >= 0x80 sign-extended where char is signed (only the signed-char run can see it)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+# ---------------------------------------------------------------- reader: values, blobs, sign
+[[mutant]]
+id = "rv-eof-boundary"
+function = "mpack_rvalue"
+original = "if (*buflen < remaining) {"
+mutated = "if (*buflen <= remaining) {"
+why = "a value whose last byte ends the input is reported incomplete"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rv-hi-split"
+function = "mpack_rvalue"
+original = "if (remaining == 4) {"
+mutated = "if (remaining == 3) {"
+why = "64-bit value split into hi/lo at the wrong byte"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rv-shift"
+function = "mpack_rvalue"
+original = "byte_shift = (byte_idx % 4) * 8;"
+mutated = "byte_shift = (byte_idx & 3) * 4;"
+why = "wrong byte placement (nibble shift)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rv-sign16"
+function = "mpack_rvalue"
+original = "(tok->length == 2 && lo >> 15)"
+mutated = "(tok->length == 2 && lo >> 7)"
+why = "int 16 sign test looks at bit 7"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rv-sign64"
+function = "mpack_rvalue"
+original = "(tok->length == 8 && hi >> 31)"
+mutated = "(tok->length == 8 && lo >> 31)"
+why = "int 64 sign test looks at the low word"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rb-ext-required"
+function = "mpack_rblob"
+original = "required = tlen + (type == MPACK_TOKEN_EXT ? 1 : 0);"
+mutated = "required = tlen + (type == MPACK_TOKEN_EXT ? 0 : 0);"
+why = "ext 8/16/32 reads its type byte without checking it is there (out of bounds)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "rb-dead-init"
+function = "mpack_rblob"
+original = "l.data.value.lo = 0;"
+mutated = ""
+why = "dead store: mpack_rvalue resets the value via mpack_value before reading"
+expect = "equivalent"
+result = "survived"   # all 5 harnesses x 2 char modes proved
+
+# ---------------------------------------------------------------- mpack_read streaming state
+[[mutant]]
+id = "rd-empty-input"
+function = "mpack_read"
+original = "assert(*buf);\n  if (*buflen == 0) {"
+mutated = "assert(*buf);\n  if (0) {"
+why = "empty input no longer returns early (empty chunk / state change)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-chunk-cast16"
+function = "mpack_read"
+original = "tok->length = MIN((mpack_uint32_t)*buflen, tokbuf->passthrough);"
+mutated = "tok->length = MIN((unsigned short)*buflen, tokbuf->passthrough);"
+why = "the 4 GiB truncation bug, moved to 64 KiB (inside the upstream precondition)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-chunk-ptr"
+function = "mpack_read"
+original = "tok->data.chunk_ptr = *buf;"
+mutated = "tok->data.chunk_ptr = *buf + 1;"
+why = "chunk points one byte past the payload"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-passthrough-keep"
+function = "mpack_read"
+original = "tokbuf->passthrough -= tok->length;"
+mutated = ""
+why = "payload count never decreases"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-advanced"
+function = "mpack_read"
+original = "advanced = (size_t)(ptr - ptr_save) - initial_ppos;"
+mutated = "advanced = (size_t)(ptr - ptr_save);"
+why = "header completed from pending consumes the already-pending bytes again"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-passthrough-map"
+function = "mpack_read"
+original = "if (tok->type > MPACK_TOKEN_MAP) {"
+mutated = "if (tok->type >= MPACK_TOKEN_MAP) {"
+why = "map count treated as payload bytes"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-pending-plen"
+function = "mpack_read"
+original = "tokbuf->plen = tok->length + 1;"
+mutated = "tokbuf->plen = tok->length + 2;"
+why = "pending header one byte too long"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-error-as-eof"
+function = "mpack_read"
+original = "if (status != MPACK_EOF) return MPACK_ERROR;"
+mutated = "if (status != MPACK_EOF) return MPACK_EOF;"
+why = "0xc1 reported as EOF"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rd-error-moves-buf"
+function = "mpack_read"
+original = "if (status != MPACK_EOF) return MPACK_ERROR;"
+mutated = "if (status != MPACK_EOF) { (*buf)++; (*buflen)--; return MPACK_ERROR; }"
+why = "ERROR consumes the bad byte (claim says ERROR changes nothing)"
+expect = "caught"
+result = "survived"   # all 5 harnesses x 2 char modes proved
+
+[[mutant]]
+id = "rd-eof-ppos-reset"
+function = "mpack_read"
+original = "tokbuf->ppos = 0;\n    status = mpack_rpending"
+mutated = "status = mpack_rpending"
+why = "reader invariant already has ppos == 0 whenever plen == 0"
+expect = "equivalent"
+result = "survived"   # all 5 harnesses x 2 char modes proved
+
+[[mutant]]
+id = "rp-done-test"
+function = "mpack_rpending"
+original = "if (state->ppos < state->plen) {"
+mutated = "if (state->ppos + 1 < state->plen) {"
+why = "header reported complete one byte early"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_read
+
+[[mutant]]
+id = "rp-consume"
+function = "mpack_rpending"
+original = "*buf += *buflen;"
+mutated = "*buf += count;"
+why = "in this branch count == *buflen (ppos + count < plen forces count = *buflen)"
+expect = "equivalent"
+result = "survived"   # all 5 harnesses x 2 char modes proved
+
+# ---------------------------------------------------------------- writer: encodings
+[[mutant]]
+id = "wp-fixint-bound"
+function = "mpack_wpint"
+original = "} else if (lo > 0x7f) {"
+mutated = "} else if (lo > 0x80) {"
+why = "128 written as one byte 0x80 (a fixmap)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "wp-not-shortest"
+function = "mpack_wpint"
+original = "} else if (lo > 0xffff) {"
+mutated = "} else if (lo > 0xfffe) {"
+why = "65535 written as uint 32: decodes right, but not the shortest encoding"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "wn-int8-bound"
+function = "mpack_wnint"
+original = "} else if (lo < 0xffffff80) {"
+mutated = "} else if (lo <= 0xffffff80) {"
+why = "-128 written as int 16 (not shortest)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "wn-hi-test"
+function = "mpack_wnint"
+original = "if ((hi && hi != 0xffffffff) || lo < 0x80000000) {"
+mutated = "if (hi != 0xffffffff || lo < 0x80000000) {"
+why = "differs only for hi == 0, i.e. a non-negative SINT, which the precondition excludes"
+expect = "equivalent"
+result = "survived"   # all 5 harnesses x 2 char modes proved
+
+[[mutant]]
+id = "wn-fixint-byte"
+function = "mpack_wnint"
+original = "return mpack_w1(buf, buflen, (mpack_uint32_t)(0x100 + lo));"
+mutated = "return mpack_w1(buf, buflen, (mpack_uint32_t)(0xe0 | (lo & 0x0f)));"
+why = "negative fixint loses bit 4 of its value"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "wf-swap64"
+function = "mpack_wfloat"
+original = "return mpack_w1(buf, buflen, 0xcb) ||\n           mpack_w4(buf, buflen, tok->data.value.hi) ||\n           mpack_w4(buf, buflen, tok->data.value.lo);"
+mutated = "return mpack_w1(buf, buflen, 0xcb) ||\n           mpack_w4(buf, buflen, tok->data.value.lo) ||\n           mpack_w4(buf, buflen, tok->data.value.hi);"
+why = "float 64 words swapped"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "ws-fixstr-bound"
+function = "mpack_wstr"
+original = "if (len < 0x20) {\n    return mpack_w1(buf, buflen, 0xa0 | len);"
+mutated = "if (len <= 0x20) {\n    return mpack_w1(buf, buflen, 0xa0 | len);"
+why = "32-byte string header becomes 0xc0 (nil)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "wb-bin32-byte"
+function = "mpack_wbin"
+original = "return mpack_w1(buf, buflen, 0xc6) ||"
+mutated = "return mpack_w1(buf, buflen, 0xc5) ||"
+why = "bin 32 header byte says bin 16"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "we-fixext8"
+function = "mpack_wext"
+original = "case 8: mpack_w1(buf, buflen, 0xd7);"
+mutated = "case 8: mpack_w1(buf, buflen, 0xd8);"
+why = "fixext 8 written as fixext 16"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "we-ext8-order"
+function = "mpack_wext"
+original = "return mpack_w1(buf, buflen, 0xc7) ||\n               mpack_w1(buf, buflen, len)  ||\n               mpack_w1(buf, buflen, t);"
+mutated = "return mpack_w1(buf, buflen, 0xc7) ||\n               mpack_w1(buf, buflen, t)  ||\n               mpack_w1(buf, buflen, len);"
+why = "ext 8 type and length bytes swapped"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "wa-fixarray-bound"
+function = "mpack_warray"
+original = "if (len < 0x10) {\n    return mpack_w1(buf, buflen, 0x90 | len);"
+mutated = "if (len <= 0x10) {\n    return mpack_w1(buf, buflen, 0x90 | len);"
+why = "array of 16 written as 0x90 (empty array)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "wm-map32-byte"
+function = "mpack_wmap"
+original = "return mpack_w1(buf, buflen, 0xdf) ||"
+mutated = "return mpack_w1(buf, buflen, 0xdd) ||"
+why = "map 32 written as array 32"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "w2-byte-order"
+function = "mpack_w2"
+original = "*(*b)++ = (char)((v >> 8) & 0xff);\n  *(*b)++ = (char)(v & 0xff);\n  return MPACK_OK;\n}\n\nstatic int mpack_w4"
+mutated = "*(*b)++ = (char)(v & 0xff);\n  *(*b)++ = (char)((v >> 8) & 0xff);\n  return MPACK_OK;\n}\n\nstatic int mpack_w4"
+why = "16-bit fields little-endian"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+[[mutant]]
+id = "w4-buflen"
+function = "mpack_w4"
+original = "*bl -= 4;"
+mutated = "*bl -= 3;"
+why = "buffer length not kept in step with the pointer"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_rtoken|h_wtoken|h_tokbuf_init
+
+# ---------------------------------------------------------------- mpack_write streaming state
+[[mutant]]
+id = "wr-ignore-pending"
+function = "mpack_write"
+original = "mpack_token_t tok = tokbuf->plen ? tokbuf->pending_tok : *t;"
+mutated = "mpack_token_t tok = *t;"
+why = "the token passed in is used even while one is pending"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_write
+
+[[mutant]]
+id = "wr-chunk-ppos"
+function = "mpack_write"
+original = "if (!tokbuf->plen) tokbuf->ppos = 0;"
+mutated = ""
+why = "a new chunk starts at a stale ppos"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_write
+
+[[mutant]]
+id = "wr-chunk-save-tok"
+function = "mpack_write"
+original = "tokbuf->pending_tok = tok;\n      return MPACK_EOF;\n    }\n  }\n\n  if (tokbuf->plen)"
+mutated = "return MPACK_EOF;\n    }\n  }\n\n  if (tokbuf->plen)"
+why = "an unfinished chunk is not remembered"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_write
+
+[[mutant]]
+id = "wr-hdr-save-tok"
+function = "mpack_write"
+original = "tokbuf->pending_tok = tok;\n      return MPACK_EOF;\n    }\n  } else {"
+mutated = "return MPACK_EOF;\n    }\n  } else {"
+why = "an unfinished header does not record its token; the next call dispatches on a stale pending_tok (e.g. an earlier CHUNK) and writes chunk bytes instead of the header"
+expect = "caught"
+result = "survived"   # all 5 harnesses x 2 char modes proved
+
+[[mutant]]
+id = "wr-small-threshold"
+function = "mpack_write"
+original = "if (*buflen < MPACK_MAX_TOKEN_LEN) {\n    ptr = tokbuf->pending;"
+mutated = "if (*buflen < 5) {\n    ptr = tokbuf->pending;"
+why = "a 9-byte token written straight into a 5..8 byte buffer (overflow)"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_write
+
+[[mutant]]
+id = "wr-hdr-ppos"
+function = "mpack_write"
+original = "tokbuf->ppos = write_cnt;"
+mutated = "tokbuf->ppos = 0;"
+why = "an unfinished header restarts from its first byte"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_write
+
+[[mutant]]
+id = "wpend-keep-plen"
+function = "mpack_wpending"
+original = "if (state->ppos == state->plen) {\n    state->plen = 0;"
+mutated = "if (state->ppos == state->plen) {\n    state->plen = state->plen;"
+why = "a finished pending header stays pending"
+expect = "caught"
+result = "caught"   # first failing ONLY=h_write

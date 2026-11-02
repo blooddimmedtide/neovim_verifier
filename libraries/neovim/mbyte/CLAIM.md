@@ -26,8 +26,8 @@ like any other value. It is not a check for valid RFC 3629 UTF-8.
 | `utf_ptr2len(p)` | 0 for "", the announced length when all its continuation bytes follow, else 1. Reads nothing past the NUL |
 | `utf_ptr2char(p)` | the value of a complete sequence at p, else the first byte's value. Reads nothing past the NUL |
 | `utf_ptr2len_len(p, size)` | 1 when the lead byte is a 1-byte sequence (also NUL); else the announced length L when the continuation bytes among the first `size` bytes are all right (so L > size means "cut off"), else 1. Reads `p[0]` always and nothing past `p[max(size,1) - 1]` |
-| `utf_cp_bounds_len(base, p, p_len)` (fixed fork) | the offsets to the first byte and one past the last byte of the codepoint containing p, when p is inside a lead byte at most 5 bytes back (not before base) plus its continuation bytes, all within `p_len`; else (0, 1). Reads nothing before base, more than 5 bytes back, or at or past `p + p_len`. Any distance `p - base` |
-| `utf_cp_bounds(base, p)` | the same with `p_len = INT_MAX` on a NUL-terminated stream; reads nothing past the NUL (fixed fork: any distance) |
+| `utf_cp_bounds_len(base, p, p_len)` (fixed fork) | the offsets to the first byte and one past the last byte of the codepoint containing p, when p is inside a lead byte at most 5 bytes back (not before base) plus its continuation bytes, all within `p_len`; else (0, 1). The result depends only on `p[-5..5]`; it reads nothing before base and nothing at or past `p + min(p_len, 6)`. Any distance `p - base` below 2^60 (more than any x86_64 object) |
+| `utf_cp_bounds(base, p)` | the same with `p_len = INT_MAX` on a NUL-terminated stream; reads nothing past the NUL (fixed fork: any distance below 2^60) |
 | `utf_cp_bounds_len` (upstream) | the same, for `p - base <= INT_MAX`. Past that it is wrong (see Finding) |
 
 The references (`cbmc/spec.h`) are written from the UTF-8 definition (leading-one counts,
@@ -40,7 +40,7 @@ constants. For bad input they return what the functions document (first byte, or
 `utf_cp_bounds_len` converts the distance `p - base` to `int`. From 2^31 bytes on this is
 undefined behavior, a wrong result, or an out-of-bounds read before `base`, reachable from
 `vim.str_utf_start` / `vim.str_utf_end` with a Lua string over 2 GiB in PUC Lua builds.
-Details and reproducer: `../findings/cp-bounds-over-2gib.md`. The fix is proved for every distance.
+Details and reproducer: `../findings/cp-bounds-over-2gib.md`. The fix is proved for every distance below 2^60.
 
 ## What the proof relies on
 
@@ -58,6 +58,12 @@ Details and reproducer: `../findings/cp-bounds-over-2gib.md`. The fix is proved 
 5. **Long inputs:** strings longer than 6 bytes and `size` / `p_len` above 6 are covered by
    giving the function an object of exactly 6 readable bytes: the pointer check proves it never
    reads further, so the result holds for every longer input with the same first bytes.
+6. **Large distances:** the bounds harnesses run with `--object-bits 3` (61 offset bits), and
+   assert inside the harness that `p - base` equals the chosen distance, so CBMC's pointer
+   model cannot wrap it silently (the default 56 bits would; second review, B1).
+7. **What "reads nothing" means:** the pointer check catches reads outside the object, which
+   runs from `base` to `p + min(p_len, 6)`. An in-bounds read further back than `p - 5` is
+   not visible to it, so the card does not claim one is absent (second review, B2).
 
 ## Not covered
 
@@ -72,7 +78,7 @@ Details and reproducer: `../findings/cp-bounds-over-2gib.md`. The fix is proved 
 | CBMC, upstream | `bash cbmc/run_cbmc.sh <nvim>` | 10 / 10 harnesses, signed and unsigned char |
 | CBMC, fixed fork | `bash cbmc/run_cbmc.sh <verified_neovim>` | 10 / 10 harnesses, signed and unsigned char |
 | Differential test (gcc -O2 -fsigned-char vs the references) | `bash cbmc/run_difftest.sh <nvim>` | 4,341,614,208 cases, 0 mismatches |
-| Independent review | `cbmc/REVIEW.md` | accept with changes; the required claim wording is in this card |
-| Planted bugs | `python3 -I cbmc/run_mutants.py <nvim>` | reviewer's 27 for the six helpers: 24 caught, 3 equivalent (REVIEW.md; rerun in the repo: `mutants_result.tsv`); bounds functions: second review in progress |
+| Independent review | `cbmc/REVIEW.md`, `cbmc/REVIEW_BOUNDS.md` | both accept with changes; the required wording and harness changes are in this card and the harness |
+| Planted bugs | `python3 -I cbmc/run_mutants.py <nvim>` | reviewer's 27 for the six helpers: 24 caught, 3 equivalent (REVIEW.md; rerun in the repo: `mutants_result.tsv`); bounds functions: second reviewer's 21: 16 of 17 caught at first; the escape (`fix-wrong-past-2pow56`) closed by item 6, 4 equivalent (`REVIEW_BOUNDS.md`, `mutants_bounds.toml`) |
 | CI, pinned container, twice | `.github/workflows/verify.yml` | pending |
 | Owner review | Yerin | pending |

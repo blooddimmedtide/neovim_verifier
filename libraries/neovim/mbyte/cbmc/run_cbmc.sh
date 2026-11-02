@@ -16,10 +16,12 @@ for hf in harness.c:h_byte2len harness.c:h_char2len harness.c:h_char2bytes harne
           harness.c:h_ptr2len_long harness.c:h_ptr2char harness.c:h_ptr2char_long harness.c:h_ptr2len_len \
           harness_bounds.c:h_cp_bounds_len harness_bounds.c:h_cp_bounds; do
   f=${hf%%:*}; h=${hf#*:}
+  # The bounds harnesses take distances up to 2^60, so give pointers 61 offset bits.
+  ob=""; [ "$f" = harness_bounds.c ] && ob="--object-bits 3"
   if [ -n "${ONLY:-}" ] && ! [[ $h =~ $ONLY ]]; then continue; fi
   out=$(cbmc "$HERE/$f" --function "$h" -I "$HERE" -DMBYTE_UTF8_C="\"$W/mbyte_utf8.c\"" \
         --arch x86_64 ${sign#signed} --no-malloc-may-fail --bounds-check --pointer-check --signed-overflow-check \
-        --undefined-shift-check --unwind 10 --unwinding-assertions 2>&1)
+        --undefined-shift-check $ob --unwind 10 --unwinding-assertions 2>&1)
   if echo "$out" | grep -q "VERIFICATION SUCCESSFUL"; then echo "$h ($sign): proved"
   else echo "$h ($sign): FAILED"; echo "$out" | grep -E 'FAILURE' | head -5; status=1; fi
 done

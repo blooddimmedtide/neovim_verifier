@@ -172,7 +172,7 @@ void h_read(void) {
   ref_tok r; size_t used = 0; uint32_t need = 0;
   int rs = ref_decode(y, have + take, &r, &used, &need);
   if (rs == R_ERROR) {
-    __CPROVER_assert(st == MPACK_ERROR && tb.plen == old.plen && tb.ppos == old.ppos, "invalid byte -> error, state kept");
+    __CPROVER_assert(st == MPACK_ERROR && tb.plen == old.plen && tb.ppos == old.ppos && b == in, "invalid byte -> error, state kept");
     return;
   }
   if (rs == R_EOF) {
@@ -263,7 +263,8 @@ void h_write(void) {
     __CPROVER_assert(out[i] == cur->data.chunk_ptr[done + i], "chunk bytes in order");
     if (cnt == rest) __CPROVER_assert(st == MPACK_OK && tb.plen == 0, "chunk done");
     else __CPROVER_assert(st == MPACK_EOF && tb.plen == cur->length && tb.ppos == done + cnt
-                          && tb.pending_tok.data.chunk_ptr == cur->data.chunk_ptr, "chunk continues");
+                          && tb.pending_tok.data.chunk_ptr == cur->data.chunk_ptr
+                          && tb.pending_tok.type == MPACK_TOKEN_CHUNK && tb.pending_tok.length == cur->length, "chunk continues");
     return;
   }
   if (old.plen) {
@@ -271,7 +272,9 @@ void h_write(void) {
     __CPROVER_assert(w == cnt, "writes min(rest of header, room)");
     for (size_t i = 0; i < 9; i++) if (i < cnt) __CPROVER_assert((uint8_t)out[i] == enc[old.ppos + i], "header bytes in order");
     if (cnt == rest) __CPROVER_assert(st == MPACK_OK && tb.plen == 0, "header done");
-    else __CPROVER_assert(st == MPACK_EOF && tb.plen == old.plen && tb.ppos == old.ppos + cnt, "header continues");
+    else { __CPROVER_assert(st == MPACK_EOF && tb.plen == old.plen && tb.ppos == old.ppos + cnt, "header continues");
+      __CPROVER_assert(tb.pending_tok.type == old.pending_tok.type && tb.pending_tok.type != MPACK_TOKEN_CHUNK, "pending token kept");
+      for (int i = 0; i < 9; i++) if (i < elen) __CPROVER_assert(tb.pending[i] == old.pending[i], "pending bytes kept"); }
     return;
   }
   if (!valid) { __CPROVER_assert(st == MPACK_ERROR && w == 0, "bad float length -> error, nothing written"); return; }
@@ -283,5 +286,8 @@ void h_write(void) {
   else {
     __CPROVER_assert(st == MPACK_EOF && tb.plen == (size_t)elen && tb.ppos == cnt, "token continues");
     for (int i = 0; i < 9; i++) if (i < elen) __CPROVER_assert((uint8_t)tb.pending[i] == enc[i], "rest kept in pending");
+    __CPROVER_assert(tb.pending_tok.type == t.type && tb.pending_tok.length == t.length, "pending token recorded");
+    if (t.type == MPACK_TOKEN_EXT) __CPROVER_assert(tb.pending_tok.data.ext_type == t.data.ext_type, "pending ext type");
+    else if (t.type <= MPACK_TOKEN_FLOAT) __CPROVER_assert(tb.pending_tok.data.value.lo == t.data.value.lo && tb.pending_tok.data.value.hi == t.data.value.hi, "pending value");
   }
 }

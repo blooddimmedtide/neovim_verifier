@@ -39,7 +39,7 @@ int const max_first_off = -(int)MIN(p - b, MB_MAXCHAR - 1);                    /
 utf_cp_bounds_len(s1, s1 + off, (int)MIN(s1_len - off, (size_t)INT_MAX))     // lua/stdlib.c, twice
 ```
 
-The fixed `utf_cp_bounds_len` is proved correct for every distance up to `PTRDIFF_MAX`
+The fixed `utf_cp_bounds_len` is proved correct for every distance below 2^60 (CBMC with 61-bit pointer offsets; larger than any x86_64 object)
 (`run_cbmc.sh <fixed checkout>`). The `stdlib.c` change is not machine-proved yet (it needs the
 Lua API stubs); it only clamps the length to `INT_MAX`, which the proved function accepts.
 

@@ -28,8 +28,14 @@ bytes left`, again and again.
 
 `vim.mpack.decode(s)` and `vim.mpack.Unpacker` (`lmpack.c`) hand the whole Lua string to
 `mpack_parse`. A string of 4 GiB + header with a str/bin/ext inside hangs Neovim. LuaJIT,
-Neovim's default, limits strings below 2 GiB, so this needs a PUC Lua build. The RPC
+Neovim's default, limits strings below 2 GiB, so that route needs a PUC Lua build. The RPC
 unpacker reads from small channel buffers and is not affected.
+
+ShaDa reaches it in a default (LuaJIT) build too (found by the second reviewer by reading
+the code; not run, since it needs a 4 GiB file): when the first item of a ShaDa file has an
+unknown type, `shada.c` (around lines 3170-3210) reads the item whole, regardless of the
+size limit, and hands it to `unpack_skip` -> `mpack_parse`. A crafted ShaDa file with such
+an item over 4 GiB would hang Neovim at startup.
 
 ## Fix
 
@@ -41,7 +47,7 @@ The minimum is at most `passthrough`, so it fits in 32 bits.
 
 ## Severity
 
-Low: a hang (denial of service) that needs a string over 4 GiB in a PUC Lua build.
+Low: a hang (denial of service) that needs over 4 GiB of msgpack input: a Lua string in a PUC Lua build, or a crafted ShaDa file in any build.
 
 ## Related note (not a bug today)
 
