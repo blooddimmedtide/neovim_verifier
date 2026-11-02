@@ -236,6 +236,16 @@ LEMMAS = [  # (name, variables, {var: upper bound}, hypothesis, conclusion)
     # perturb = hash >> 5n shrinks to 0 within 13 steps
     ("bv_shr_mono", "p y s", {"s": 64}, le(p, y >> s), le(p >> 5, y >> (s + 5))),
     ("bv_shr_zero", "y s", {"s": 70}, le(64, s), eq(y >> s, 0)),
+    # hash_may_resize: doubling a power of two (16 or more) below 2^62
+    ("bv_pow2_next", "p", {"p": 2 ** 62}, conj(le(16, p), P("||", eq(p, 16), eq(p & (p - 1), 0))),
+     conj(eq(sz(p << 1), 2 * p), eq(sz(p << 1) & (sz(p << 1) - 1), 0), ne(sz(p << 1), 0))),
+    # two powers of two: the smaller is at most half the larger (mask + 1 is one of them)
+    ("bv_pow2_lt", "p mask", {"p": 2 ** 62, "mask": 2 ** 60 - 1},
+     conj(le(16, p), P("||", eq(p, 16), eq(p & (p - 1), 0)), le(15, mask), TMASK),
+     conj(imp(lt(p, mask + 1), le(2 * p, mask + 1)), imp(lt(mask + 1, p), le(2 * (mask + 1), p)))),
+    # a power of two s, 16 <= s <= 2^60, gives a table mask s - 1
+    ("bv_pow2_mask", "p", {"p": 2 ** 60}, conj(le(16, p), P("||", eq(p, 16), eq(p & (p - 1), 0))),
+     conj(eq(csub(p, 1) & p, 0), eq((p - 1) & ((p - 1) + 1), 0), eq(csub(p, 1), p - 1))),
 ]
 
 

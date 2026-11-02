@@ -43,22 +43,46 @@ LOGIC = r"""
     predicate distinct{L}(hashitem_T *a, integer m) =
       \forall integer i, j, n; 0 <= i <= m && 0 <= j <= m && i != j && isused(a[i].hi_key)
         && isused(a[j].hi_key) && str_len(a[i].hi_key, n) ==> !keq(a[j].hi_key, a[i].hi_key, n);
-    // a well-formed table (what hash_init creates and every function keeps)
-    predicate ht_ok{L}(hashtab_T *ht) =
+    // a well-formed table, except that it may be full (hash_may_resize's input after an add)
+    predicate ht_base{L}(hashtab_T *ht) =
       \valid(ht) && tmask(ht->ht_mask) && \valid(ht->ht_array + (0 .. ht->ht_mask))
       && (ht->ht_array == &ht->ht_smallarray[0] <==> ht->ht_mask == HT_INIT_SIZE - 1)
       && (ht->ht_array != &ht->ht_smallarray[0] ==> \base_addr(ht->ht_array) != \base_addr(ht))
       && ht->ht_used == nused(ht->ht_array, ht->ht_mask + 1)
       && ht->ht_filled == nfilled(ht->ht_array, ht->ht_mask + 1)
-      && ht->ht_filled <= ht->ht_mask
       && (\forall integer i; 0 <= i <= ht->ht_mask && isused(ht->ht_array[i].hi_key) ==> item_ok(ht->ht_array, ht->ht_mask, i))
       && distinct(ht->ht_array, ht->ht_mask);
+    // a well-formed table (what hash_init creates and every function keeps): it has a
+    // never-used item, so probing stops
+    predicate ht_ok{L}(hashtab_T *ht) = ht_base(ht) && ht->ht_filled <= ht->ht_mask;
+    // the table holds key pointer k with hash h
+    predicate has{L}(hashtab_T *ht, char *k, integer h) = isused(k) && \exists integer i;
+      0 <= i <= ht->ht_mask && ht->ht_array[i].hi_key == k && ht->ht_array[i].hi_hash == h;
+    // hash_may_resize: the size the table needs for `used` items (minitems mi)
+    logic integer msz(integer used, integer mi) =
+      mi == 0 ? (used > 1000 ? used * 2 : used * 4) : ((used > mi ? used : mi) * 3 + 1) / 2;
+    // s is the smallest power of two that is at least 16 and at least m
+    predicate fit(integer s, integer m) =
+      16 <= s && (s == 16 || (s & (s - 1)) == 0) && m <= s && (s == 16 || s / 2 < m);
+    // hash_may_resize leaves the table as it is (when not locked)
+    predicate keep{L}(hashtab_T *ht, integer mi) =
+      (mi == 0 && ((ht->ht_filled < HT_INIT_SIZE - 1 && ht->ht_array == &ht->ht_smallarray[0])
+                   || (ht->ht_filled * 3 < (ht->ht_mask + 1) * 2 && ht->ht_used > (ht->ht_mask + 1) / 5)))
+      || (fit(ht->ht_mask + 1, msz(ht->ht_used, mi)) && ht->ht_mask + 1 != 16
+          && ht->ht_filled * 3 < (ht->ht_mask + 1) * 2);
     // 5^n modulo 2^64
     logic integer p5(integer n) = n <= 0 ? 1 : (size_t)(5 * p5(n - 1));
 */
-""" + bvlemmas.acsl(["bv_unfive", "bv_assoc5"]) + r"""
+""" + bvlemmas.acsl(["bv_unfive", "bv_assoc5", "bv_mask_le"]) + r"""
 /*@ lemma p5_range: \forall integer n; 0 <= p5(n) <= 18446744073709551615;
     lemma p5_unfive: \forall integer n; 1 <= n ==> p5(n - 1) == (size_t)(p5(n) * 14757395258967641293);
+    // filling items keeps every probe path's items non-empty
+    lemma nonull_grow{L1, L2}: \forall hashitem_T *a, integer m, h, n; tmask(m)
+      && (\forall integer j; 0 <= j <= m && \at(a[j].hi_key, L1) != \null ==> \at(a[j].hi_key, L2) != \null)
+      && nonull{L1}(a, m, h, n) ==> nonull{L2}(a, m, h, n);
+    lemma reach_grow{L1, L2}: \forall hashitem_T *a, integer m, h, i; tmask(m)
+      && (\forall integer j; 0 <= j <= m && \at(a[j].hi_key, L1) != \null ==> \at(a[j].hi_key, L2) != \null)
+      && reach{L1}(a, m, h, i) ==> reach{L2}(a, m, h, i);
 */
 """
 
@@ -227,6 +251,45 @@ GHOST = r"""
     }
     return i;
   }
+
+  // 0 <= used <= filled <= n
+  /@ assigns \nothing;
+     ensures 0 <= nused(a, n) <= nfilled(a, n) <= n; @/
+  void count_bounds(hashitem_T *a, size_t n) {
+    /@ loop invariant 0 <= i <= n && 0 <= nused(a, i) <= nfilled(a, i) <= i;
+       loop assigns i; loop variant n - i; @/
+    for (size_t i = 0; i < n; i++) {}
+  }
+
+  // nused grows with n, and where it stays the same no item is used
+  /@ assigns \nothing;
+     ensures \forall integer i, j; 0 <= i <= j <= n ==> nused(a, i) <= nused(a, j);
+     ensures \forall integer i, j, k; 0 <= i <= k < j <= n && nused(a, i) == nused(a, j) ==> !isused(a[k].hi_key); @/
+  void rest_unused(hashitem_T *a, size_t n) {
+    /@ loop invariant 0 <= c <= n;
+       loop invariant \forall integer i, j; 0 <= i <= j <= c ==> nused(a, i) <= nused(a, j);
+       loop invariant \forall integer i, j, k; 0 <= i <= k < j <= c && nused(a, i) == nused(a, j) ==> !isused(a[k].hi_key);
+       loop assigns c; loop variant n - c; @/
+    for (size_t c = 0; c < n; c++) {}
+  }
+
+  // no removed item: used == filled
+  /@ requires \forall integer j; 0 <= j < n ==> a[j].hi_key != &hash_removed;
+     assigns \nothing;
+     ensures nused(a, n) == nfilled(a, n); @/
+  void no_removed_counts(hashitem_T *a, size_t n) {
+    /@ loop invariant 0 <= i <= n && nused(a, i) == nfilled(a, i);
+       loop assigns i; loop variant n - i; @/
+    for (size_t i = 0; i < n; i++) {}
+  }
+
+  // distinct keys (as strings) are distinct pointers
+  /@ requires ht_base(ht);
+     assigns \nothing;
+     ensures \forall integer i, j; 0 <= i <= ht->ht_mask && 0 <= j <= ht->ht_mask && i != j
+               && isused(ht->ht_array[i].hi_key) && isused(ht->ht_array[j].hi_key)
+               ==> ht->ht_array[i].hi_key != ht->ht_array[j].hi_key; @/
+  void ptrs_distinct(hashtab_T *ht) {}
 */
 """
 
@@ -350,6 +413,114 @@ def contracts(fixed):
     // not found: an empty item, and no item has this key
     ensures !isused(\result->hi_key) ==> \forall integer i; 0 <= i <= ht->ht_mask
               && isused(ht->ht_array[i].hi_key) ==> !keq(ht->ht_array[i].hi_key, (char *)key, key_len);"""
+    SMALL = "&ht->ht_smallarray[0]"
+    # what hash_may_resize does to the allocation state: a new array replacing an
+    # allocated one frees it; an allocated new array is one more live allocation
+    FREED = f"(\\old(ht->ht_array) != {SMALL} && ht->ht_array != \\old(ht->ht_array))"
+    ALLOC = f"""ensures {FREED} ==> vp_nfree == \\old(vp_nfree) + 1 && vp_freelog[\\old(vp_nfree)] == \\old(ht->ht_array);
+    ensures !{FREED} ==> vp_nfree == \\old(vp_nfree);
+    ensures vp_live == \\old(vp_live) + (ht->ht_array != {SMALL} && ht->ht_array != \\old(ht->ht_array) ? 1 : 0)
+                       - ({FREED} ? 1 : 0);
+    ensures ht->ht_array != \\old(ht->ht_array) && ht->ht_array != {SMALL} ==>
+              \\forall char *q; \\at(\\valid_read(q), Pre) ==> \\base_addr(q) != \\base_addr(ht->ht_array);"""
+    SAME = r"""ensures \forall char *k; \forall integer h; has(ht, k, h) <==> \old(has(ht, k, h));"""
+    RS_ASSIGNS = (f"ht->ht_array, ht->ht_mask, ht->ht_filled, ht->ht_changed, ht->ht_smallarray[0 .. HT_INIT_SIZE - 1],\n"
+                  f"            vp_live, vp_nfree, vp_freelog[vp_nfree], vp_rg, vp_rb")
+    MEM = "requires vp_nfree < 4294967296 && LONG_MIN < vp_live < LONG_MAX;"
+    UNCHANGED = (r"""ht->ht_array == \old(ht->ht_array) && ht->ht_mask == \old(ht->ht_mask)
+              && ht->ht_filled == \old(ht->ht_filled) && ht->ht_changed == \old(ht->ht_changed)""")
+    C["hash_may_resize"] = f"""requires ht_base(ht) && ht->ht_filled <= ht->ht_mask + 1;
+    requires minitems <= 1152921504606846976;
+    requires ht->ht_changed < INT_MAX;   // see findings: ht_changed is a signed int
+    {MEM}
+    assigns {RS_ASSIGNS};
+    exits vp_oom || msz(\\old(ht->ht_used), minitems) > 1152921504606846976;
+    ensures ht->ht_used == \\old(ht->ht_used);
+    {SAME}
+    {ALLOC}
+    behavior locked:   // nothing changes
+      assumes ht->ht_locked > 0;
+      ensures ht_base(ht) && {UNCHANGED};
+    behavior kept:     // the table is the right size: nothing changes
+      assumes ht->ht_locked <= 0 && keep(ht, minitems);
+      ensures ht_ok(ht) && {UNCHANGED};
+    behavior resized:  // the items move to a new array of the fitting size, with no removed items
+      assumes ht->ht_locked <= 0 && !keep(ht, minitems);
+      ensures ht_ok(ht) && fit(ht->ht_mask + 1, msz(\\old(ht->ht_used), minitems));
+      ensures ht->ht_filled == ht->ht_used && ht->ht_changed == \\old(ht->ht_changed) + 1;
+    complete behaviors; disjoint behaviors;"""
+    ITEM = "hi == ht->ht_array + slot(hash, ht->ht_mask, n) && nonull(ht->ht_array, ht->ht_mask, hash, n)"
+    NOKEY = lambda k, n: (f"\\forall integer i; 0 <= i <= ht->ht_mask && isused(ht->ht_array[i].hi_key)"
+                          f" ==> !keq(ht->ht_array[i].hi_key, {k}, {n})")
+    C["hash_add_item"] = f"""requires ht_ok(ht);
+    // hi is where hash_lookup stopped for key, which is not in the table
+    requires \\exists integer n; 0 <= n && {ITEM};
+    requires !isused(hi->hi_key);
+    requires isused(key) && str_len(key, len) && len < PTRDIFF_MAX && hash == hl(key, len);
+    requires {NOKEY("key", "len")};
+    // a locked table is not resized: it must keep a never-used item
+    requires ht->ht_locked > 0 && hi->hi_key == \\null ==> ht->ht_filled + 1 <= ht->ht_mask;
+    requires ht->ht_changed < INT_MAX - 1;   // see findings
+    {MEM}
+    assigns hi->hi_key, hi->hi_hash, ht->ht_used, {RS_ASSIGNS};
+    exits vp_oom || msz(\\old(ht->ht_used) + 1, 0) > 1152921504606846976;
+    ensures ht_ok(ht) && ht->ht_used == \\old(ht->ht_used) + 1;
+    ensures \\old(ht->ht_changed) + 1 <= ht->ht_changed <= \\old(ht->ht_changed) + 2;
+    ensures \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\old(has(ht, k, h)) || (k == key && h == hash));
+    {ALLOC}"""
+    C["hash_remove"] = f"""requires ht_ok(ht);
+    requires \\exists integer i; 0 <= i <= ht->ht_mask && hi == ht->ht_array + i;
+    requires isused(hi->hi_key);
+    requires ht->ht_changed < INT_MAX - 1;   // see findings
+    {MEM}
+    assigns hi->hi_key, ht->ht_used, {RS_ASSIGNS};
+    exits vp_oom || msz(\\old(ht->ht_used) - 1, 0) > 1152921504606846976;
+    ensures ht_ok(ht) && ht->ht_used == \\old(ht->ht_used) - 1;
+    ensures \\old(ht->ht_changed) + 1 <= ht->ht_changed <= \\old(ht->ht_changed) + 2;
+    ensures \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\old(has(ht, k, h)) && k != \\old(hi->hi_key));
+    {ALLOC}"""
+    C["hash_unlock"] = f"""requires ht_ok(ht) && ht->ht_locked > INT_MIN;
+    requires ht->ht_changed < INT_MAX;   // see findings
+    {MEM}
+    assigns ht->ht_locked, {RS_ASSIGNS};
+    exits vp_oom || msz(\\old(ht->ht_used), 0) > 1152921504606846976;
+    ensures ht_ok(ht) && ht->ht_used == \\old(ht->ht_used) && ht->ht_locked == \\old(ht->ht_locked) - 1;
+    ensures \\old(ht->ht_changed) <= ht->ht_changed <= \\old(ht->ht_changed) + 1;
+    {SAME}
+    {ALLOC}"""
+    C["hash_add"] = f"""requires ht_ok(ht);
+    requires isused(key) && str_len(key, n) && n < PTRDIFF_MAX;
+    // a locked table is not resized: it must keep a never-used item after an add
+    requires ht->ht_locked > 0 ==> ht->ht_filled + 1 <= ht->ht_mask;
+    requires ht->ht_changed < INT_MAX - 1;   // see findings
+    {MEM}
+    assigns ht->ht_array[0 .. ht->ht_mask], ht->ht_used, {RS_ASSIGNS};
+    exits vp_oom || msz(\\old(ht->ht_used) + 1, 0) > 1152921504606846976;
+    behavior duplicate:   // an item with this key exists: an internal error, and FAIL
+      assumes \\exists integer i; 0 <= i <= ht->ht_mask && isused(ht->ht_array[i].hi_key)
+                && keq(ht->ht_array[i].hi_key, key, n);
+      ensures \\result == FAIL && ht_ok(ht) && ht->ht_used == \\old(ht->ht_used) && {UNCHANGED};
+      {SAME}
+      ensures vp_nfree == \\old(vp_nfree) && vp_live == \\old(vp_live);
+    behavior added:
+      assumes {NOKEY("key", "n")};
+      ensures \\result == OK && ht_ok(ht) && ht->ht_used == \\old(ht->ht_used) + 1;
+      ensures \\old(ht->ht_changed) + 1 <= ht->ht_changed <= \\old(ht->ht_changed) + 2;
+      ensures \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\old(has(ht, k, h)) || (k == key && h == hl(key, n)));
+      {ALLOC.replace(chr(10) + "    ", chr(10) + "      ")}
+    complete behaviors; disjoint behaviors;"""
+    C["hash_clear_all"] = f"""requires ht_ok(ht);
+    requires vp_nfree + ht->ht_used < 4294967295 && vp_live > LONG_MIN + ht->ht_used + 1;
+    // each key is `off` bytes into an allocated block
+    requires \\forall integer i; 0 <= i <= ht->ht_mask && isused(ht->ht_array[i].hi_key)
+               ==> \\valid_read(ht->ht_array[i].hi_key - off);
+    assigns vp_live, vp_nfree, vp_freelog[vp_nfree .. vp_nfree + ht->ht_used];
+    // the keys are freed in array order, then the array if it was allocated
+    ensures \\forall integer i; 0 <= i <= \\old(ht->ht_mask) && \\old(isused(ht->ht_array[i].hi_key))
+              ==> vp_freelog[\\old(vp_nfree + nused(ht->ht_array, i))] == \\old(ht->ht_array[i].hi_key - off);
+    ensures \\old(ht->ht_array) != {SMALL} ==> vp_freelog[\\old(vp_nfree + ht->ht_used)] == \\old(ht->ht_array);
+    ensures vp_nfree == \\old(vp_nfree + ht->ht_used) + (\\old(ht->ht_array) != {SMALL} ? 1 : 0);
+    ensures vp_live == \\old(vp_live - ht->ht_used) - (\\old(ht->ht_array) != {SMALL} ? 1 : 0);"""
     return C
 
 
@@ -428,5 +599,53 @@ def annotations(fixed):
       bv_lsr5(perturb, PERTURB_SHIFT);
       if (perturb == 0) {{ bv_peel(vp_b, vp_oi); vp_b = vp_b - (4 * vp_b + 1) * 14757395258967641293u; vp_g--; }}
       else if ((perturb >> PERTURB_SHIFT) == 0) {{ reach_slot(idx, vp_t, {M}); vp_g = vp_rg; vp_b = vp_rb; }}"""),
+    ]
+    # a write to one item, at ghost label VpL: the counts change by that item only
+    def recount(du, df):
+        return f"""ghost {{ size_t vp_j = 0;
+      /@ loop invariant 0 <= vp_j <= {M} + 1;
+         loop invariant nused({AR}, vp_j) == nused{{VpL}}({AR}, vp_j) + (vp_j > vp_s ? {du} : 0);
+         loop invariant nfilled({AR}, vp_j) == nfilled{{VpL}}({AR}, vp_j) + (vp_j > vp_s ? {df} : 0);
+         loop assigns vp_j; loop variant {M} + 1 - vp_j; @/
+      while (vp_j <= {M}) vp_j++; }}"""
+    def settled(extra):   # the table before hash_may_resize, from the one write at VpL
+        R = "  hash_may_resize(ht, 0);"
+        return [("before", R, f"assert \\forall integer j; 0 <= j <= {M} && \\at({AR}[j].hi_key, VpL) != \\null ==> {AR}[j].hi_key != \\null;"),
+                ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && i != vp_s ==> {AR}[i].hi_key == \\at({AR}[i].hi_key, VpL) && {AR}[i].hi_hash == \\at({AR}[i].hi_hash, VpL);"),
+                ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && i != vp_s && isused({AR}[i].hi_key) ==> item_ok{{VpL}}({AR}, {M}, i);"),
+                ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && i != vp_s && isused({AR}[i].hi_key) ==> reach({AR}, {M}, {AR}[i].hi_hash, i);"),
+                ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && isused({AR}[i].hi_key) ==> item_ok({AR}, {M}, i);"),
+                ("before", R, f"assert distinct({AR}, {M});")] + extra
+    A["hash_add_item"] = [
+        ("after", "void hash_add_item(hashtab_T *ht, hashitem_T *hi, char *key, hash_T hash)", "ghost (size_t len)"),
+        ("before", "  ht->ht_used++;", f"ghost count_bounds({AR}, {M} + 1);"),
+        ("before", "  hi->hi_key = key;", f"ghost size_t vp_s = hi - {AR};"),
+        ("before", "  hi->hi_key = key;", "ghost VpL: ;"),
+        ("after", "  hi->hi_hash = hash;", recount("1", "(\\at(hi->hi_key, VpL) == \\null ? 1 : 0)")),
+    ] + settled([("before", "  hash_may_resize(ht, 0);", "assert \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\at(has(ht, k, h), Pre) || (k == key && h == hash));")])
+    A["hash_remove"] = [
+        ("before", "  ht->ht_used--;", f"ghost count_bounds({AR}, {M} + 1); ptrs_distinct(ht);"),
+        ("before", "  hi->hi_key = HI_KEY_REMOVED;", f"ghost size_t vp_s = hi - {AR};"),
+        ("before", "  hi->hi_key = HI_KEY_REMOVED;", "ghost VpL: ;"),
+        ("after", "  hi->hi_key = HI_KEY_REMOVED;", recount("-1", "0")),
+    ] + settled([("before", "  hash_may_resize(ht, 0);", "assert \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\at(has(ht, k, h), Pre) && k != \\at(hi->hi_key, Pre));")])
+    A["hash_add"] = [
+        ("after", "int hash_add(hashtab_T *ht, char *key)", "ghost (size_t n)"),
+        ("after", "hash_hash(key)", "ghost (n)"),
+        ("before", "  hashitem_T *hi = hash_lookup(", "ghost no_nul(key, n);"),
+        ("after", "hash_add_item(ht, hi, key, hash)", "ghost (n)"),
+    ]
+    A["hash_clear_all"] = [
+        ("before", "  size_t todo = ht->ht_used;",
+         f"ghost count_bounds({AR}, {M} + 1); rest_unused({AR}, {M} + 1); size_t vp_o = 0;"),
+        ("before", "  for (hashitem_T *hi = ht->ht_array; todo > 0; hi++) {",
+         f"""loop invariant 0 <= vp_o <= {M} + 1 && hi == {AR} + vp_o;
+      loop invariant todo == ht->ht_used - nused({AR}, vp_o);
+      loop invariant vp_nfree == \\at(vp_nfree, Pre) + nused({AR}, vp_o) && vp_live == \\at(vp_live, Pre) - nused({AR}, vp_o);
+      loop invariant \\forall integer i; 0 <= i < vp_o && isused({AR}[i].hi_key)
+                       ==> vp_freelog[\\at(vp_nfree, Pre) + nused({AR}, i)] == {AR}[i].hi_key - off;
+      loop assigns hi, todo, vp_o, vp_live, vp_nfree, vp_freelog[\\at(vp_nfree, Pre) .. \\at(vp_nfree, Pre) + ht->ht_used - 1];
+      loop variant {M} + 1 - vp_o;"""),
+        ("before", "    if (!HASHITEM_EMPTY(hi)) {", "ghost vp_o++;"),
     ]
     return A
