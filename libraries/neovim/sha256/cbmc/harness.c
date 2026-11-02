@@ -13,7 +13,8 @@ void h_start(void) {
   for (int i = 0; i < 8; i++) __CPROVER_assert(ctx.state[i] == SPEC_H0[i], "H(0)");
 }
 
-// sha256_process is one FIPS compression, for every state and block.
+// sha256_process is one FIPS compression, for every state and block. Not run: the single SAT
+// query does not finish; the compositional proof below (with check_structure.py) is used.
 void h_process(void) {
   context_sha256_T ctx;
   uint8_t data[64];

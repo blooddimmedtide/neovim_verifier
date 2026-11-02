@@ -20,8 +20,9 @@ What holds:
   4.1.2, 4.2.2, 5.3.3, 5.1.1 and 6.2.2. The padding in harness_finish.c (0x80, zeros to 56
   mod 64, 64-bit big-endian 8T) matches 5.1.1.
 - **No harness is vacuous** (probes below).
-- **Every ordinary planted bug is caught:** 23 of 23 non-adversarial mutants (the
-  sha256_update mutants are listed in the table).
+- **Every ordinary planted bug is caught:** all 24 non-adversarial mutants (10 in
+  sha256_process, 5 in sha256_update, 5 in sha256_finish, 4 in sha256_bytes) are caught by
+  a proof check. The self-test-vector mutant is caught by the native run.
 
 What fails:
 
@@ -86,7 +87,7 @@ three planted bugs should be caught. Today they all prove:
   is proved, because the digest is compared with whatever state is there at the end.
 - `upd-state-scribble`: sha256_update does `ctx->state[7] += left`. h_update has no
   assertion about `ctx->state` at all, and the loop's assigns clause lets the loop write
-  all of it. (Result in the table.)
+  all of it. h_update is proved on this mutant.
 - `bytes-ctx-scribble`: sha256_bytes sets `ctx.total[0] = buf_len` before finish. h_bytes
   is proved, because rec_start/rec_update/rec_finish track only the pointer.
   Difftest: 608 of 4000 digests wrong.
@@ -106,10 +107,9 @@ fact. Without it, CLAIM.md must list it as an assumption in "What the proof reli
 
 ## Non-blocking findings
 
-1. **Evidence placeholder (minor, must fix before sign-off).** The row "update, fixed fork
-   (every len)" has the result `H_UPDATE_FIXED`. That is a placeholder, not a result. Run it
-   and record the result and the time, or remove the row and the "every length on the fork"
-   sentence.
+1. **Evidence for the fork (resolved during review).** When the review started, the row
+   "update, fixed fork (every len)" held the placeholder `H_UPDATE_FIXED`. Commit d84327f
+   replaced it with "proved". I did not rerun it. Add the run time, as the other rows do.
 2. **"every size_t length" on the fork (minor).** CBMC uses 8 object bits by default, so
    pointer offsets have 56 bits. With `-DSHA256_FIXED`, `malloc(len)` and `in + len` for
    `len >= 2^56` are outside what CBMC models faithfully. x86_64 objects are below 2^47
@@ -188,7 +188,38 @@ by the tail check runs with `-DNO_BLOCK_CHECK`. A failure found with fewer asser
 a failure. `upd-state-scribble` runs with both flags. The asserts that are dropped only
 compare bytes, and that mutant changes no byte.
 
-MUTANT_TABLE
+| id | function | expected | result (proof checks) | difftest |
+|---|---|---|---|---|
+| `proc-k20` | sha256_process | caught | caught (check_structure: statement 46, K) | - |
+| `proc-Sigma1-rot26` | sha256_process | caught | caught (h_prims S3 = Sigma1, h_round) | - |
+| `proc-sigma0-shr-as-rotr` | sha256_process | caught | caught (h_prims S0 = sigma0, h_sched) | - |
+| `proc-ch-or` | sha256_process | caught | caught (h_prims F1 = Ch, h_round) | - |
+| `proc-rotr-31` | sha256_process | caught | caught (h_prims S0..S3, h_round, h_sched) | - |
+| `proc-sched-t7` | sha256_process | caught | caught (h_sched) | - |
+| `proc-maj-arg` | sha256_process | caught | caught (h_round) | - |
+| `proc-round39-names` | sha256_process | caught | caught (check_structure: statement 65) | - |
+| `proc-get-le` | sha256_process | caught | caught (h_endian: get) | - |
+| `proc-final-add` | sha256_process | caught | caught (check_structure: statement 95) | - |
+| `proc-macro-redefined-later` | sha256_process | survives | survives check_structure and all of run_cbmc.sh | caught |
+| `proc-comment-splice` | sha256_process | survives | survives check_structure and all of run_cbmc.sh | caught |
+| `upd-carry-le` | sha256_update | caught | caught (byte count) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK] | - |
+| `upd-fill-off-by-one` | sha256_update | caught | caught (every complete block processed; the rest is buffered; only whole blocks) [-DNO_BLOCK_CHECK] | - |
+| `upd-tail-offset` | sha256_update | caught | caught (the rest is buffered) [-DNO_BLOCK_CHECK] | - |
+| `upd-input-step-63` | sha256_update | caught | caught (loop invariant after step) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK] | - |
+| `upd-skip-buffer-block` | sha256_update | caught | caught (loop invariant before entry; every complete block processed) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK] | - |
+| `upd-state-scribble` | sha256_update | survives | survives h_update (proved) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK] | caught |
+| `fin-pad-0x01` | sha256_finish | caught | caught (block = padded stream) | - |
+| `fin-padn-le56` | sha256_finish | caught | caught (all padded blocks processed; block = padded stream) | - |
+| `fin-bitlen-shift` | sha256_finish | caught | caught (block = padded stream) | - |
+| `fin-msglen-swapped` | sha256_finish | caught | caught (block = padded stream) | - |
+| `fin-digest-word` | sha256_finish | caught | caught (digest = state, big-endian) | - |
+| `fin-state-scribble` | sha256_finish | survives | survives h_finish (proved) | caught |
+| `bytes-hex-step` | sha256_bytes | caught | caught (hex digits) | - |
+| `bytes-uppercase` | sha256_bytes | caught | caught (snprintf model: only %02x used) | - |
+| `bytes-salt-inverted` | sha256_bytes | caught | caught (then salt; finish after the input) | - |
+| `bytes-last-byte` | sha256_bytes | caught | caught (hex digits) | - |
+| `bytes-ctx-scribble` | sha256_bytes | survives | survives h_bytes (proved) | caught |
+| `selftest-vector` | sha256_self_test | caught | caught by difftest only (SELFTEST FAILED); no proof covers it, as CLAIM.md says | caught |
 
 ## Required changes to CLAIM.md
 
@@ -206,9 +237,9 @@ MUTANT_TABLE
    - for the fork's every-length claim, CBMC's 56-bit offsets (non-blocking 2).
 4. "no out-of-bounds access, no overflow" becomes "no out-of-bounds access, no signed
    overflow, no undefined shift".
-5. Evidence: replace `H_UPDATE_FIXED` with a real result, or drop the row.
+5. Evidence: add the time to the fork row (now "proved", d84327f).
 6. Evidence rows "Independent review" and "Planted bugs": point to this file and
-   `mutants.toml`. Report 30 mutants. The 23 non-adversarial ones are caught. The 2
+   `mutants.toml`. Report 30 mutants. The 24 non-adversarial ones are caught by the proofs. The 2
    preprocessor tricks (B1) and the 3 context scribbles (B2) survive the proofs and are
    caught by difftest. The self-test-vector mutant is caught by difftest only, as stated.
 7. "Planted bugs in the K table, the argument order and the macros are all caught": qualify

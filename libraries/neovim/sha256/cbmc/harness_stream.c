@@ -2,8 +2,11 @@
 // sha256_process is replaced (goto-instrument --replace-calls) by rec_process, which checks
 // that every block it is given is the next 64 bytes of the stream "bytes already buffered,
 // then the new input" (one nondeterministic byte position per call, so every position is
-// covered), and that the context is the caller's. h_process + check_structure.py prove the
-// real sha256_process is one FIPS compression; together the digest is FIPS SHA-256.
+// covered), that the context is the caller's, and that the state it gets is exactly the
+// state the previous compression left (rec_state, a shadow copy: rec_process gives the
+// state an arbitrary new value and records it, so sha256_update may not touch the state).
+// harness.c + check_structure.py prove the real sha256_process is one FIPS compression;
+// together the digest is FIPS SHA-256.
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -18,6 +21,15 @@ static size_t rec_left0;            // bytes already buffered when the call star
 static uint8_t rec_buf0[64];        // the buffer when the call started
 static context_sha256_T *rec_ctx;
 static size_t rec_b;                // the byte position checked in every block
+static uint32_t rec_state[8];       // the state the last compression left (shadow)
+uint32_t nondet_u32(void);
+#define STATE_EQ(c) ((c)->state[0] == rec_state[0] && (c)->state[1] == rec_state[1] \
+  && (c)->state[2] == rec_state[2] && (c)->state[3] == rec_state[3] && (c)->state[4] == rec_state[4] \
+  && (c)->state[5] == rec_state[5] && (c)->state[6] == rec_state[6] && (c)->state[7] == rec_state[7])
+#define STATE_NEW(c) do { (c)->state[0] = rec_state[0] = nondet_u32(); (c)->state[1] = rec_state[1] = nondet_u32(); \
+  (c)->state[2] = rec_state[2] = nondet_u32(); (c)->state[3] = rec_state[3] = nondet_u32(); \
+  (c)->state[4] = rec_state[4] = nondet_u32(); (c)->state[5] = rec_state[5] = nondet_u32(); \
+  (c)->state[6] = rec_state[6] = nondet_u32(); (c)->state[7] = rec_state[7] = nondet_u32(); } while (0)
 
 static uint8_t stream_byte(size_t s) { return s < rec_left0 ? rec_buf0[s] : rec_in0[s - rec_left0]; }
 
@@ -27,7 +39,8 @@ void rec_process(context_sha256_T *ctx, const uint8_t data[SHA256_BUFFER_SIZE]) 
 #ifndef NO_BLOCK_CHECK
   __CPROVER_assert(data[rec_b] == stream_byte(rec_calls * 64 + rec_b), "block = next 64 stream bytes");
 #endif
-  ctx->state[0] = ctx->state[0] * 31 + 7;   // some change, so later code cannot rely on the old state
+  __CPROVER_assert(STATE_EQ(ctx), "process gets the state the previous compression left");
+  STATE_NEW(ctx);   // an arbitrary new state, recorded
   rec_calls++;
 }
 
@@ -37,7 +50,7 @@ void rec_process(context_sha256_T *ctx, const uint8_t data[SHA256_BUFFER_SIZE]) 
 #define LOOP_INV (rec_calls >= (size_t)REC_F && rec_calls <= (rec_left0 + rec_len0) / 64 \
                   && input == rec_in0 + REC_USED + 64 * (rec_calls - REC_F) \
                   && length == rec_len0 - REC_USED - 64 * (rec_calls - REC_F) \
-                  && left == (REC_F ? 0 : rec_left0) && ctx == rec_ctx)
+                  && left == (REC_F ? 0 : rec_left0) && ctx == rec_ctx && STATE_EQ(ctx))
 
 #include SHA256_X_C
 
@@ -54,6 +67,7 @@ void h_update(void) {
   rec_calls = 0; rec_in0 = in; rec_len0 = len; rec_ctx = ctx;
   rec_left0 = ctx->total[0] & 63;
   memcpy(rec_buf0, ctx->buffer, 64);
+  memcpy(rec_state, ctx->state, sizeof rec_state);
   rec_b = nondet_size();
   __CPROVER_assume(rec_b < 64);
   uint64_t T0 = (uint64_t)ctx->total[1] << 32 | ctx->total[0];
@@ -63,6 +77,7 @@ void h_update(void) {
   __CPROVER_assert(rec_calls == (rec_left0 + len) / 64, "every complete block processed");
   uint64_t T1 = (uint64_t)ctx->total[1] << 32 | ctx->total[0];
   __CPROVER_assert(T1 == T0 + len, "byte count");
+  __CPROVER_assert(STATE_EQ(ctx), "state = what the last compression left");
 #ifndef NO_TAIL_CHECK
   size_t i = nondet_size();
   if (i < (rec_left0 + len) % 64)
