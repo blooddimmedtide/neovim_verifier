@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/sha256.c | 0 | 6 | 0 | 6 |
 
 ## Function details
 
@@ -74,6 +75,12 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/sha256.c | `sha256_start` | candidate | sha256/cbmc (CBMC) | state = FIPS H(0), length 0; see sha256/CLAIM.md. Review and owner sign-off pending |
+| src/nvim/sha256.c | `sha256_process` | candidate | sha256/cbmc (CBMC, compositional) + check_structure.py | one FIPS 180-4 compression for every state and block; see sha256/CLAIM.md. Review and owner sign-off pending |
+| src/nvim/sha256.c | `sha256_update` | fixed-candidate | sha256/cbmc (CBMC loop contract, every length) | upstream proved for each call < 4 GiB and wrong for one call of >= 8 GiB (findings/sha256-length-over-8gib.md); fork PR #4 proved for every length; see sha256/CLAIM.md. Review and owner sign-off pending |
+| src/nvim/sha256.c | `sha256_finish` | candidate | sha256/cbmc (CBMC) | FIPS padding and big-endian digest; see sha256/CLAIM.md. Review and owner sign-off pending |
+| src/nvim/sha256.c | `sha256_bytes` | fixed-candidate | sha256/cbmc (CBMC), sha256/difftest | hex of SHA-256(buf || salt); upstream inherits the sha256_update bug for buf or salt >= 4 GiB, fixed in fork PR #4; see sha256/CLAIM.md. Review and owner sign-off pending |
+| src/nvim/sha256.c | `sha256_self_test` | candidate | sha256/difftest (native run, ASan/UBSan) | no inputs; returns true; see sha256/CLAIM.md. Review and owner sign-off pending |
 
 ## All files
 

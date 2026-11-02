@@ -1,0 +1,324 @@
+# Planted bugs for the CBMC proof of src/nvim/sha256.c (independent review, 2026-11-02).
+# Each `original` occurs exactly once in src/nvim/sha256.c at commit 7b87ce8.
+# Run: python3 -I run_mutants.py <neovim checkout>   (IDS=a,b to run a subset; writes
+# mutants_result.tsv only for a full run).
+# `checks` names the proof scripts run on the mutated copy (one CBMC process at a time):
+#   structure = cbmc/check_structure.py, cbmc = cbmc/run_cbmc.sh (h_forms ... h_endian),
+#   finish = cbmc/run_finish.sh, bytes = cbmc/run_bytes.sh,
+#   stream = cbmc/run_stream.sh (EXTRA from `extra`; "" is the full ~25 min proof),
+#   difftest = difftest/difftest.py <nv> 2000 (native, not a proof; shown for contrast).
+# `expect`: "caught" (some proof check fails) or "survives" (a real gap the reviewer
+# predicts; see REVIEW.md). `result` = what the proof checks did (difftest in brackets).
+
+# ---------------- sha256_process ----------------
+[[mutant]]
+id = "proc-k20"
+function = "sha256_process"
+original = "R(20), 0x2DE92C6F"
+mutated = "R(20), 0x2DE92C6E"
+why = "one bit wrong in the round-20 constant"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (check_structure: statement 46, K)"
+
+[[mutant]]
+id = "proc-Sigma1-rot26"
+function = "sha256_process"
+original = "#define S3(x) (ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25))"
+mutated = "#define S3(x) (ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 26))"
+why = "wrong rotation amount in Sigma1"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (h_prims S3 = Sigma1, h_round)"
+
+[[mutant]]
+id = "proc-sigma0-shr-as-rotr"
+function = "sha256_process"
+original = "#define S0(x) (ROTR(x, 7) ^ ROTR(x, 18) ^  SHR(x, 3))"
+mutated = "#define S0(x) (ROTR(x, 7) ^ ROTR(x, 18) ^  ROTR(x, 3))"
+why = "sigma0 rotates instead of shifting by 3 (classic confusion)"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (h_prims S0 = sigma0, h_sched)"
+
+[[mutant]]
+id = "proc-ch-or"
+function = "sha256_process"
+original = "#define F1(x, y, z) ((z) ^ ((x) & ((y) ^ (z))))"
+mutated = "#define F1(x, y, z) ((z) ^ ((x) | ((y) ^ (z))))"
+why = "Ch with | instead of &"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (h_prims F1 = Ch, h_round)"
+
+[[mutant]]
+id = "proc-rotr-31"
+function = "sha256_process"
+original = "#define ROTR(x, n) (SHR(x, n) | ((x) << (32 - (n))))"
+mutated = "#define ROTR(x, n) (SHR(x, n) | ((x) << (31 - (n))))"
+why = "rotate's left shift off by one"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (h_prims S0..S3, h_round, h_sched)"
+
+[[mutant]]
+id = "proc-sched-t7"
+function = "sha256_process"
+original = "W[(t) - 7]"
+mutated = "W[(t) - 6]"
+why = "message schedule reads W[t-6] instead of W[t-7]"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (h_sched)"
+
+[[mutant]]
+id = "proc-maj-arg"
+function = "sha256_process"
+original = "temp2 = S2(a) + F0(a, b, c);"
+mutated = "temp2 = S2(a) + F0(a, b, d);"
+why = "Maj gets d instead of c"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (h_round)"
+
+[[mutant]]
+id = "proc-round39-names"
+function = "sha256_process"
+original = "P(B, C, D, E, F, G, H, A, R(39), 0x92722C85);"
+mutated = "P(B, C, D, E, F, G, A, H, R(39), 0x92722C85);"
+why = "working-variable names not rotated correctly in one round"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (check_structure: statement 65)"
+
+[[mutant]]
+id = "proc-get-le"
+function = "sha256_process"
+original = "  (n) = ((uint32_t)(b)[(i)] << 24) \\\n        | ((uint32_t)(b)[(i) + 1] << 16) \\\n        | ((uint32_t)(b)[(i) + 2] <<  8) \\\n        | ((uint32_t)(b)[(i) + 3]); \\"
+mutated = "  (n) = ((uint32_t)(b)[(i) + 3] << 24) \\\n        | ((uint32_t)(b)[(i) + 2] << 16) \\\n        | ((uint32_t)(b)[(i) + 1] <<  8) \\\n        | ((uint32_t)(b)[(i)]); \\"
+why = "message words loaded little-endian"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (h_endian: get)"
+
+[[mutant]]
+id = "proc-final-add"
+function = "sha256_process"
+original = "ctx->state[5] += F;"
+mutated = "ctx->state[5] += G;"
+why = "feed-forward adds the wrong working variable"
+checks = ["structure", "cbmc"]
+expect = "caught"
+result = "caught (check_structure: statement 95)"
+
+[[mutant]]
+id = "proc-macro-redefined-later"
+function = "sha256_process"
+original = "#define S3(x) (ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25))"
+mutated = "#define S3(x) (ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 26))"
+original2 = "static uint8_t sha256_padding[SHA256_BUFFER_SIZE] = {"
+mutated2 = "#undef S3\n#define S3(x) (ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25))\nstatic uint8_t sha256_padding[SHA256_BUFFER_SIZE] = {"
+why = "adversarial: the body uses a wrong Sigma1, a correct S3 is re-#defined after the function; h_prims sees only the last definition and check_structure drops #define lines unread"
+checks = ["structure", "cbmc", "difftest"]
+expect = "survives"
+result = "survives check_structure and all of run_cbmc.sh [difftest: caught, self-test fails]"
+
+[[mutant]]
+id = "proc-comment-splice"
+function = "sha256_process"
+original = "  ctx->state[6] += G;\n  ctx->state[7] += H;"
+mutated = "  ctx->state[6] += G;  // and H, below: \\\n  ctx->state[7] += H;"
+why = "adversarial: a // comment ending in a backslash swallows the next line in C (translation phase 2); check_structure strips // comments before splicing lines, so it still sees state[7] += H"
+checks = ["structure", "cbmc", "difftest"]
+expect = "survives"
+result = "survives check_structure and all of run_cbmc.sh [difftest: caught, self-test fails]"
+
+# ---------------- sha256_update ----------------
+[[mutant]]
+id = "upd-carry-le"
+function = "sha256_update"
+original = "if (ctx->total[0] < length) {"
+mutated = "if (ctx->total[0] <= length) {"
+why = "spurious carry into the high word of the byte count"
+checks = ["stream"]
+extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"
+expect = "caught"
+result = "caught (byte count) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK]"
+
+[[mutant]]
+id = "upd-fill-off-by-one"
+function = "sha256_update"
+original = "size_t fill = SHA256_BUFFER_SIZE - left;"
+mutated = "size_t fill = SHA256_BUFFER_SIZE - left - 1;"
+why = "the partial buffer is completed with one byte too few"
+checks = ["stream"]
+extra = "-DNO_BLOCK_CHECK"
+expect = "caught"
+result = "caught (every complete block processed; the rest is buffered; only whole blocks) [-DNO_BLOCK_CHECK]"
+
+[[mutant]]
+id = "upd-tail-offset"
+function = "sha256_update"
+original = "memcpy(ctx->buffer + left, input, length);"
+mutated = "memcpy(ctx->buffer, input, length);"
+why = "the remaining tail is stored at offset 0, overwriting bytes already buffered"
+checks = ["stream"]
+extra = "-DNO_BLOCK_CHECK"
+expect = "caught"
+result = "caught (the rest is buffered) [-DNO_BLOCK_CHECK]"
+
+[[mutant]]
+id = "upd-input-step-63"
+function = "sha256_update"
+original = "    input += SHA256_BUFFER_SIZE;"
+mutated = "    input += SHA256_BUFFER_SIZE - 1;"
+why = "loop advances the input by 63 bytes per block (overlapping blocks)"
+checks = ["stream"]
+extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"
+expect = "caught"
+result = "caught (loop invariant after step) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK]"
+
+[[mutant]]
+id = "upd-skip-buffer-block"
+function = "sha256_update"
+original = "    sha256_process(ctx, ctx->buffer);\n"
+mutated = "    (void)0;\n"
+why = "the completed buffer block is never compressed"
+checks = ["stream"]
+extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"
+expect = "caught"
+result = "caught (loop invariant before entry; every complete block processed) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK]"
+
+[[mutant]]
+id = "upd-state-scribble"
+function = "sha256_update"
+original = "size_t fill = SHA256_BUFFER_SIZE - left;"
+mutated = "size_t fill = SHA256_BUFFER_SIZE - left;\n  ctx->state[7] += left;"
+why = "gap probe: update changes the chaining state outside sha256_process; no harness asserts anything about ctx->state"
+checks = ["stream", "difftest"]
+extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"   # the dropped asserts only read bytes, which this mutant does not change
+expect = "survives"
+result = "survives h_update (proved) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK] [difftest: caught, self-test fails]"
+
+# ---------------- sha256_finish ----------------
+[[mutant]]
+id = "fin-pad-0x01"
+function = "sha256_finish"
+original = "  0x80, 0,"
+mutated = "  0x01, 0,"
+why = "padding starts with 0x01 instead of the 1 bit 0x80"
+checks = ["finish"]
+expect = "caught"
+result = "caught (block = padded stream)"
+
+[[mutant]]
+id = "fin-padn-le56"
+function = "sha256_finish"
+original = "(last < 56) ? (56 - last)"
+mutated = "(last <= 56) ? (56 - last)"
+why = "boundary: with 56 bytes buffered no padding bytes are added (no 0x80)"
+checks = ["finish"]
+expect = "caught"
+result = "caught (all padded blocks processed; block = padded stream)"
+
+[[mutant]]
+id = "fin-bitlen-shift"
+function = "sha256_finish"
+original = "(ctx->total[0] >> 29)"
+mutated = "(ctx->total[0] >> 28)"
+why = "wrong carry of the byte count into the high word of the bit length"
+checks = ["finish"]
+expect = "caught"
+result = "caught (block = padded stream)"
+
+[[mutant]]
+id = "fin-msglen-swapped"
+function = "sha256_finish"
+original = "  PUT_UINT32(high, msglen, 0);\n  PUT_UINT32(low,  msglen, 4);"
+mutated = "  PUT_UINT32(high, msglen, 4);\n  PUT_UINT32(low,  msglen, 0);"
+why = "64-bit length written low word first"
+checks = ["finish"]
+expect = "caught"
+result = "caught (block = padded stream)"
+
+[[mutant]]
+id = "fin-digest-word"
+function = "sha256_finish"
+original = "PUT_UINT32(ctx->state[6], digest, 24);"
+mutated = "PUT_UINT32(ctx->state[5], digest, 24);"
+why = "digest word 6 copied from state[5]"
+checks = ["finish"]
+expect = "caught"
+result = "caught (digest = state, big-endian)"
+
+[[mutant]]
+id = "fin-state-scribble"
+function = "sha256_finish"
+original = "  uint32_t last = ctx->total[0] & 0x3F;"
+mutated = "  uint32_t last = ctx->total[0] & 0x3F;\n  ctx->state[0] ^= last;"
+why = "gap probe: finish changes the chaining state before padding; the recorder never compares the state it is handed with the state before"
+checks = ["finish", "difftest"]
+expect = "survives"
+result = "survives h_finish (proved) [difftest: caught, self-test fails]"
+
+# ---------------- sha256_bytes ----------------
+[[mutant]]
+id = "bytes-hex-step"
+function = "sha256_bytes"
+original = "snprintf(hexit + j * SHA_STEP,"
+mutated = "snprintf(hexit + j,"
+why = "hex pairs written at stride 1 instead of 2"
+checks = ["bytes"]
+expect = "caught"
+result = "caught (hex digits)"
+
+[[mutant]]
+id = "bytes-uppercase"
+function = "sha256_bytes"
+original = "snprintf(hexit + j * SHA_STEP, SHA_STEP + 1, \"%02x\", sha256sum[j]);"
+mutated = "snprintf(hexit + j * SHA_STEP, SHA_STEP + 1, \"%02X\", sha256sum[j]);"
+why = "uppercase hex"
+checks = ["bytes"]
+expect = "caught"
+result = "caught (snprintf model: only %02x used)"
+
+[[mutant]]
+id = "bytes-salt-inverted"
+function = "sha256_bytes"
+original = "if (salt != NULL) {"
+mutated = "if (salt == NULL) {"
+why = "salt hashed only when absent"
+checks = ["bytes"]
+expect = "caught"
+result = "caught (then salt; finish after the input)"
+
+[[mutant]]
+id = "bytes-last-byte"
+function = "sha256_bytes"
+original = "  for (size_t j = 0; j < SHA256_SUM_SIZE; j++) {\n    snprintf(hexit"
+mutated = "  for (size_t j = 0; j < SHA256_SUM_SIZE - 1; j++) {\n    snprintf(hexit"
+why = "last digest byte not converted"
+checks = ["bytes"]
+expect = "caught"
+result = "caught (hex digits)"
+
+[[mutant]]
+id = "bytes-ctx-scribble"
+function = "sha256_bytes"
+original = "  uint8_t sha256sum[SHA256_SUM_SIZE];\n  sha256_finish(&ctx, sha256sum);"
+mutated = "  uint8_t sha256sum[SHA256_SUM_SIZE];\n  ctx.total[0] = (uint32_t)buf_len;\n  sha256_finish(&ctx, sha256sum);"
+why = "gap probe: the byte count is reset between the updates and finish; the recorders track only which context pointer is passed, not its contents"
+checks = ["bytes", "difftest"]
+expect = "survives"
+result = "survives h_bytes (proved) [difftest: caught, 608 of 4000 digests wrong]"
+
+# ---------------- sha256_self_test ----------------
+[[mutant]]
+id = "selftest-vector"
+function = "sha256_self_test"
+original = "\"b00361a396177a9cb410ff61f20015ad\""
+mutated = "\"b00361a396177a9cb410ff61f20015ae\""
+why = "wrong expected vector: self_test returns false (covered only by the native run)"
+checks = ["difftest"]
+expect = "caught"
+result = "caught by difftest only (SELFTEST FAILED); no proof covers it, as CLAIM.md says"
