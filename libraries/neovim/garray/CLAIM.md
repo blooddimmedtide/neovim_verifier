@@ -104,6 +104,6 @@ functions.
 
 | Check | Upstream | Fixed |
 |---|---|---|
-| WP, every function, lemma and ghost lemma function (`bash wp/run_wp.sh <tree> upstream\|fixed 60`) | 437 / 437 goals | 467 / 467 goals |
+| WP, every function, lemma and ghost lemma function (`bash wp/run_wp.sh <tree> upstream\|fixed 60`) | 414 / 414 goals | 443 / 443 goals |
 | Tool patch (`bash equiv/run_equiv.sh`) | 2/2 (signed, unsigned char) | same |
 | Differential test (`bash difftest/run_difftest.sh <tree> <mode> 20000`), ASan/UBSan, gcc -O2 | 6,206,577 checks, 0 mismatches, both char signs | same |
