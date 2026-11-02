@@ -56,3 +56,14 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/garray.c	ga_clear	candidate	garray/wp (Frama-C WP), garray/difftest	frees ga_data (one xfree), then an empty array keeping item size and growsize; see garray/CLAIM.md. Review pending
+src/nvim/garray.c	ga_clear_strings	candidate	garray/wp (Frama-C WP, every length), garray/difftest	frees every item in order, then the array; review pending
+src/nvim/garray.c	ga_init	candidate	garray/wp (Frama-C WP), garray/difftest	empty array, growsize at least 1; review pending
+src/nvim/garray.c	ga_set_growsize	candidate	garray/wp (Frama-C WP)	growsize = max(g, 1); review pending
+src/nvim/garray.c	ga_grow	fixed-candidate	garray/wp (Frama-C WP, upstream where the growth fits in an int, fixed for every input), garray/difftest	upstream int overflow past ~1.43e9 items, Nvim exits (findings/ga-grow-int-overflow.md, reproduced in Nvim 0.9.5); fix in verified_neovim PR #5. Review pending
+src/nvim/garray.c	ga_remove_duplicate_strings	candidate	garray/wp (Frama-C WP, every length), garray/difftest	sorted, adjacent path_equal duplicates dropped and freed; relative to sort_strings / path_equal contracts (not yet proved). Review pending
+src/nvim/garray.c	ga_concat_strings	fixed-candidate	garray/wp (Frama-C WP, upstream when the length does not wrap, fixed for every input), garray/difftest	items joined with sep; upstream length can wrap past SIZE_MAX (findings/ga-concat-strings-wrap.md); fix in verified_neovim PR #5. Review pending
+src/nvim/garray.c	ga_concat	fixed-candidate	garray/wp (Frama-C WP), garray/difftest	appends the string's bytes; inherits the ga_grow overflow and its fix. Review pending
+src/nvim/garray.c	ga_concat_len	fixed-candidate	garray/wp (Frama-C WP), garray/difftest	appends len bytes or E1240; inherits the ga_grow overflow and its fix. Review pending
+src/nvim/garray.c	ga_append	fixed-candidate	garray/wp (Frama-C WP), garray/equiv (CBMC tool patch), garray/difftest	appends one byte; inherits the ga_grow overflow and its fix. Review pending
+src/nvim/garray.c	ga_append_via_ptr	fixed-candidate	garray/wp (Frama-C WP), garray/difftest	appends one zeroed item and returns it; inherits the ga_grow overflow and its fix. Review pending

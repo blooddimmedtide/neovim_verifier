@@ -6,7 +6,7 @@ upstream = "https://github.com/neovim/neovim"
 commit = "7b87ce822e6fd45a4d9993599c2854afdb0dc4dd"   # master, 2026-10-23
 version = "master-2026-10-23"
 fixed_repo = "https://github.com/blooddimmedtide/verified_neovim"
-fixed_commit = "37767a0afb9768aaab45fa0875c5dde786beee97"   # branch verified: every fix (base64 7a5d1f1, cp_bounds aec5ed2, mpack 1778674, sha256 f639a44)
+fixed_commit = "fd8d32461bfc7431c771d1185cac75c0db5bc02e"   # branch claude/project-thread-aslfna (verified + garray 850a906, dec9b23; PR #5 into verified). verified 37767a0: base64 7a5d1f1, cp_bounds aec5ed2, mpack 1778674, sha256 f639a44
 thread = "Start verifying Neovim"
 
 [targets.base64]
@@ -44,6 +44,14 @@ functions = ["xmemcpyz", "xstrnlen", "xstrchrnul", "xmemscan", "strchrsub", "mem
 annotate = "memory/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only
 prove = ["bash memory/wp/run_wp.sh {src} 120"]
 check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
+
+[targets.garray]
+file = "src/nvim/garray.c"
+functions = ["ga_clear", "ga_clear_strings", "ga_init", "ga_set_growsize", "ga_grow", "ga_remove_duplicate_strings", "ga_concat_strings", "ga_concat", "ga_concat_len", "ga_append", "ga_append_via_ptr"]
+annotate = "garray/wp/build.py"   # verbatim extraction, sha256 pinned (fixed fork pinned too); ACSL as comments only
+prove = ["bash garray/wp/run_wp.sh {src} upstream 60", "bash garray/wp/run_wp.sh {fixed} fixed 60", "bash garray/equiv/run_equiv.sh"]
+check = ["bash garray/difftest/run_difftest.sh {src} upstream 20000", "bash garray/difftest/run_difftest.sh {fixed} fixed 20000"]
+mutants = "python3 -I garray/run_mutants.py {src} {fixed}"   # reviewer-chosen planted bugs, garray/mutants.toml
 
 [framac]
 per_function = true
@@ -87,6 +95,14 @@ original = "  if (src_len >= 2 && src[src_len - 2] == '=') {"
 rewritten = "  if (src_len >= 2 && ((const uint8_t *)src)[src_len - 2] == '=') {"
 harness = "cbmc base64/equiv/equiv_pad_second.c --function harness -I base64/cbmc/stubs -I {tree}/src -DNVIM_BASE64_C='\"{tree}/src/nvim/base64.c\"' --unwinding-assertions --bounds-check --pointer-check --conversion-check"
 harness_files = ["base64/equiv/equiv_pad_second.c"]
+[[framac.tool_patch]]
+id = "ga_append_store"
+file = "src/nvim/garray.c"
+original = "((uint8_t *)(gap)->ga_data)[(gap)->ga_len] = (c);"
+rewritten = "((char *)(gap)->ga_data)[(gap)->ga_len] = (char)(c);"
+harness = "bash garray/equiv/run_equiv.sh"
+harness_files = ["garray/equiv/append_store.c"]
+
 [scope]
 properties = [
   "base64_encode: output equals RFC 4648 Base64 of the input, NUL-terminated, for every input up to 4 EiB",
