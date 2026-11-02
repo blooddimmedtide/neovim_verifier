@@ -17,15 +17,25 @@ static context_sha256_T *the_ctx;
 static const uint8_t *exp_buf, *exp_salt;
 static size_t exp_buf_len, exp_salt_len;
 static uint8_t made[SHA256_SUM_SIZE];
+static context_sha256_T saved;   // the context as the last recorder left it (shadow)
+// Each recorder gives the context arbitrary new contents and records them; the next one
+// checks sha256_bytes did not change the context in between.
+#define CTX_KEPT(c) __CPROVER_assert((c)->total[0] == saved.total[0] && (c)->total[1] == saved.total[1] \
+  && __CPROVER_array_equal((c)->state, saved.state) && __CPROVER_array_equal((c)->buffer, saved.buffer), \
+  "context unchanged between calls")
+#define CTX_NEW(c) do { __CPROVER_havoc_object(c); saved = *(c); } while (0)
 
-void rec_start(context_sha256_T *ctx) { __CPROVER_assert(seq == 0, "start first"); the_ctx = ctx; seq = 1; }
+void rec_start(context_sha256_T *ctx) { __CPROVER_assert(seq == 0, "start first"); the_ctx = ctx; seq = 1; CTX_NEW(ctx); }
 void rec_update(context_sha256_T *ctx, const uint8_t *in, size_t len) {
   __CPROVER_assert(ctx == the_ctx, "same context");
+  CTX_KEPT(ctx);
   if (seq == 1) { __CPROVER_assert(in == exp_buf && len == exp_buf_len, "buf hashed first"); seq = 2; }
   else { __CPROVER_assert(seq == 2 && exp_salt != NULL && in == exp_salt && len == exp_salt_len, "then salt"); seq = 3; }
+  CTX_NEW(ctx);
 }
 void rec_finish(context_sha256_T *ctx, uint8_t digest[SHA256_SUM_SIZE]) {
   __CPROVER_assert(ctx == the_ctx && seq == (exp_salt != NULL ? 3 : 2), "finish after the input");
+  CTX_KEPT(ctx);
   for (int i = 0; i < SHA256_SUM_SIZE; i++) digest[i] = made[i] = nondet_u8();
   seq = 4;
 }

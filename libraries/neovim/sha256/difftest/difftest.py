@@ -12,10 +12,9 @@ bad = checks = 0; last = None
 for line in out:
     if not line: continue
     if line.startswith("B "):
-        _, cut, h = line.split(); cut = int(cut)
-        # dt.c passes the salt (rest of the message) or NULL; both cases are in the output order:
-        whole, part = hashlib.sha256(last).hexdigest(), hashlib.sha256(last[:cut]).hexdigest()
-        checks += 1; bad += h not in (whole, part) or (cut == len(last) and h != whole)
+        _, cut, salted, h = line.split(); cut = int(cut)
+        want = hashlib.sha256(last if salted == "1" else last[:cut]).hexdigest()   # buf, then salt if given
+        checks += 1; bad += h != want
     else:
         mhex, d = line.split(" "); last = bytes.fromhex(mhex)
         checks += 1; bad += hashlib.sha256(last).hexdigest() != d

@@ -24,9 +24,10 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 32; i++) printf("%02x", d[i]);
     printf("\n");
     size_t cut = len ? rnd() % (len + 1) : 0;
-    const char *h = sha256_bytes(m, cut, rnd() % 2 ? m + cut : NULL, len - cut);
+    int salted = rnd() % 2;
+    const char *h = sha256_bytes(m, cut, salted ? m + cut : NULL, len - cut);
     // with a NULL salt only the first cut bytes are hashed
-    printf("B %zu %s\n", cut, h);
+    printf("B %zu %d %s\n", cut, salted, h);
   }
   return 0;
 }

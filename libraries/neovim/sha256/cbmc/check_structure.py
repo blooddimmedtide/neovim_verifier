@@ -14,13 +14,102 @@ Rotating the names by one per round is exactly FIPS's "h = g; g = f; ...; a = T1
 import re, sys, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-src = open(os.path.join(sys.argv[1], "src/nvim/sha256.c")).read()
-m = re.search(r"\nstatic void sha256_process\(context_sha256_T \*ctx, const uint8_t data\[SHA256_BUFFER_SIZE\]\)\n\{\n(.*?)\n\}\n\nvoid sha256_update\(", src, re.S)
+NV = sys.argv[1]
+raw = open(os.path.join(NV, "src/nvim/sha256.c")).read()
+
+
+def clean(text):
+    """C translation phases 2-3: join backslash-newlines first, then replace comments by a
+    space (keeping their newlines), leaving string and character literals alone."""
+    text = text.replace("\\\n", "")
+    out, i, n = [], 0, len(text)
+    while i < n:
+        c = text[i]
+        if c in "\"'":
+            j = i + 1
+            while j < n and text[j] != c:
+                j += 2 if text[j] == "\\" else 1
+            out.append(text[i:j + 1]); i = j + 1
+        elif text.startswith("//", i):
+            j = text.find("\n", i); j = n if j < 0 else j
+            out.append(" "); i = j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            if j < 0:
+                sys.exit("check_structure: unterminated comment")
+            out.append(" " + "\n" * text.count("\n", i, j)); i = j + 2
+        else:
+            out.append(c); i += 1
+    return "".join(out)
+
+
+def directives(text):
+    return [ln.strip() for ln in text.split("\n") if ln.lstrip().startswith("#")]
+
+
+src = clean(raw)
+
+# Every preprocessor directive in the file. The macro harnesses (harness.c) include the same
+# file and see each macro's last definition, so each must be defined exactly once, with no
+# #undef and no conditional, for what they prove to be what the body uses.
+BODY_MACROS = ["SHR", "ROTR", "S0", "S1", "S2", "S3", "F0", "F1", "R", "P"]
+FILE_MACROS = ["GET_UINT32", "PUT_UINT32", "SHA_STEP"]
+INCLUDES = ["<stdbool.h>", "<stddef.h>", "<stdio.h>", "<string.h>", '"nvim/ascii_defs.h"',
+            '"nvim/memory.h"', '"nvim/sha256.h"', '"sha256.c.generated.h"']
+defined, included = [], []
+for d in directives(src):
+    mm = re.fullmatch(r"#\s*define\s+([A-Za-z_]\w*).*", d, re.S)
+    mi = re.fullmatch(r"#\s*include\s+(\S+)", d)
+    if mm:
+        defined.append(mm.group(1))
+    elif mi:
+        included.append(mi.group(1))
+    else:
+        sys.exit(f"check_structure: directive not allowed in sha256.c: {d!r}")
+if sorted(defined) != sorted(BODY_MACROS + FILE_MACROS):
+    sys.exit(f"check_structure: macros defined {sorted(defined)}, expected each of {sorted(BODY_MACROS + FILE_MACROS)} once")
+if sorted(included) != sorted(INCLUDES):
+    sys.exit(f"check_structure: includes {included}, expected {INCLUDES}")
+
+m = re.search(r"\nstatic void sha256_process\(context_sha256_T \*ctx, const uint8_t data\[SHA256_BUFFER_SIZE\]\)\s*\{\n(.*?)\n\}\s*void sha256_update\(", src, re.S)
 if not m:
-    sys.exit("check_structure: sha256_process not found")
+    sys.exit("check_structure: sha256_process not found (or something between it and sha256_update)")
 body = m.group(1)
-body = re.sub(r"^#define(?:[^\n]*\\\n)*[^\n]*\n", "", body, flags=re.M)   # drop macro definitions
-body = re.sub(r"//[^\n]*", "", body)
+in_body = [re.match(r"#\s*define\s+(\w+)", d).group(1) for d in directives(body)]
+if sorted(in_body) != sorted(BODY_MACROS):
+    sys.exit(f"check_structure: macros in the body {in_body}, expected {BODY_MACROS}")
+body = "\n".join(ln for ln in body.split("\n") if not ln.lstrip().startswith("#"))
+
+# The Neovim headers this file includes (transitively, those present in the checkout) must
+# not define a macro named like anything the body or the macros use.
+IDENTS = set(re.findall(r"[A-Za-z_]\w*", m.group(1))) - {"define"}
+EXPECTED_HDR = {"SHA256_BUFFER_SIZE": "64"}   # the one header macro the body uses
+found = set()
+seen, todo, hdr_macros = set(), ["nvim/ascii_defs.h", "nvim/memory.h", "nvim/sha256.h"], {}
+while todo:
+    h = todo.pop()
+    if h in seen:
+        continue
+    seen.add(h)
+    path = os.path.join(NV, "src", h)
+    if not os.path.exists(path):
+        continue          # generated headers (*.generated.h): prototypes only
+    for d in directives(clean(open(path).read())):
+        mi = re.fullmatch(r'#\s*include\s+"([^"]+)"', d)
+        if mi:
+            todo.append(mi.group(1))
+        mm = re.match(r"#\s*define\s+([A-Za-z_]\w*)(.*)", d)
+        if mm and mm.group(1) in EXPECTED_HDR:
+            if mm.group(2).strip() != EXPECTED_HDR[mm.group(1)]:
+                sys.exit(f"check_structure: {h} defines {mm.group(1)} as {mm.group(2).strip()!r}")
+            found.add(mm.group(1))
+        elif mm:
+            hdr_macros[mm.group(1)] = h
+if found != set(EXPECTED_HDR):
+    sys.exit(f"check_structure: {sorted(set(EXPECTED_HDR) - found)} not defined by the headers")
+clash = sorted(IDENTS & set(hdr_macros))
+if clash:
+    sys.exit(f"check_structure: headers define macros used in sha256_process: {[(c, hdr_macros[c]) for c in clash]}")
 stmts = [s.strip() for s in re.sub(r"\s+", "", body).replace("}", "};").split(";") if s.strip()]
 
 K = [int(x, 16) for x in re.findall(r"0x[0-9a-f]{8}", re.search(r"SPEC_K\[64\] = \{(.*?)\};", open(os.path.join(HERE, "spec.h")).read(), re.S).group(1))]
@@ -45,4 +134,5 @@ for i, (got, exp) in enumerate(zip(stmts, want)):
         ok = got == exp
     if not ok:
         sys.exit(f"check_structure: statement {i}: {got!r}, expected {exp!r}")
-print(f"sha256_process structure: {len(stmts)} statements match FIPS 180-4 (64 rounds)")
+print(f"sha256_process structure: {len(stmts)} statements match FIPS 180-4 (64 rounds); "
+      f"{len(defined)} macros each defined once, no other directives; {len(seen)} Neovim headers define none of the {len(IDENTS)} names used")

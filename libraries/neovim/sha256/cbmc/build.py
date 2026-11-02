@@ -11,7 +11,7 @@ import sys
 ANCHOR = "  while (length >= SHA256_BUFFER_SIZE) {\n"
 CONTRACT = (
     "  while (length >= SHA256_BUFFER_SIZE)\n"
-    "    __CPROVER_assigns(length, input, rec_calls, __CPROVER_object_upto(ctx->state, sizeof(ctx->state)))"
+    "    __CPROVER_assigns(length, input, rec_calls, __CPROVER_object_upto(ctx->state, sizeof(ctx->state)), __CPROVER_object_whole(rec_state))"
     " __CPROVER_loop_invariant(LOOP_INV) __CPROVER_decreases(length)\n"
     "  {\n")
 

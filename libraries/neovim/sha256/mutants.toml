@@ -143,7 +143,7 @@ why = "spurious carry into the high word of the byte count"
 checks = ["stream"]
 extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"
 expect = "caught"
-result = "PENDING"
+result = "caught (byte count) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK]"
 
 [[mutant]]
 id = "upd-fill-off-by-one"
@@ -154,7 +154,7 @@ why = "the partial buffer is completed with one byte too few"
 checks = ["stream"]
 extra = "-DNO_BLOCK_CHECK"
 expect = "caught"
-result = "PENDING"
+result = "caught (every complete block processed; the rest is buffered; only whole blocks) [-DNO_BLOCK_CHECK]"
 
 [[mutant]]
 id = "upd-tail-offset"
@@ -165,7 +165,7 @@ why = "the remaining tail is stored at offset 0, overwriting bytes already buffe
 checks = ["stream"]
 extra = "-DNO_BLOCK_CHECK"
 expect = "caught"
-result = "PENDING"
+result = "caught (the rest is buffered) [-DNO_BLOCK_CHECK]"
 
 [[mutant]]
 id = "upd-input-step-63"
@@ -176,7 +176,7 @@ why = "loop advances the input by 63 bytes per block (overlapping blocks)"
 checks = ["stream"]
 extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"
 expect = "caught"
-result = "PENDING"
+result = "caught (loop invariant after step) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK]"
 
 [[mutant]]
 id = "upd-skip-buffer-block"
@@ -187,7 +187,7 @@ why = "the completed buffer block is never compressed"
 checks = ["stream"]
 extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"
 expect = "caught"
-result = "PENDING"
+result = "caught (loop invariant before entry; every complete block processed) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK]"
 
 [[mutant]]
 id = "upd-state-scribble"
@@ -198,7 +198,7 @@ why = "gap probe: update changes the chaining state outside sha256_process; no h
 checks = ["stream", "difftest"]
 extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"   # the dropped asserts only read bytes, which this mutant does not change
 expect = "survives"
-result = "PENDING"
+result = "survives h_update (proved) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK] [difftest: caught, self-test fails]"
 
 # ---------------- sha256_finish ----------------
 [[mutant]]
