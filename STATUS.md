@@ -13,7 +13,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
 | src/nvim/regexp.c | 0 | 3 | 173 | 176 |
-| src/nvim/search.c | 0 | 1 | 56 | 57 |
+| src/nvim/search.c | 0 | 14 | 43 | 57 |
 
 ## Function details
 
@@ -80,6 +80,19 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/regexp.c | `gethexchrs` | candidate | regexp/cbmc (CBMC, all inputs, max 2/4/8) | value of the longest run of at most max hex digits; see regexp/CLAIM.md. Review + planted bugs pending |
 | src/nvim/regexp.c | `getoctchrs` | candidate | regexp/cbmc (CBMC, all inputs) | longest run of at most 3 octal digits with value <= 0377; see regexp/CLAIM.md. Review + planted bugs pending |
 | src/nvim/search.c | `set_last_csearch` | fixed-candidate | search/cbmc (CBMC, every len >= 0, both char signednesses; upstream refuted) | upstream writes past lastc_bytes and leaves stale bytes (findings/search-csearch-overflow.md); fix in verified_neovim proved for every input, 9/9 planted bugs killed; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `get_search_pat` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | returns mr_pattern; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `last_search_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | returns the search (not substitute) pattern; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `last_search_pattern_len` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | returns its length field; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `last_csearch` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | returns the lastc_bytes buffer; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `last_csearch_forward` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | 1 iff lastcdir == FORWARD; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `last_csearch_until` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | 1 iff last_t_cmd; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `set_csearch_direction` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | stores any Direction value; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `set_csearch_until` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | stores t != 0, any int; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `set_search_direction` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | spats[0].off.dir = c for any c in char range; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `first_submatch` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | lowest matched sub-match 1..9, else 0; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `search_pattern_cleared` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | pattern of the chosen kind is NULL; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `set_last_used_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | last_idx = RE_SUBST or RE_SEARCH; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `search_was_last_used` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | last_idx == RE_SEARCH; every other search.c global unchanged; see search/CLAIM.md. Review pending |
 
 ## All files
 

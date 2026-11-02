@@ -54,7 +54,7 @@ check = ["bash regexp/difftest/run_difftest.sh {src}"]
 
 [targets.search_csearch]
 file = "src/nvim/search.c"
-functions = ["set_last_csearch"]
+functions = ["set_last_csearch", "get_search_pat", "last_search_pattern", "last_search_pattern_len", "last_csearch", "last_csearch_forward", "last_csearch_until", "set_csearch_direction", "set_csearch_until", "set_search_direction", "first_submatch", "search_pattern_cleared", "set_last_used_pattern", "search_was_last_used"]
 annotate = "search/cbmc/build.py"   # verbatim extraction, sha256 pinned
 prove = ["bash search/cbmc/run_cbmc.sh {fixed}", "bash search/cbmc/run_cbmc.sh {src}"]   # fixed: proved; upstream: must be refuted
 check = ["bash search/cbmc/run_mutants.sh {fixed}"]

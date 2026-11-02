@@ -1,9 +1,10 @@
 #!/bin/bash
 # Usage: bash run_cbmc.sh <neovim checkout>
-# Full-correctness proof of search.c's set_last_csearch with CBMC (x86_64, both
-# char signednesses). On the fixed fork the proof must succeed. On upstream it
-# must fail with an out-of-bounds write and the stale-bytes violation (the
-# finding). Exit 0 = the outcome expected for the version found.
+# Full-correctness proofs with CBMC (x86_64, both char signednesses):
+# set_last_csearch (harness.c): on the fixed fork the proof must succeed; on
+# upstream it must fail with an out-of-bounds write and the stale-bytes
+# violation (the finding). The 13 accessors (accessors.c): proved on both.
+# Exit 0 = every outcome as expected for the version found.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd)
 W=$(mktemp -d)
@@ -27,6 +28,18 @@ for sign in signed --unsigned-char; do
         echo "set_last_csearch upstream ($sign, len<=$maxlen): refuted as expected (overflow + stale bytes)"
       else echo "set_last_csearch upstream ($sign, len<=$maxlen): unexpected result"; echo "$out" | grep -E 'FAILURE|error|VERIFICATION' | head -8; status=1; fi
     fi
+  done
+done
+ACC="h_get_search_pat h_last_search_pattern h_last_search_pattern_len h_last_csearch h_last_csearch_forward
+     h_last_csearch_until h_set_csearch_direction h_set_csearch_until h_set_search_direction h_first_submatch
+     h_search_pattern_cleared h_set_last_used_pattern h_search_was_last_used"
+for sign in signed --unsigned-char; do
+  for h in $ACC; do
+    out=$(cbmc "$HERE/accessors.c" --function "$h" -I "$HERE" -DSEARCH_C="\"$W/search_cs.c\"" \
+          --arch x86_64 ${sign#signed} --no-malloc-may-fail --bounds-check --pointer-check \
+          --signed-overflow-check --undefined-shift-check --unwind 35 --unwinding-assertions 2>&1)
+    if echo "$out" | grep -q "VERIFICATION SUCCESSFUL"; then echo "${h#h_} ($sign): proved"
+    else echo "${h#h_} ($sign): FAILED"; echo "$out" | grep -E 'FAILURE|error' | head -5; status=1; fi
   done
 done
 rm -rf "$W"; exit $status
