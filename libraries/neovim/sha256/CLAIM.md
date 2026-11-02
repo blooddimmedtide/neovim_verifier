@@ -31,6 +31,10 @@ The spec is FIPS 180-4 section 6.2, written out in `cbmc/spec.h` (functions Ch, 
 | `sha256_bytes(buf, n, salt, m)` | returns the lowercase hex of SHA-256(buf ‖ salt) (salt omitted when NULL), 64 characters and a NUL | `h_bytes` |
 | `sha256_self_test` | returns true; no undefined behavior | native run, below |
 
+On upstream, `sha256_update`'s property needs each call's `len` below 4 GiB, so
+`sha256_bytes` is correct upstream when `buf_len` and `salt_len` are below 4 GiB. On the fixed
+fork both hold for every length.
+
 All harnesses: `--bounds-check --pointer-check --signed-overflow-check --undefined-shift-check`
 and `--unwinding-assertions`, so no out-of-bounds access, no overflow and no unproved bound.
 
@@ -110,7 +114,7 @@ proof covers every `size_t` length.
 |---|---|---|
 | Compression pieces | `bash cbmc/run_cbmc.sh <nvim>` | h_forms, h_start, h_prims, h_round, h_sched, h_endian proved (43 s) |
 | Compression structure | `python3 -I cbmc/check_structure.py <nvim>` | 98 statements match FIPS 180-4 |
-| update, upstream (each call < 4 GiB) | `bash cbmc/run_stream.sh <nvim>` | H_UPDATE_UPSTREAM |
+| update, upstream (each call < 4 GiB) | `bash cbmc/run_stream.sh <nvim>` | proved (about 25 min) |
 | update, fixed fork (every len) | `bash cbmc/run_stream.sh <fork> fixed` | H_UPDATE_FIXED |
 | finish | `bash cbmc/run_finish.sh <nvim>` | proved (81 s) |
 | bytes | `bash cbmc/run_bytes.sh <nvim>` | proved |
