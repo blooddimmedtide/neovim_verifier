@@ -7,7 +7,7 @@ toolchain: Frama-C 33.0 WP, Why3, Z3 5.1.0, CVC5 1.4.0 with --full-saturate-quan
 container: ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac (CI)
 strength: candidate   # becomes full-correctness after the review and the owner's spec sign-off
 tools: Frama-C WP (deductive, unbounded: every length, every input), Typed+Cast memory model, -wp-rte
-platform: x86_64 (machdep x86_64); results hold for signed and unsigned char (differential test runs both)
+platform: x86_64 (machdep x86_64), char signed (proved); unsigned char only by the differential test
 ---
 
 # Claim card: Neovim memory.c string helpers
@@ -48,10 +48,12 @@ overflow, no invalid conversion), and they terminate (loop variants).
 
 1. **Frama-C WP, Why3 and the provers are sound** (Z3, CVC5).
 2. **The C library meets `wp/stubs/vp_string.h`**: contracts for strlen, memchr, strchr,
-   memcpy, memmove, memset, strcmp, strncmp written from C11 7.24, with no axioms. memchr and
-   strchr are specified to read in order and stop at the first match (true of glibc and C11's
-   description). Frama-C's own libc header was not used: its memchr compares a signed char
-   with an int (wrong above 127).
+   memcpy, memmove, memset, strcmp, strncmp written from C11 7.24, with no axioms. Two read
+   limits go beyond C11: memchr reads in order and stops at the first match (POSIX and C23
+   say so; C11 does not), and strncmp needs its bytes readable only up to the first
+   difference or NUL (true of glibc; no standard promises it). The libc functions are also
+   assumed to terminate (Frama-C adds default `terminates` clauses for them). Frama-C's own
+   libc header was not used: its memchr compares a signed char with an int (wrong above 127).
 3. **Preconditions** (each function's `requires`): pointers valid for the bytes the doc
    comments say are used; `c != NUL` for `strchrsub` and `strcnt` (their own `assert`s);
    `xstrlcat`: `dsize > 0` and the existing string shorter than `dsize` (its own `assert`s);
@@ -67,7 +69,8 @@ overflow, no invalid conversion), and they terminate (loop variants).
 
 - The rest of memory.c (allocation wrappers, `xstrdup`, `arena_*`, ...). Those depend on
   malloc and on `preserve_exit`, and need a separate model.
-- Owner sign-off on the spec (Yerin). Independent review and planted bugs: pending.
+- Unsigned `char` platforms (e.g. arm64 Linux): tested by the differential test, not proved.
+- Owner sign-off on the spec (Yerin).
 
 ## Evidence
 
@@ -75,7 +78,7 @@ overflow, no invalid conversion), and they terminate (loop variants).
 |---|---|---|
 | WP, upstream | `bash wp/run_wp.sh <nvim> 60` | every goal proved: 15 functions, 2 ghost lemma functions, 2 lemmas (333 goals) |
 | Differential test (gcc -O2, glibc, ASan/UBSan, signed and unsigned char) | `bash difftest/run_difftest.sh <nvim> 3000000` | 45,000,000 checks each, 0 mismatches |
-| Independent review | | pending |
-| Planted bugs | | pending (reviewer's choice) |
+| Independent review | `REVIEW.md` | accept with changes (wording, applied here). 30 `assert \false` probes at every entry, return and loop body stay unproved; stub consistency probes; pointer and index forms of `str_len` checked equivalent |
+| Planted bugs | `python3 -I run_mutants.py <nvim>` (`mutants.toml`) | reviewer's 25: all 20 real bugs caught, 4 equivalent fully proved, 1 control not counted (`mutants_result.tsv`) |
 | CI, pinned container, twice | `.github/workflows/verify.yml` | pending |
 | Owner review | Yerin | pending |

@@ -41,18 +41,18 @@ src/nvim/math.c	xctz	candidate	math/cbmc (CBMC, all inputs)	64 for 0, else lowes
 src/nvim/math.c	xpopcount	candidate	math/cbmc (CBMC, all inputs)	number of set bits (builtin and fallback; NetBSD system call not covered); see math/CLAIM.md. Review pending
 src/nvim/math.c	vim_append_digit_int	candidate	math/cbmc (CBMC, all inputs)	appends a digit when it fits, for value >= 0; see math/CLAIM.md. Review pending
 src/nvim/math.c	trim_to_int	candidate	math/cbmc (CBMC, all inputs)	clamp to int; see math/CLAIM.md. Review pending
-src/nvim/memory.c	xmemcpyz	candidate	memory/wp (Frama-C WP, every length), memory/difftest	copies len bytes and a NUL; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xstrnlen	candidate	memory/wp (Frama-C WP, every length), memory/difftest	index of first NUL below n, else n; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xstrchrnul	candidate	memory/wp (Frama-C WP, every length), memory/difftest	first c or NUL; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xmemscan	candidate	memory/wp (Frama-C WP, every length), memory/difftest	first c, else end; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	strchrsub	candidate	memory/wp (Frama-C WP, every length), memory/difftest	replaces every c in the string; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	memchrsub	candidate	memory/wp (Frama-C WP, every length), memory/difftest	replaces every c in the buffer; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	strcnt	candidate	memory/wp (Frama-C WP, every length), memory/difftest	count of c in the string; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	memcnt	candidate	memory/wp (Frama-C WP, every length), memory/difftest	count of c in the buffer; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xstpcpy	candidate	memory/wp (Frama-C WP, every length), memory/difftest	copies the string, returns end; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xstpncpy	candidate	memory/wp (Frama-C WP, every length), memory/difftest	stpncpy semantics, NUL padding; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xstrlcpy	candidate	memory/wp (Frama-C WP, every length), memory/difftest	BSD strlcpy semantics; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memory/difftest	BSD strlcat semantics; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review pending
-src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review pending
+src/nvim/memory.c	xmemcpyz	candidate	memory/wp (Frama-C WP, every length), memory/difftest	copies len bytes and a NUL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xstrnlen	candidate	memory/wp (Frama-C WP, every length), memory/difftest	index of first NUL below n, else n; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xstrchrnul	candidate	memory/wp (Frama-C WP, every length), memory/difftest	first c or NUL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xmemscan	candidate	memory/wp (Frama-C WP, every length), memory/difftest	first c, else end; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	strchrsub	candidate	memory/wp (Frama-C WP, every length), memory/difftest	replaces every c in the string; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	memchrsub	candidate	memory/wp (Frama-C WP, every length), memory/difftest	replaces every c in the buffer; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	strcnt	candidate	memory/wp (Frama-C WP, every length), memory/difftest	count of c in the string; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	memcnt	candidate	memory/wp (Frama-C WP, every length), memory/difftest	count of c in the buffer; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xstpcpy	candidate	memory/wp (Frama-C WP, every length), memory/difftest	copies the string, returns end; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xstpncpy	candidate	memory/wp (Frama-C WP, every length), memory/difftest	stpncpy semantics, NUL padding; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xstrlcpy	candidate	memory/wp (Frama-C WP, every length), memory/difftest	BSD strlcpy semantics; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memory/difftest	BSD strlcat semantics; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off

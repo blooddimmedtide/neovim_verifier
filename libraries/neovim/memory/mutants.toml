@@ -1,0 +1,231 @@
+# Planted bugs for the Frama-C WP proof of the memory.c string helpers (independent review).
+# Each `original` occurs exactly once in the wp/build.py output for commit 7b87ce8 and is
+# C code, not ACSL. Run: python3 -I run_mutants.py <neovim checkout> 60 (WP on the mutated
+# function only, same options as wp/run_wp.sh with -wp-par 2). `expect` is the reviewer's
+# prediction: "caught" (some goal not proved) or "equivalent" (same behavior on the
+# documented domain, so the proof must still go through). `result` is the observed outcome.
+
+[[mutant]]
+id = "xmemcpyz-nul-off-by-one"
+function = "xmemcpyz"
+original = "  ((char *)dst)[len] = NUL;"
+mutated = "  ((char *)dst)[len - 1] = NUL;"
+why = "terminator written over the last copied byte (and at dst[-1] when len == 0)"
+expect = "caught"
+result = "caught; Proved goals:    7 / 11"
+
+[[mutant]]
+id = "xstrnlen-plus-one"
+function = "xstrnlen"
+original = "  return (size_t)(end - s);"
+mutated = "  return (size_t)(end - s) + 1;"
+why = "length counts the NUL (classic strlen/size confusion)"
+expect = "caught"
+result = "caught; Proved goals:    9 / 11"
+
+[[mutant]]
+id = "xstrchrnul-past-nul"
+function = "xstrchrnul"
+original = "(char *)(str + strlen(str));"
+mutated = "(char *)(str + strlen(str) + 1);"
+why = "not-found result points one past the NUL instead of at it"
+expect = "caught"
+result = "caught; Proved goals:   11 / 12"
+
+[[mutant]]
+id = "xmemscan-last-byte"
+function = "xmemscan"
+original = "(char *)addr + size;"
+mutated = "(char *)addr + size - 1;"
+why = "not-found result points at the last byte instead of one past the end"
+expect = "caught"
+result = "caught; Proved goals:    9 / 10"
+
+[[mutant]]
+id = "strchrsub-preincrement"
+function = "strchrsub"
+original = "    *str++ = x;"
+mutated = "    *++str = x;"
+why = "writes the byte after the match instead of the match (pre/post increment mix-up)"
+expect = "caught"
+result = "caught; Proved goals:   32 / 35"
+
+[[mutant]]
+id = "memchrsub-overread"
+function = "memchrsub"
+original = "  while ((p = memchr(p, c, (size_t)(end - p)))) {"
+mutated = "  while ((p = memchr(p, c, (size_t)(end - p) + 1))) {"
+why = "searches one byte past the end of data (reads and may write data[len])"
+expect = "caught"
+result = "caught; Proved goals:   29 / 32"
+
+[[mutant]]
+id = "memchrsub-split-increment"
+function = "memchrsub"
+original = "    *p++ = x;"
+mutated = "    *p = x; p++;"
+why = "same statement split in two"
+expect = "equivalent"
+result = "survived (equivalent); Proved goals:   31 / 31"
+
+[[mutant]]
+id = "strcnt-no-skip"
+function = "strcnt"
+original = "    str++;  // Skip the instance of c."
+mutated = "    ;  // Skip the instance of c."
+why = "forgets to skip the match: loops forever on the first c"
+expect = "caught"
+result = "caught; Proved goals:   35 / 36"
+
+[[mutant]]
+id = "memcnt-short-end"
+function = "memcnt"
+original = "  const char *end = ptr + len;"
+mutated = "  const char *end = ptr + len - 1;"
+why = "end off by one: last byte never counted"
+expect = "caught"
+result = "caught; Proved goals:   33 / 35"
+
+[[mutant]]
+id = "memcnt-drop-null-compare"
+function = "memcnt"
+original = "  while ((ptr = memchr(ptr, c, (size_t)(end - ptr))) != NULL) {"
+mutated = "  while ((ptr = memchr(ptr, c, (size_t)(end - ptr)))) {"
+why = "explicit != NULL removed"
+expect = "equivalent"
+result = "survived (equivalent); Proved goals:   35 / 35"
+
+[[mutant]]
+id = "xstpcpy-no-nul"
+function = "xstpcpy"
+original = "  return (char *)memcpy(dst, src, len + 1) + len;"
+mutated = "  return (char *)memcpy(dst, src, len) + len;"
+why = "terminating NUL not copied"
+expect = "caught"
+result = "caught; Proved goals:   14 / 15"
+
+[[mutant]]
+id = "xstpncpy-short-pad"
+function = "xstpncpy"
+original = "    memset(dst + srclen, 0, maxlen - srclen);"
+mutated = "    memset(dst + srclen, 0, maxlen - srclen - 1);"
+why = "zero padding stops one byte short of maxlen"
+expect = "caught"
+result = "caught; Proved goals:   24 / 25"
+
+[[mutant]]
+id = "xstpncpy-return-dst"
+function = "xstpncpy"
+original = "    return dst + srclen;"
+mutated = "    return dst;"
+why = "returns dst like strncpy instead of the first NUL written"
+expect = "caught"
+result = "caught; Proved goals:   23 / 25"
+
+[[mutant]]
+id = "xstrlcpy-min-dsize"
+function = "xstrlcpy"
+original = "    size_t len = MIN(slen, dsize - 1);"
+mutated = "    size_t len = MIN(slen, dsize);"
+why = "classic strlcpy overflow: NUL written at dst[dsize] when src is too long"
+expect = "caught"
+result = "caught; Proved goals:   15 / 18"
+
+[[mutant]]
+id = "xstrlcpy-dsize-gt-1"
+function = "xstrlcpy"
+original = "  if (dsize) {"
+mutated = "  if (dsize > 1) {"
+why = "a 1-byte buffer is left unterminated"
+expect = "caught"
+result = "caught; Proved goals:   17 / 18"
+
+[[mutant]]
+id = "xstrlcat-trunc-overflow"
+function = "xstrlcat"
+original = "    memmove(dst + dlen, src, dsize - dlen - 1);"
+mutated = "    memmove(dst + dlen, src, dsize - dlen);"
+why = "truncating copy moves one byte too many (dsize - dlen). Reviewer mispredicted 'caught': in this branch slen >= dsize - dlen, so the extra byte read is src[dsize-dlen-1] (inside the string) and the extra byte written is dst[dsize-1] (in bounds), which the next statement overwrites with NUL. Same behavior, so WP proving it is correct"
+expect = "equivalent"
+result = "survived (equivalent); Proved goals:   26 / 26"
+
+[[mutant]]
+id = "xstrlcat-return-truncated"
+function = "xstrlcat"
+original = "  return slen + dlen;  // Does not include NUL."
+mutated = "  return MIN(slen + dlen, dsize - 1);  // Does not include NUL."
+why = "returns the length actually stored instead of the would-be length (breaks truncation detection)"
+expect = "caught"
+result = "caught; Proved goals:   26 / 27"
+
+[[mutant]]
+id = "xstrlcat-ge-boundary"
+function = "xstrlcat"
+original = "  if (slen > dsize - dlen - 1) {"
+mutated = "  if (slen >= dsize - dlen - 1) {"
+why = "exact fit takes the truncating branch: copies slen bytes then writes NUL at dst[dsize-1] == dst[dlen+slen], same result"
+expect = "equivalent"
+result = "survived (equivalent); Proved goals:   26 / 26"
+
+[[mutant]]
+id = "xmemrchr-predecrement"
+function = "xmemrchr"
+original = "  while (len--) {"
+mutated = "  while (--len) {"
+why = "never checks byte 0, and wraps around when len == 0"
+expect = "caught"
+result = "caught; Proved goals:   13 / 18"
+
+[[mutant]]
+id = "xmemrchr-signed-compare"
+function = "xmemrchr"
+original = "    if (((uint8_t *)src)[len] == c) {"
+mutated = "    if (((char *)src)[len] == c) {"
+why = "byte read as (signed) char: bytes >= 0x80 never match c. NOTE: WP also rejects the equivalent control xmemrchr-char-view-control, so this kill comes from Typed+Cast keeping char and uint8 memory apart; the real signedness test is xmemrchr-int8-c"
+expect = "caught"
+result = "caught (but see xmemrchr-char-view-control: Typed+Cast also rejects the equivalent char view, so this kill is not semantic evidence); Proved goals:   17 / 20"
+
+[[mutant]]
+id = "strequal-or-null"
+function = "strequal"
+original = "  return (a == NULL && b == NULL) || (a && b && strcmp(a, b) == 0);"
+mutated = "  return (a == NULL || b == NULL) || (a && b && strcmp(a, b) == 0);"
+why = "NULL compares equal to every string"
+expect = "caught"
+result = "caught; Proved goals:   13 / 14"
+
+[[mutant]]
+id = "strnequal-n-minus-one"
+function = "strnequal"
+original = "strncmp(a, b, n) == 0);"
+mutated = "strncmp(a, b, n - 1) == 0);"
+why = "compares one byte too few (and SIZE_MAX bytes when n == 0)"
+expect = "caught"
+result = "caught; Proved goals:   11 / 13"
+
+[[mutant]]
+id = "xstrlcat-fits-no-nul"
+function = "xstrlcat"
+original = "    memmove(dst + dlen, src, slen + 1);"
+mutated = "    memmove(dst + dlen, src, slen);"
+why = "non-truncating append forgets the terminating NUL (replacement for the equivalent trunc-overflow mutant)"
+expect = "caught"
+result = "caught; Proved goals:   25 / 26"
+
+[[mutant]]
+id = "xmemrchr-char-view-control"
+function = "xmemrchr"
+original = "    if (((uint8_t *)src)[len] == c) {"
+mutated = "    if (((char *)src)[len] == (char)c) {"
+why = "CONTROL, semantically equivalent (both sides as signed char: equal iff same byte). Tests whether xmemrchr-signed-compare is caught for its semantics or only because Typed+Cast keeps char and uint8 memory in separate chunks. Expected caught = Typed+Cast incompleteness, not a real bug"
+expect = "caught"
+result = "caught (Typed+Cast incompleteness on the char/uint8 view switch; a control, not a bug); Proved goals:   17 / 20"
+
+[[mutant]]
+id = "xmemrchr-int8-c"
+function = "xmemrchr"
+original = "    if (((uint8_t *)src)[len] == c) {"
+mutated = "    if (((uint8_t *)src)[len] == (int8_t)c) {"
+why = "signedness bug kept in the uint8 memory view: c >= 0x80 becomes negative and never matches (replaces xmemrchr-signed-compare as the real signedness test)"
+expect = "caught"
+result = "caught; Proved goals:   18 / 20"
