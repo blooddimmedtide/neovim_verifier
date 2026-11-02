@@ -56,3 +56,22 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/charset.c	nr2hex	candidate	charset/wp (Frama-C WP, every length), charset/difftest	lower-case hex digit of n % 16; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skipwhite	candidate	charset/wp (Frama-C WP, every length), charset/difftest	past the leading space/TAB run; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skipwhite_len	candidate	charset/wp (Frama-C WP, every length), charset/difftest	past the leading space/TAB run, at most len bytes; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	getwhitecols	candidate	charset/wp (Frama-C WP, every length), charset/difftest	length of the leading space/TAB run; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skipdigits	candidate	charset/wp (Frama-C WP, every length), charset/difftest	past the leading decimal digits; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skipbin	candidate	charset/wp (Frama-C WP, every length), charset/difftest	past the leading binary digits; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skiphex	candidate	charset/wp (Frama-C WP, every length), charset/difftest	past the leading hex digits; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skiptodigit	candidate	charset/wp (Frama-C WP, every length), charset/difftest	first decimal digit or NUL; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skiptobin	candidate	charset/wp (Frama-C WP, every length), charset/difftest	first binary digit or NUL; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skiptohex	candidate	charset/wp (Frama-C WP, every length), charset/difftest	first hex digit or NUL; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skiptowhite	candidate	charset/wp (Frama-C WP, every length), charset/difftest	first space, TAB or NUL; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skiptowhite_esc	candidate	charset/wp (Frama-C WP, every length), charset/difftest	first unescaped space, TAB or NUL; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	skip_to_newline	candidate	charset/wp (Frama-C WP, every length), charset/difftest	first LF or NUL; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	vim_isblankline	candidate	charset/wp (Frama-C WP, every length), charset/difftest	first non-blank byte is NUL, CR or LF; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	hex2nr	candidate	charset/wp (Frama-C WP, every length), charset/difftest	hex digit value; no UB for any char; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	hexhex2nr	candidate	charset/wp (Frama-C WP, every length), charset/difftest	two hex digits to a byte, else -1; see charset/CLAIM.md. Review pending
+src/nvim/charset.c	rem_backslash	candidate	charset/wp (Frama-C WP, every length), charset/difftest	backslash followed by non-NUL (Unix build); see charset/CLAIM.md. Review pending
+src/nvim/charset.c	backslash_halve	candidate	charset/wp (Frama-C WP, every length), charset/difftest, charset/equiv (CBMC)	backslash halving in place (goto rewritten by a declared tool patch, CBMC-checked up to length 12); see charset/CLAIM.md. Review pending
+src/nvim/charset.c	backslash_halve_save	candidate	charset/wp (Frama-C WP, every length), charset/difftest	backslash halving into one new allocation; see charset/CLAIM.md. Review pending
