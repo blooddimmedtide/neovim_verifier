@@ -45,6 +45,13 @@ annotate = "memory/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as 
 prove = ["bash memory/wp/run_wp.sh {src} 120"]
 check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
 
+[targets.sha256]
+file = "src/nvim/sha256.c"
+functions = ["sha256_start", "sha256_process", "sha256_update", "sha256_finish", "sha256_bytes", "sha256_self_test"]
+annotate = "sha256/cbmc/build.py"   # included unchanged; build.py adds sha256_update's loop contract and checks it strips back to upstream
+prove = ["bash sha256/cbmc/run_cbmc.sh {src}", "python3 -I sha256/cbmc/check_structure.py {src}", "bash sha256/cbmc/run_stream.sh {src}", "bash sha256/cbmc/run_stream.sh {fixed} fixed", "bash sha256/cbmc/run_finish.sh {src}", "bash sha256/cbmc/run_bytes.sh {src}"]
+check = ["python3 -I sha256/difftest/difftest.py {src} 20000"]
+
 [framac]
 per_function = true
 
