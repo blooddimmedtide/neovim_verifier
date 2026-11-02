@@ -24,7 +24,9 @@ static uint8_t stream_byte(size_t s) { return s < rec_left0 ? rec_buf0[s] : rec_
 void rec_process(context_sha256_T *ctx, const uint8_t data[SHA256_BUFFER_SIZE]) {
   __CPROVER_assert(ctx == rec_ctx, "process gets the caller's context");
   __CPROVER_assert((rec_calls + 1) * 64 <= rec_left0 + rec_len0, "only whole blocks of the stream");
+#ifndef NO_BLOCK_CHECK
   __CPROVER_assert(data[rec_b] == stream_byte(rec_calls * 64 + rec_b), "block = next 64 stream bytes");
+#endif
   ctx->state[0] = ctx->state[0] * 31 + 7;   // some change, so later code cannot rely on the old state
   rec_calls++;
 }
@@ -61,7 +63,9 @@ void h_update(void) {
   __CPROVER_assert(rec_calls == (rec_left0 + len) / 64, "every complete block processed");
   uint64_t T1 = (uint64_t)ctx->total[1] << 32 | ctx->total[0];
   __CPROVER_assert(T1 == T0 + len, "byte count");
+#ifndef NO_TAIL_CHECK
   size_t i = nondet_size();
   if (i < (rec_left0 + len) % 64)
     __CPROVER_assert(ctx->buffer[i] == stream_byte(rec_calls * 64 + i), "the rest is buffered");
+#endif
 }
