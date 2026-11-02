@@ -32,6 +32,12 @@ annotate = "none: the upstream file is included unchanged"
 prove = ["bash mpack/cbmc/run_cbmc.sh {src}", "bash mpack/cbmc/run_cbmc.sh {fixed}"]
 check = ["bash mpack/cbmc/run_difftest.sh {src}"]
 
+[targets.math]
+file = "src/nvim/math.c"
+functions = ["xfpclassify", "xisinf", "xisnan", "xctz", "xpopcount", "vim_append_digit_int", "trim_to_int"]
+annotate = "math/cbmc/build.py"   # verbatim extraction, sha256 pinned
+prove = ["bash math/cbmc/run_cbmc.sh {src}"]
+
 [framac]
 per_function = true
 

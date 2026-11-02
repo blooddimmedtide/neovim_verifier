@@ -9,6 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 
 ## Function details
@@ -50,6 +51,13 @@ A function is done only when every property in its contract is proved; partial r
 | src/mpack/mpack_core.c | `mpack_value` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
 | src/mpack/mpack_core.c | `mpack_blob` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
 | src/mpack/mpack_core.c | `mpack_byte` | candidate | mpack/cbmc (CBMC, through its callers) | static helper, proved for every input its callers can pass |
+| src/nvim/math.c | `xfpclassify` | candidate | math/cbmc (CBMC, all inputs) | IEEE 754 class; see math/CLAIM.md. Review pending |
+| src/nvim/math.c | `xisinf` | candidate | math/cbmc (CBMC, all inputs) | true exactly for infinities; see math/CLAIM.md. Review pending |
+| src/nvim/math.c | `xisnan` | candidate | math/cbmc (CBMC, all inputs) | true exactly for NaN; see math/CLAIM.md. Review pending |
+| src/nvim/math.c | `xctz` | candidate | math/cbmc (CBMC, all inputs) | 64 for 0, else lowest set bit (builtin and fallback); see math/CLAIM.md. Review pending |
+| src/nvim/math.c | `xpopcount` | candidate | math/cbmc (CBMC, all inputs) | number of set bits (builtin and fallback; NetBSD system call not covered); see math/CLAIM.md. Review pending |
+| src/nvim/math.c | `vim_append_digit_int` | candidate | math/cbmc (CBMC, all inputs) | appends a digit when it fits, for value >= 0; see math/CLAIM.md. Review pending |
+| src/nvim/math.c | `trim_to_int` | candidate | math/cbmc (CBMC, all inputs) | clamp to int; see math/CLAIM.md. Review pending |
 
 ## All files
 
