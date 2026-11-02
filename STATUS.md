@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/regexp.c | 0 | 3 | 173 | 176 |
+| src/nvim/regexp.c | 0 | 11 | 165 | 176 |
 | src/nvim/search.c | 0 | 14 | 43 | 57 |
 
 ## Function details
@@ -79,6 +79,14 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/regexp.c | `getdecchrs` | fixed-candidate | regexp/wp (Frama-C WP, upstream 43/43 under its overflow precondition, fixed 41/41 every input) | upstream overflows on 19+ digits (findings/regexp-getdecchrs-overflow.md); fix in verified_neovim proved for every input; see regexp/CLAIM.md. Review + planted bugs pending |
 | src/nvim/regexp.c | `gethexchrs` | candidate | regexp/cbmc (CBMC, all inputs, max 2/4/8) | value of the longest run of at most max hex digits; see regexp/CLAIM.md. Review + planted bugs pending |
 | src/nvim/regexp.c | `getoctchrs` | candidate | regexp/cbmc (CBMC, all inputs) | longest run of at most 3 octal digits with value <= 0377; see regexp/CLAIM.md. Review + planted bugs pending |
+| src/nvim/regexp.c | `no_Magic` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | magic char -> its byte, plain unchanged; see regexp/leaves/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `toggle_Magic` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | magic <-> plain; see regexp/leaves/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `re_multi_type` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | 1 for magic @=?, 2 for magic *+{, else 0, any int; see regexp/leaves/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `backslash_trans` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | r t e b -> CR TAB ESC BS, else unchanged; see regexp/leaves/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `re_multiline` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | non-zero iff RF_HASNL set; see regexp/leaves/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `vim_regcomp_had_eol` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | returns had_eol; see regexp/leaves/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `re_num_cmp` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | compares val with the node's big-endian number by scan[7]; reads only the node; see regexp/leaves/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `nfa_re_num_cmp` | candidate | regexp/leaves (CBMC, every input in the domain, both char signednesses) | op 1 pos > val, op 2 pos < val, else equal; see regexp/leaves/CLAIM.md. Review pending |
 | src/nvim/search.c | `set_last_csearch` | fixed-candidate | search/cbmc (CBMC, every len >= 0, both char signednesses; upstream refuted) | upstream writes past lastc_bytes and leaves stale bytes (findings/search-csearch-overflow.md); fix in verified_neovim proved for every input, 9/9 planted bugs killed; see search/CLAIM.md. Review pending |
 | src/nvim/search.c | `get_search_pat` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | returns mr_pattern; every other search.c global unchanged; see search/CLAIM.md. Review pending |
 | src/nvim/search.c | `last_search_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | returns the search (not substitute) pattern; every other search.c global unchanged; see search/CLAIM.md. Review pending |
