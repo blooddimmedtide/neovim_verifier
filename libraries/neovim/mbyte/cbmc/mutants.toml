@@ -1,0 +1,221 @@
+# Planted bugs for the CBMC proof of the UTF-8 helpers (independent review).
+# Each `original` occurs exactly once in the build.py output for commit 7b87ce8.
+# Run: apply to a copy of the generated file, then `bash run_cbmc.sh <checkout> <copy>`;
+# nonzero exit = caught. `expect` is the reviewer's prediction: "caught" or
+# "equivalent" (semantically identical on the documented domain).
+
+[[mutant]]
+id = "tab-c0-invalid"
+function = "utf8len_tab"
+original = "  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  // C?"
+mutated = "  1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  // C?"
+why = "lead byte 0xC0 marked illegal (RFC 3629 overlong rule applied to the table)"
+expect = "caught"
+
+[[mutant]]
+id = "tab-fb-six"
+function = "utf8len_tab"
+original = "4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 1, 1,"
+mutated = "4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 1, 1,"
+why = "0xFB announces 6 bytes instead of 5 (5/6 boundary off by one)"
+expect = "caught"
+
+[[mutant]]
+id = "tab-fe-six"
+function = "utf8len_tab"
+original = "5, 5, 5, 5, 6, 6, 1, 1,"
+mutated = "5, 5, 5, 5, 6, 6, 6, 1,"
+why = "0xFE treated as a 6-byte lead"
+expect = "caught"
+
+[[mutant]]
+id = "tab-short"
+function = "utf8len_tab"
+original = "5, 5, 5, 5, 6, 6, 1, 1,  // F?"
+mutated = "5, 5, 5, 5, 6, 6, 1,  // F?"
+why = "table has 255 entries (index 0xFF out of bounds in the standalone file)"
+expect = "caught"
+
+[[mutant]]
+id = "byte2len-uint8-cast"
+function = "utf_byte2len"
+original = "  return utf8len_tab[b];"
+mutated = "  return utf8len_tab[(uint8_t)b];"
+why = "defensive cast; identical on the documented domain 0..255"
+expect = "equivalent"
+
+[[mutant]]
+id = "ptr2char-ascii-le"
+function = "utf_ptr2char"
+original = "if (EXPECT(v0 < 0x80U, true)) {"
+mutated = "if (EXPECT(v0 <= 0x80U, true)) {"
+why = "ASCII fast path boundary off by one (0x80 is a 1-length byte, returns itself either way)"
+expect = "equivalent"
+
+[[mutant]]
+id = "ptr2char-cont-mask"
+function = "utf_ptr2char"
+original = "(uint8_t)((v) & 0xC0U) != 0x80U"
+mutated = "(uint8_t)((v) & 0x80U) != 0x80U"
+why = "continuation test only checks the top bit, accepting 11xxxxxx"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2char-len2-const"
+function = "utf_ptr2char"
+original = "LEN_RETURN(2, (v0 << 6) + v1 - ((0xC0U << 6) + S(0)));"
+mutated = "LEN_RETURN(2, (v0 << 6) + v1 - ((0xC0U << 6)));"
+why = "forgets to strip the continuation marker of the 2nd byte"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2char-len3-shift"
+function = "utf_ptr2char"
+original = "LEN_RETURN(3, (v0 << 12) + (v1 << 6) + v2"
+mutated = "LEN_RETURN(3, (v0 << 12) + (v1 << 5) + v2"
+why = "wrong shift for the middle byte of a 3-byte sequence"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2char-no-check-v5"
+function = "utf_ptr2char"
+original = "  CHECK(v5);"
+mutated = ""
+why = "6th byte not validated as a continuation byte"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2char-drop-lead30"
+function = "utf_ptr2char"
+original = "return (int)((v0 << 30) + (v1 << 24)"
+mutated = "return (int)((v1 << 24)"
+why = "6-byte decoding drops bit 30 from the lead byte (0xFD)"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2char-prefetch"
+function = "utf_ptr2char"
+original = "  uint32_t const v1 = p[1];\n  CHECK(v1);"
+mutated = "  uint32_t const v1 = p[1];\n  uint32_t const v2e = p[2];\n  if (v2e == 0xFFFFFFFFU) { return 0; }\n  CHECK(v1);"
+why = "reads p[2] before checking p[1], i.e. past the NUL of \"\\xC3\" (safety only, result unchanged)"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2len-nul-one"
+function = "utf_ptr2len"
+original = "    return 0;\n  }\n  const int len = utf8len_tab[*p];"
+mutated = "    return 1;\n  }\n  const int len = utf8len_tab[*p];"
+why = "empty string reported as length 1 (table value for NUL)"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2len-loop-le"
+function = "utf_ptr2len"
+original = "for (int i = 1; i < len; i++) {"
+mutated = "for (int i = 1; i <= len; i++) {"
+why = "checks one byte too many: reads past the sequence (and past NUL) and rejects valid chars"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2len-mask"
+function = "utf_ptr2len"
+original = "  const int len = utf8len_tab[*p];\n  for (int i = 1; i < len; i++) {\n    if ((p[i] & 0xc0) != 0x80) {"
+mutated = "  const int len = utf8len_tab[*p];\n  for (int i = 1; i < len; i++) {\n    if ((p[i] & 0x80) != 0x80) {"
+why = "continuation test only checks the top bit"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2len-len-no-cast"
+function = "utf_ptr2len_len"
+original = "utf8len_tab[(uint8_t)(*p)]"
+mutated = "utf8len_tab[(*p)]"
+why = "indexes the table with a signed char (negative index for bytes >= 0x80)"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2len-len-ge"
+function = "utf_ptr2len_len"
+original = "  if (len > size) {"
+mutated = "  if (len >= size) {"
+why = "boundary change; when len == size both branches set m = len"
+expect = "equivalent"
+
+[[mutant]]
+id = "ptr2len-len-ignore-size"
+function = "utf_ptr2len_len"
+original = "    m = size;           // incomplete byte sequence."
+mutated = "    m = len;           // incomplete byte sequence."
+why = "ignores size and reads the whole announced sequence (read past p[size-1])"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2len-len-loop-le"
+function = "utf_ptr2len_len"
+original = "for (int i = 1; i < m; i++) {"
+mutated = "for (int i = 1; i <= m; i++) {"
+why = "reads one byte past the checked range"
+expect = "caught"
+
+[[mutant]]
+id = "ptr2len-len-incomplete-1"
+function = "utf_ptr2len_len"
+original = "  return len;\n}\n\n// src/nvim/mbyte.c:1035"
+mutated = "  return m;\n}\n\n// src/nvim/mbyte.c:1035"
+why = "returns available bytes instead of len > size for an incomplete sequence"
+expect = "caught"
+
+[[mutant]]
+id = "char2len-16bit-le"
+function = "utf_char2len"
+original = "  } else if (c < 0x10000) {\n    return 3;"
+mutated = "  } else if (c <= 0x10000) {\n    return 3;"
+why = "U+10000 counted as 3 bytes"
+expect = "caught"
+
+[[mutant]]
+id = "char2len-26bit"
+function = "utf_char2len"
+original = "  } else if (c < 0x4000000) {\n    return 5;"
+mutated = "  } else if (c < 0x2000000) {\n    return 5;"
+why = "5-byte limit uses 25 bits instead of 26"
+expect = "caught"
+
+[[mutant]]
+id = "char2bytes-11bit-le"
+function = "utf_char2bytes"
+original = "} else if (c < 0x800) {  // 11 bits"
+mutated = "} else if (c <= 0x800) {  // 11 bits"
+why = "0x800 encoded in 2 bytes (lead overflows into 0xE0)"
+expect = "caught"
+
+[[mutant]]
+id = "char2bytes-lead3"
+function = "utf_char2bytes"
+original = "buf[0] = (char)(0xe0 + ((unsigned)c >> 12));"
+mutated = "buf[0] = (char)(0xf0 + ((unsigned)c >> 12));"
+why = "wrong lead marker for 3-byte sequences"
+expect = "caught"
+
+[[mutant]]
+id = "char2bytes-mask7f"
+function = "utf_char2bytes"
+original = "buf[1] = (char)(0x80 + (((unsigned)c >> 12) & 0x3f));"
+mutated = "buf[1] = (char)(0x80 + (((unsigned)c >> 12) & 0x7f));"
+why = "continuation payload mask too wide in 4-byte branch"
+expect = "caught"
+
+[[mutant]]
+id = "char2bytes-nul-term"
+function = "utf_char2bytes"
+original = "buf[5] = (char)(0x80 + ((unsigned)c & 0x3f));"
+mutated = "buf[5] = (char)(0x80 + ((unsigned)c & 0x3f));\n    buf[6] = NUL;"
+why = "writes a terminator past the 6 documented bytes"
+expect = "caught"
+
+[[mutant]]
+id = "char2bytes-ret5"
+function = "utf_char2bytes"
+original = "    return 5;\n  } else {  // 31 bits"
+mutated = "    return 4;\n  } else {  // 31 bits"
+why = "wrong length returned for 5-byte sequences"
+expect = "caught"

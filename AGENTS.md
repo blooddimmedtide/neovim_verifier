@@ -12,7 +12,11 @@ actually say something**.
 3. Open a **draft PR right away** titled `neovim: verify src/nvim/<file>.c` so nobody else takes it.
 
 ## Do the work
-Copy the shape of `libraries/neovim/base64/`:
+A ready-to-paste prompt for a new agent is in `docs/AGENT_PROMPT.md`.
+
+Byte-level functions with bounded loops: use CBMC like `libraries/neovim/mbyte/cbmc/` (seconds per
+function, bit-precise, no aliasing trouble between `char` and `uint8_t` views). Functions that loop
+over unbounded data: Frama-C WP. For WP, copy the shape of `libraries/neovim/base64/`:
 - `libraries/neovim/<stem>/wp/annotate.py` inserts ACSL contracts and loop annotations at exact
   upstream lines (it must fail if an anchor line no longer matches). Never edit upstream files.
 - Every function gets a **functional** contract: what it returns and what it changes, in terms
@@ -45,6 +49,11 @@ record it in `libraries/neovim/findings/`, mark the function open, and propose t
 - Report a file finished while any of its functions is open.
 
 ## Lessons so far
+- Frama-C WP's typed model keeps `char` and `uint8_t` reads of the same bytes apart; code that
+  casts `char *` to `uint8_t *` is far easier in CBMC.
+- CBMC 6.4 lets `malloc` fail by default: pass `--no-malloc-may-fail` for harness buffers.
+- `(int)(p - q)` and `(int)len` on sizes are the most common bug so far (2 of 2 findings).
+- Do not edit a shell script while bash runs it.
 - Decoder/encoder in one WP run timed out at random; separate runs per function were stable.
 - Prefer arithmetic (`/`, `%`) in specs and bridge each bit operation with a Z3-checked lemma.
 - `pkill -f frama-c` also kills your own shell; kill by PID.

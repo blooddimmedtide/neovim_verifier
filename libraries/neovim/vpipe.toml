@@ -6,7 +6,7 @@ upstream = "https://github.com/neovim/neovim"
 commit = "7b87ce822e6fd45a4d9993599c2854afdb0dc4dd"   # master, 2026-10-23
 version = "master-2026-10-23"
 fixed_repo = "https://github.com/blooddimmedtide/verified_neovim"
-fixed_commit = "7a5d1f164dcdc390a18ccaf231396dc73a2d95d3"   # branch fix-base64-decode-over-2gib
+fixed_commit = "053a6f2689f45c89969f4d37245503404602577d"   # branch verified: every proved fix (base64 7a5d1f1, cp_bounds aec5ed2)
 thread = "Start verifying Neovim"
 
 [targets.base64]
@@ -16,6 +16,14 @@ annotate = "base64/wp/annotate.py"          # applies tool patches, then inserts
 prove = ["bash base64/wp/run_wp.sh {src}", "bash base64/wp/run_wp.sh {fixed}", "bash base64/bridge/run_bridge.sh {src}"]   # run_wp.sh also runs lemmas.py and equiv/
 check = ["python3 -I base64/difftest/difftest.py {src}", "python3 -I base64/difftest/difftest.py {fixed} 5000", "bash base64/cbmc/run_all.sh {src} 32 24 16"]
 mutants = "python3 -I base64/run_mutants.py {src} {fixed}"   # reviewer-chosen planted bugs, base64/mutants.toml
+
+[targets.mbyte_utf8]
+file = "src/nvim/mbyte.c"
+functions = ["utf_byte2len", "utf_char2len", "utf_char2bytes", "utf_ptr2len", "utf_ptr2char", "utf_ptr2len_len", "utf_cp_bounds_len", "utf_cp_bounds"]
+annotate = "mbyte/cbmc/build.py"   # verbatim extraction, sha256 pinned per piece
+prove = ["bash mbyte/cbmc/run_cbmc.sh {src}", "bash mbyte/cbmc/run_cbmc.sh {fixed}"]
+check = ["bash mbyte/cbmc/run_difftest.sh {src}"]
+mutants = "python3 -I mbyte/cbmc/run_mutants.py {src}"
 
 [framac]
 per_function = true

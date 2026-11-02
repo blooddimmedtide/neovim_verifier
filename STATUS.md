@@ -8,15 +8,24 @@ A function is done only when every property in its contract is proved; partial r
 | File | Done | Partial | Open | Total |
 |---|---|---|---|---|
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 
 ## Function details
 
 | File | Function | Status | Evidence | Notes |
 |---|---|---|---|---|
-| src/nvim/base64.c | `base64_encode` | candidate | base64/wp (Frama-C WP), base64/equiv (CBMC) | RFC 4648 output for every input, one allocation returned; see base64/CLAIM.md. Needs reviews + mutants before full-correctness |
-| src/nvim/base64.c | `base64_decode` | fixed-candidate | base64/wp (Frama-C WP, upstream 120/120 under 2 GiB, fixed 118/118 no limit) | upstream wrong at >= 2 GiB (findings/base64-decode-over-2gib.md); fix in verified_neovim proved for all inputs. Needs reviews + mutants |
+| src/nvim/base64.c | `base64_encode` | candidate | base64/wp (Frama-C WP), base64/equiv (CBMC) | RFC 4648 output for every input, one allocation returned; see base64/CLAIM.md. All machine gates pass (35/35 mutants, 2 reviews, CI x2); waiting on owner spec sign-off |
+| src/nvim/base64.c | `base64_decode` | fixed-candidate | base64/wp (Frama-C WP, upstream 120/120 under 2 GiB, fixed 118/118 no limit) | upstream wrong at >= 2 GiB (findings/base64-decode-over-2gib.md); fix in verified_neovim proved for all inputs. All machine gates pass; waiting on owner spec sign-off |
 | src/nvim/base64.c | `vim_htobe64` | candidate | base64/bridge (CBMC, no loops, all inputs) | equals big-endian reading of the bytes |
 | src/nvim/base64.c | `vim_htobe32` | candidate | base64/bridge (CBMC, no loops, all inputs) | equals big-endian reading of the bytes |
+| src/nvim/mbyte.c | `utf_byte2len` | candidate | mbyte/cbmc (CBMC, all inputs) | lead-byte length for 0..255; see mbyte/CLAIM.md. Review + 24/24 planted bugs done; waiting on owner spec sign-off |
+| src/nvim/mbyte.c | `utf_char2len` | candidate | mbyte/cbmc (CBMC, all inputs) | shortest RFC 2279 encoding length; 1 for c < 0 |
+| src/nvim/mbyte.c | `utf_char2bytes` | candidate | mbyte/cbmc (CBMC, all inputs) | shortest encoding, decodes back to c, writes only buf[0..r-1] |
+| src/nvim/mbyte.c | `utf_ptr2len` | candidate | mbyte/cbmc (CBMC, all inputs) | sequence length; never reads past NUL |
+| src/nvim/mbyte.c | `utf_ptr2char` | candidate | mbyte/cbmc (CBMC, all inputs) | decoded value or first byte; never reads past NUL |
+| src/nvim/mbyte.c | `utf_ptr2len_len` | candidate | mbyte/cbmc (CBMC, all inputs) | always reads p[0]; never reads past p[size-1] |
+| src/nvim/mbyte.c | `utf_cp_bounds_len` | fixed-candidate | mbyte/cbmc (CBMC, upstream for p - base <= INT_MAX, fixed for every distance) | upstream UB / out-of-bounds read at >= 2 GiB (findings/cp-bounds-over-2gib.md); fix in verified_neovim. Reviewer mutants for this function still to do |
+| src/nvim/mbyte.c | `utf_cp_bounds` | fixed-candidate | mbyte/cbmc (CBMC, same as utf_cp_bounds_len) | wrapper with p_len = INT_MAX on a NUL-terminated stream; inherits the 2 GiB bug and its fix |
 
 ## All files
 
