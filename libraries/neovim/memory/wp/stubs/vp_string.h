@@ -1,7 +1,7 @@
 // Contracts for the C library string functions memory.c calls, written from
 // the C standard (C11 7.24), with no axioms. They replace Frama-C's libc
 // string.h, whose axiomatic memchr compares a signed char with an int (wrong
-// for c > 127) — see verification-notes/toolchain-bugs/framac-libc-memchr.md.
+// for c > 127).
 // The C library itself (glibc) is trusted to meet them.
 #ifndef VP_STRING_H
 #define VP_STRING_H
