@@ -4,7 +4,7 @@
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd); W=$(mktemp -d); status=0
 python3 -I "$HERE/build.py" "$NV" "$W/sha256_x.c" || exit 1
-D=""; [ "${2:-}" = fixed ] && D="-DSHA256_FIXED"
+D="${EXTRA:-}"; [ "${2:-}" = fixed ] && D="$D -DSHA256_FIXED"
 for h in ${HARNESSES:-h_update}; do
   goto-cc "$HERE/harness_stream.c" -o "$W/a.goto" --function "$h" -I "$HERE/stubs" -I "$NV/src" $D \
      -DSHA256_X_C="\"$W/sha256_x.c\"" || { status=1; continue; }
