@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/regexp.c | 0 | 3 | 173 | 176 |
 
 ## Function details
 
@@ -74,6 +75,9 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review pending |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review pending |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review pending |
+| src/nvim/regexp.c | `getdecchrs` | fixed-candidate | regexp/wp (Frama-C WP, upstream 43/43 under its overflow precondition, fixed 41/41 every input) | upstream overflows on 19+ digits (findings/regexp-getdecchrs-overflow.md); fix in verified_neovim proved for every input; see regexp/CLAIM.md. Review + planted bugs pending |
+| src/nvim/regexp.c | `gethexchrs` | candidate | regexp/cbmc (CBMC, all inputs, max 2/4/8) | value of the longest run of at most max hex digits; see regexp/CLAIM.md. Review + planted bugs pending |
+| src/nvim/regexp.c | `getoctchrs` | candidate | regexp/cbmc (CBMC, all inputs) | longest run of at most 3 octal digits with value <= 0377; see regexp/CLAIM.md. Review + planted bugs pending |
 
 ## All files
 

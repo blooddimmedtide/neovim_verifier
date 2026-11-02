@@ -45,6 +45,13 @@ annotate = "memory/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as 
 prove = ["bash memory/wp/run_wp.sh {src} 120"]
 check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
 
+[targets.regexp_numbers]
+file = "src/nvim/regexp.c"
+functions = ["getdecchrs", "gethexchrs", "getoctchrs"]
+annotate = "regexp/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only
+prove = ["bash regexp/wp/run_wp.sh {src} 60", "bash regexp/wp/run_wp.sh {fixed} 60", "bash regexp/cbmc/run_cbmc.sh {src}"]
+check = ["bash regexp/difftest/run_difftest.sh {src}"]
+
 [framac]
 per_function = true
 
