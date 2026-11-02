@@ -58,3 +58,15 @@ record it in `libraries/neovim/findings/`, mark the function open, and propose t
 - Prefer arithmetic (`/`, `%`) in specs and bridge each bit operation with a Z3-checked lemma.
 - `pkill -f frama-c` also kills your own shell; kill by PID.
 - `/mnt`-style noexec mounts: call scripts with `bash script.sh`.
+- WP's Typed model inlines `shift p k` as offset arithmetic, so a hypothesis
+  `\forall integer i; ... s[i] != 0` has `s.offset + i` in its trigger and provers miss
+  instances like `i := j + 1` (they fail on two-line lemmas). Quantify over pointers instead
+  (`\forall char *q; \base_addr(q) == \base_addr(s) && s <= q < s + n ==> *q != 0`), and run
+  CVC5 with `--full-saturate-quant` (tools/bin/cvc5-fsq, set up by tools/install.sh).
+- `\block_length(p) - \offset(p)` is useless as a loop variant in the Typed model (`\offset`
+  goes through an abstract table). For string loops, give the function a ghost length
+  parameter (`/*@ ghost (size_t n) */` after the parameter list, `requires str_len(s, n)`)
+  and use `n - (p - s)`.
+- Inductive facts about recursive logic functions (e.g. `count`) need a ghost lemma function
+  with a loop; SMT provers will not do the induction.
+- The WP cache keeps timeouts: use `-wp-cache none` when retrying with a longer timeout.

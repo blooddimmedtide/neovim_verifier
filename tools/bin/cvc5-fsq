@@ -1,0 +1,5 @@
+#!/bin/sh
+# cvc5 with full saturation of quantifiers: WP's memory encoding puts arithmetic
+# (base offset + index) inside quantifier triggers, so plain E-matching misses
+# instances such as i := j + 1. Used for Frama-C WP proofs in neovim_verifier.
+exec "${CVC5:-$HOME/.nix-profile/bin/cvc5}" --full-saturate-quant "$@"

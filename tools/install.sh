@@ -33,6 +33,15 @@ NIXPKGS='https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1097770.5adc50831c25
 nix --extra-experimental-features 'nix-command flakes' profile install \
   "tarball+$NIXPKGS#framac" "tarball+$NIXPKGS#z3" "tarball+$NIXPKGS#cvc5" "tarball+$NIXPKGS#why3"
 why3 config detect >/dev/null
+# WP proofs run CVC5 with --full-saturate-quant (see tools/bin/cvc5-fsq): point Why3's CVC5 at the wrapper.
+mkdir -p "$HOME/.local/bin" && cp "$(dirname "$0")/bin/cvc5-fsq" "$HOME/.local/bin/cvc5-fsq" && chmod +x "$HOME/.local/bin/cvc5-fsq"
+python3 - "$HOME/.why3.conf" "$HOME/.local/bin/cvc5-fsq" <<'PY'
+import re, sys
+p, w = sys.argv[1], sys.argv[2]; s = open(p).read()
+s2 = re.sub(r'(\[partial_prover\]\nname = "CVC5"\npath = )"[^"]*"', lambda m: m.group(1) + '"' + w + '"', s)
+assert s2 != s or w in s, "CVC5 not found in why3.conf"
+open(p, "w").write(s2)
+PY
 python3 -c "import z3" 2>/dev/null || pip install --quiet z3-solver==5.3.1.0 || pip install --quiet --break-system-packages z3-solver==5.3.1.0
 echo "Installed. Add to PATH: $HOME/.nix-profile/bin"
 cbmc --version; frama-c -version

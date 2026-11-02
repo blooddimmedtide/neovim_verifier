@@ -38,6 +38,13 @@ functions = ["xfpclassify", "xisinf", "xisnan", "xctz", "xpopcount", "vim_append
 annotate = "math/cbmc/build.py"   # verbatim extraction, sha256 pinned
 prove = ["bash math/cbmc/run_cbmc.sh {src}"]
 
+[targets.memory_str]
+file = "src/nvim/memory.c"
+functions = ["xmemcpyz", "xstrnlen", "xstrchrnul", "xmemscan", "strchrsub", "memchrsub", "strcnt", "memcnt", "xstpcpy", "xstpncpy", "xstrlcpy", "xstrlcat", "xmemrchr", "strequal", "strnequal"]
+annotate = "memory/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only
+prove = ["bash memory/wp/run_wp.sh {src} 120"]
+check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
+
 [framac]
 per_function = true
 
