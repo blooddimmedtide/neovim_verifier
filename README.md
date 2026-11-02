@@ -3,7 +3,7 @@
 Machine-checked proofs about [Neovim](https://github.com/neovim/neovim)'s C code, built
 function by function, plus the tooling for many agents to work on it in parallel.
 
-**Status: 0 of 8,556 functions admitted; 57 are proved (candidates) and waiting for review or sign-off.** Three Neovim bugs found and fixed so far (see `libraries/neovim/findings/`; fixes on branch `verified` of [verified_neovim](https://github.com/blooddimmedtide/verified_neovim/tree/verified)). Live table: [STATUS.md](STATUS.md).
+**Status: 0 of 8,556 functions admitted; 57 are proved (candidates) and waiting for review or sign-off.** Four Neovim bugs found and fixed so far (see `libraries/neovim/findings/`; fixes on branch `verified` of [verified_neovim](https://github.com/blooddimmedtide/verified_neovim/tree/verified)). Live table: [STATUS.md](STATUS.md).
 
 **Plugins:** telescope-fzf-native has two out-of-bounds reads (patterns ending in `$`); findings, reproducer and fix in [plugins/telescope-fzf-native/](plugins/telescope-fzf-native/). Its proof is in progress.
 

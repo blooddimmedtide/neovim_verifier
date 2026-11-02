@@ -6,7 +6,7 @@ upstream = "https://github.com/neovim/neovim"
 commit = "7b87ce822e6fd45a4d9993599c2854afdb0dc4dd"   # master, 2026-10-23
 version = "master-2026-10-23"
 fixed_repo = "https://github.com/blooddimmedtide/verified_neovim"
-fixed_commit = "b19e58955aa8813d4f10b44fbac58c4ddeded770"   # branch verified: every proved fix (base64 7a5d1f1, cp_bounds aec5ed2, mpack 1778674)
+fixed_commit = "37767a0afb9768aaab45fa0875c5dde786beee97"   # branch verified: every fix (base64 7a5d1f1, cp_bounds aec5ed2, mpack 1778674, sha256 f639a44)
 thread = "Start verifying Neovim"
 
 [targets.base64]
