@@ -52,6 +52,13 @@ annotate = "regexp/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as 
 prove = ["bash regexp/wp/run_wp.sh {src} 60", "bash regexp/wp/run_wp.sh {fixed} 60", "bash regexp/cbmc/run_cbmc.sh {src}"]
 check = ["bash regexp/difftest/run_difftest.sh {src}"]
 
+[targets.search_csearch]
+file = "src/nvim/search.c"
+functions = ["set_last_csearch"]
+annotate = "search/cbmc/build.py"   # verbatim extraction, sha256 pinned
+prove = ["bash search/cbmc/run_cbmc.sh {fixed}", "bash search/cbmc/run_cbmc.sh {src}"]   # fixed: proved; upstream: must be refuted
+check = ["bash search/cbmc/run_mutants.sh {fixed}"]
+
 [framac]
 per_function = true
 

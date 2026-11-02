@@ -13,6 +13,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
 | src/nvim/regexp.c | 0 | 3 | 173 | 176 |
+| src/nvim/search.c | 0 | 1 | 56 | 57 |
 
 ## Function details
 
@@ -78,6 +79,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/regexp.c | `getdecchrs` | fixed-candidate | regexp/wp (Frama-C WP, upstream 43/43 under its overflow precondition, fixed 41/41 every input) | upstream overflows on 19+ digits (findings/regexp-getdecchrs-overflow.md); fix in verified_neovim proved for every input; see regexp/CLAIM.md. Review + planted bugs pending |
 | src/nvim/regexp.c | `gethexchrs` | candidate | regexp/cbmc (CBMC, all inputs, max 2/4/8) | value of the longest run of at most max hex digits; see regexp/CLAIM.md. Review + planted bugs pending |
 | src/nvim/regexp.c | `getoctchrs` | candidate | regexp/cbmc (CBMC, all inputs) | longest run of at most 3 octal digits with value <= 0377; see regexp/CLAIM.md. Review + planted bugs pending |
+| src/nvim/search.c | `set_last_csearch` | fixed-candidate | search/cbmc (CBMC, every len >= 0, both char signednesses; upstream refuted) | upstream writes past lastc_bytes and leaves stale bytes (findings/search-csearch-overflow.md); fix in verified_neovim proved for every input, 9/9 planted bugs killed; see search/CLAIM.md. Review pending |
 
 ## All files
 
