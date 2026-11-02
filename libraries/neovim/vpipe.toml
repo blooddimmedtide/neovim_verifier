@@ -45,6 +45,20 @@ annotate = "memory/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as 
 prove = ["bash memory/wp/run_wp.sh {src} 120"]
 check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
 
+[targets.charset_str]
+file = "src/nvim/charset.c"
+functions = ["nr2hex", "skipwhite", "skipwhite_len", "getwhitecols", "skipdigits", "skipbin", "skiphex", "skiptodigit", "skiptobin", "skiptohex", "skiptowhite", "skiptowhite_esc", "skip_to_newline", "vim_isblankline", "hex2nr", "hexhex2nr", "rem_backslash", "backslash_halve", "backslash_halve_save", "try_getdigits", "getdigits", "getdigits_int", "getdigits_long", "getdigits_int32"]
+annotate = "charset/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only; one declared tool patch
+prove = ["bash charset/wp/run_wp.sh {src} 120", "bash charset/equiv/run_equiv.sh {src} 12"]
+check = ["bash charset/difftest/run_difftest.sh {src} 1000000"]
+
+[targets.strings_str]
+file = "src/nvim/strings.c"
+functions = ["xstrnsave", "vim_strup", "vim_strcpy_up", "vim_strncpy_up", "vim_memcpy_up", "vim_strsave_up", "vim_strnsave_up", "del_trailing_spaces", "vim_strnicmp_asc", "has_non_ascii", "has_non_ascii_len", "concat_str"]
+annotate = "strings/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only
+prove = ["bash strings/wp/run_wp.sh {src} 120"]
+check = ["bash strings/difftest/run_difftest.sh {src} 1000000"]
+
 [framac]
 per_function = true
 
@@ -104,3 +118,11 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[[framac.tool_patch]]
+id = "backslash_halve_goto"
+file = "src/nvim/charset.c"
+original = "    char *dst = p;\n    goto start;\n"
+rewritten = "    char *dst = p;\n    *dst++ = *(p + 1);\n    p += 2;\n"
+harness = "bash charset/equiv/run_equiv.sh {tree} 12"
+harness_files = ["charset/equiv/gen_equiv.py", "charset/equiv/run_equiv.sh"]
