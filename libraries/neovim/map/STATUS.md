@@ -72,7 +72,7 @@ Note: `check_strip.py` without `fixed` needs a tree at the pinned upstream commi
 
 - `findings/map-realloc-bucket-wrap.md`: past 2^31 buckets (~1.49e9 keys) `mh_realloc`
   wraps to 0 buckets and the rehash writes out of bounds. Reproducer `repro/realloc_wrap.c`.
-  Fix not written or proved yet. Draft upstream issue (not filed):
+  Fix: fork commit 9821c98 (59/62 proved). Draft upstream issue (not filed):
   /mnt/project-files/neovim-verify/upstream/issue-map-bucket-wrap.md.
 
 ## Trusted (would go in CLAIM.md)
