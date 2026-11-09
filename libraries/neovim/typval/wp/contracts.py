@@ -77,7 +77,24 @@ typedef enum {
                       ///< (l:, g:).
 } ScopeType;
 typedef struct dictvar_S dict_T;
-// dictvar_S: leading fields verbatim; the hashtab, used-list links and watchers that
+typedef size_t hash_T;
+typedef struct {
+  hash_T hi_hash;
+  char *hi_key;
+} hashitem_T;
+enum { HT_INIT_SIZE = 16, };
+typedef struct {
+  hash_T ht_mask;        ///< mask used for hash value
+                         ///< (nr of items in array is "ht_mask" + 1)
+  size_t ht_used;        ///< number of items used
+  size_t ht_filled;      ///< number of items used or removed
+  int ht_changed;        ///< incremented when adding or removing an item
+  int ht_locked;         ///< counter for hash_lock()
+  hashitem_T *ht_array;  ///< points to the array, allocated when it's
+                         ///< not "ht_smallarray"
+  hashitem_T ht_smallarray[HT_INIT_SIZE];  ///< initial array
+} hashtab_T;
+// dictvar_S: fields up to dv_hashtab verbatim; the used-list links and watchers that
 // follow are elided (no function proved here reads them).
 struct dictvar_S {
   VarLockStatus dv_lock;  ///< Whole dictionary lock status.
@@ -85,11 +102,17 @@ struct dictvar_S {
                           ///< dictionary represents a scope (i.e. g:, l: …).
   int dv_refcount;        ///< Reference count.
   int dv_copyID;          ///< ID used when recursivery traversing a value.
+  hashtab_T dv_hashtab;   ///< Hashtab containing all items.
 };
 typedef struct partial_S partial_T;
 typedef double float_T;
-typedef enum { kBoolVarFalse, kBoolVarTrue } BoolVarValue;
-typedef enum { kSpecialVarNull } SpecialVarValue;
+typedef enum {
+  kBoolVarFalse,         ///< v:false
+  kBoolVarTrue,          ///< v:true
+} BoolVarValue;
+typedef enum {
+  kSpecialVarNull,   ///< v:null
+} SpecialVarValue;
 typedef struct {
   VarType v_type;               ///< Variable type.
   VarLockStatus v_lock;         ///< Variable lock status.
@@ -366,9 +389,63 @@ extern const char e_string_list_or_blob_required_for_argument_nr[];
 extern const char e_string_or_function_required_for_argument_nr[];
 extern const char e_list_or_blob_required_for_argument_nr[];
 #define NUL '\000'
+
+#include <limits.h>
+enum { NUMBUFLEN = 65, };
+extern const char e_val_too_large[];
+/*@ requires \valid(buf + (0 .. len - 1)) && len > 0;
+    assigns buf[0 .. len - 1]; */
+int vp_snprintf(char *buf, size_t len);
+#define vim_snprintf(buf, len, ...) vp_snprintf(buf, len)
+#define PRId64 "ld"
+
+/*@ requires slen > 0;
+    assigns vp_msgs;
+    behavior ok: assumes n <= INT_MAX / slen;
+      ensures \result == OK && vp_msgs == \old(vp_msgs) && n * slen <= INT_MAX;
+    behavior too_large: assumes n > INT_MAX / slen;
+      ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && n * slen > INT_MAX;
+    complete behaviors; disjoint behaviors; */
+int check_repeat_count(varnumber_T slen, varnumber_T n);
+
+/*@ requires valid_tv((typval_T *)tv);
+    assigns vp_msgs;
+    behavior num: assumes tv->v_type == VAR_NUMBER;
+      ensures \result == (double)tv->vval.v_number && vp_msgs == \old(vp_msgs);
+    behavior flt: assumes tv->v_type == VAR_FLOAT;
+      ensures \result == tv->vval.v_float && vp_msgs == \old(vp_msgs);
+    behavior other: assumes tv->v_type != VAR_NUMBER && tv->v_type != VAR_FLOAT;
+      ensures \result == 0.0 && vp_msgs == \old(vp_msgs) + 1;
+    complete behaviors; disjoint behaviors; */
+float_T tv_get_float(const typval_T *const tv);
+
+/*@ requires \valid_read(tv) && VAR_UNKNOWN <= tv->v_type <= VAR_BLOB;
+    requires (tv->v_type == VAR_STRING || tv->v_type == VAR_FUNC) && tv->vval.v_string != \null ==> \valid_read(tv->vval.v_string);
+    requires tv->v_type == VAR_LIST && tv->vval.v_list != \null ==> \valid_read(tv->vval.v_list);
+    requires tv->v_type == VAR_DICT && tv->vval.v_dict != \null ==> \valid_read(tv->vval.v_dict);
+    requires tv->v_type == VAR_BLOB && tv->vval.v_blob != \null ==> \valid_read(tv->vval.v_blob);
+    assigns \nothing;
+    ensures \result == 0 || \result == 1;
+    ensures \result == 1 <==>
+      ((tv->v_type == VAR_NUMBER && tv->vval.v_number != 0)
+    || (tv->v_type == VAR_FLOAT && !(tv->vval.v_float == 0.0))
+    || (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != \null)
+    || ((tv->v_type == VAR_FUNC || tv->v_type == VAR_STRING) && tv->vval.v_string != \null && tv->vval.v_string[0] != 0)
+    || (tv->v_type == VAR_LIST && tv->vval.v_list != \null && tv->vval.v_list->lv_len > 0)
+    || (tv->v_type == VAR_DICT && tv->vval.v_dict != \null && tv->vval.v_dict->dv_hashtab.ht_used > 0)
+    || (tv->v_type == VAR_BOOL && tv->vval.v_bool == kBoolVarTrue)
+    || (tv->v_type == VAR_SPECIAL && tv->vval.v_special != kSpecialVarNull)
+    || (tv->v_type == VAR_BLOB && tv->vval.v_blob != \null && tv->vval.v_blob->bv_ga.ga_len > 0)); */
+bool tv2bool(const typval_T *const tv);
 '''
 
 CHECKS = [
+    ("src/nvim/vim_defs.h", "  NUMBUFLEN = 65,"),
+    ("src/nvim/hashtab_defs.h", "  size_t ht_used;        ///< number of items used"),
+    ("src/nvim/hashtab_defs.h", "  hashitem_T ht_smallarray[HT_INIT_SIZE];  ///< initial array"),
+    ("src/nvim/eval/typval_defs.h", "  hashtab_T dv_hashtab;   ///< Hashtab containing all items."),
+    ("src/nvim/eval/typval_defs.h", "  kBoolVarTrue,          ///< v:true"),
+    ("src/nvim/eval/typval_defs.h", "  kSpecialVarNull,   ///< v:null"),
     ("src/nvim/eval/typval_defs.h", "enum { MAX_FUNC_ARGS = 20, };  ///< Maximum number of function arguments"),
     ("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
     ("src/nvim/eval/typval_defs.h", "  VAR_BLOB,         ///< Blob, .v_blob is used."),
