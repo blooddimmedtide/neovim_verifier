@@ -25,6 +25,14 @@ prove = ["bash mbyte/cbmc/run_cbmc.sh {src}", "bash mbyte/cbmc/run_cbmc.sh {fixe
 check = ["bash mbyte/cbmc/run_difftest.sh {src}"]
 mutants = "python3 -I mbyte/cbmc/run_mutants.py {src}"
 
+[targets.textobject]
+file = "src/nvim/textobject.c"
+functions = ["inmacro", "find_next_quote", "find_prev_quote"]
+annotate = "textobject/cbmc/extract.py, textobject/cbmc_quote/extract.py"   # verbatim, sha256 pinned
+# The inmacro fix (verified_neovim fix-textobject-inmacro-overread) is not on the fixed branch yet,
+# so CI proves upstream on non-empty lines; the empty-line over-read is findings/textobject-inmacro-overread.md.
+prove = ["CBMC_EXTRA=-DLINEMIN=1 bash textobject/cbmc/run_cbmc.sh {src}", "bash textobject/cbmc_quote/run_cbmc.sh {src}"]
+
 [targets.mpack_core]
 file = "src/mpack/mpack_core.c"
 functions = ["mpack_tokbuf_init", "mpack_read", "mpack_write", "mpack_rtoken", "mpack_rpending", "mpack_rvalue", "mpack_rblob", "mpack_wtoken", "mpack_wpending", "mpack_wpint", "mpack_wnint", "mpack_wfloat", "mpack_wstr", "mpack_wbin", "mpack_wext", "mpack_warray", "mpack_wmap", "mpack_w1", "mpack_w2", "mpack_w4", "mpack_value", "mpack_blob", "mpack_byte"]
