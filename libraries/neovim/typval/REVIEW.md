@@ -106,3 +106,15 @@ function's body, so a mutant cannot silently land in the prelude or another func
 Totals: 21/26 caught. All 5 misses are non-equivalent, user-visible bugs → spec weaknesses (issues 1 and 2).
 Equivalent mutant noted but not listed: dropping `lock != VAR_UNLOCKED &&` in `tv_check_lock`
 (value_check_lock(UNLOCKED) is false and silent).
+
+## Addendum (author, 2026-11-09 08:31 UTC): changes made and re-run
+
+- Issue 1 fixed: `good` behaviors of `tv_get_number_chk` / `tv_get_bool_chk` now ensure `*ret_error` is unchanged.
+- Issue 2 partly fixed: stubs record the message pointer in ghost `vp_last`; specs check it for the 21
+  `tv_check_for_*_arg`, `tv_blob_check_index/range`, `value_check_lock`. Format-argument values and
+  string-literal messages remain unchecked, and CLAIM.md says so.
+- Issue 3 fixed: `emsg(m)` now evaluates its argument.
+- Issue 4: the dead branch in `tv_check_lock` is listed in run_wp.sh.
+- Re-run: all goals proved except the known open goal in `tv_get_number`. `mutants.py` 13/13,
+  `review_mutants.py` 23/26. The 3 still missed are exactly the unchecked parts: R21 (wrong E-number
+  literal in tv_check_str_or_nr), R23 (`n1` printed instead of `n2`), R24 (`idx` instead of `idx + 1`).
