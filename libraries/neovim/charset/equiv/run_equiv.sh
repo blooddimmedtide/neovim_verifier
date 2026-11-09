@@ -13,7 +13,7 @@ for sign in "" --unsigned-char; do
   r=$(tail -1 "$W/cbmc$sign.log"); echo "equiv backslash_halve L=$L ${sign:-signed-char}: $r"
   [ "$r" = "VERIFICATION SUCCESSFUL" ] || status=1
 done
-# vim_str2nr: the macro expansion, condition flattening and loop outlining (wp/tool_patches.py)
+# vim_str2nr: the macro expansion, condition flattening and outlining (wp/tool_patches.py)
 # store the same results as the real function, for every string of length <= LS.
 LS=$(( L < 6 ? L : 6 ))
 python3 -I "$HERE/gen_equiv_str2nr.py" "$NV" "$W/equiv_s.c" $FIX || exit 1

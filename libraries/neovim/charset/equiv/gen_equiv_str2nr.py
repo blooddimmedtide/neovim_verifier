@@ -2,9 +2,9 @@
 
 Usage: python3 -I gen_equiv_str2nr.py <neovim checkout> <out.c> [--fixed]
 Compares the exact function text (sha256 pinned in ../wp/contracts.py), compiled by the
-real C preprocessor, with the text WP reads (../wp/tool_patches.py: PARSE_NUMBER expanded
-and the flattened conditions). For every string of L bytes plus NUL (interior NULs allowed,
-so every string of length <= L), every maxlen 0..L, every flag value WP's runs cover, both
+real C preprocessor, with the text WP reads (../wp/tool_patches.py: PARSE_NUMBER expanded,
+the flattened conditions and the outlined helpers). For every string of L bytes plus NUL (interior NULs allowed,
+so every string of length <= L), every maxlen 0..L, every flag value the contract allows, both
 values of strict and every choice of NULL / non-NULL outputs with any initial contents, both
 versions must store the same values. No __CPROVER_assume.
 """
@@ -51,7 +51,7 @@ open(out, "w").write(f"""#include <stdbool.h>
 #ifndef L
 #define L 6
 #endif
-// every value of what that WP's case runs cover (run_wp.sh STR2NR_WHAT)
+// every value of what that the precondition allows (tool_patches.STR2NR_WHAT, 44 values)
 static const int WHATS[] = {{{", ".join(str(w) for w in tool_patches.STR2NR_WHAT)}}};
 int nondet_int(void); unsigned nondet_unsigned(void); bool nondet_bool(void);
 int64_t nondet_i64(void); uint64_t nondet_u64(void);

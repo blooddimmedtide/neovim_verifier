@@ -1,10 +1,8 @@
 """Annotated standalone copy of charset.c's string helpers for Frama-C WP.
 
-Usage: python3 -I build.py <neovim checkout> <out.c> [--fixed] [--what V]
+Usage: python3 -I build.py <neovim checkout> <out.c> [--fixed]
 --fixed: the checkout is the fixed fork; functions in FIXED_SHA use the fork's pinned
 text and drop their "// upstream only" preconditions.
---what V: proof case for vim_str2nr: adds `requires what == V`. run_wp.sh runs every V in
-tool_patches.STR2NR_WHAT, which is every value the contract allows (checked there).
 Exact upstream text of each function (sha256 pinned), from charset.c and the
 ascii_defs.h inline helpers it calls, with an ACSL contract placed before each
 function and annotations inserted as comments. The C code is not changed:
@@ -46,7 +44,7 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
 GHOST_RE = r" /\*@ ghost \(.*?\) \*/"
 
 
-def main(tree, out, fixed=False, what=None):
+def main(tree, out, fixed=False):
     for path, text in CHECKS + PRELUDE_CHECKS:
         if text not in open(f"{tree}/{path}").read().split("\n"):
             sys.exit(f"build: {path} no longer contains: {text}")
@@ -99,8 +97,6 @@ def main(tree, out, fixed=False, what=None):
         contract = CONTRACTS[name]
         if fixed:   # upstream-only preconditions (the bug's input range) are dropped
             contract = "\n".join(l for l in contract.split("\n") if "// upstream only" not in l)
-        if name == "vim_str2nr" and what is not None:
-            contract = f"requires proof_case: what == {int(what)};\n    " + contract
         # the contract goes right before the function's own definition (a tool patch may put
         # helper functions in front of it)
         m = re.search(r"^[^\s/#].*\b" + name + r"\(", a, flags=re.M)
@@ -112,5 +108,4 @@ def main(tree, out, fixed=False, what=None):
 
 if __name__ == "__main__":
     rest = sys.argv[3:]
-    main(sys.argv[1], sys.argv[2], "--fixed" in rest,
-         rest[rest.index("--what") + 1] if "--what" in rest else None)
+    main(sys.argv[1], sys.argv[2], "--fixed" in rest)

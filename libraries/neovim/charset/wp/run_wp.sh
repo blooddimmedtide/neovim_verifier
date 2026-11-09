@@ -11,7 +11,11 @@ FIX=""; if [ "${1:-}" = "--fixed" ]; then FIX=--fixed; shift; fi
 W=$(mktemp -d); cp -r "$HERE/stubs" "$W/"; status=0
 python3 -I "$HERE/lemmas.py" || status=1
 python3 -I "$HERE/build.py" "$NV" "$W/cs.c" $FIX || exit 1
-if grep -nE '\b(admit|axiom|check)\b' "$W/cs.c" "$W"/stubs/*.h "$W"/stubs/nvim/*.h; then echo "forbidden clause"; exit 1; fi
+# admit/axiom/check are forbidden in ACSL (the C text and its comments may use the words)
+if python3 -I -c 'import re, sys
+bad = [(f, m) for f in sys.argv[1:] for m in re.findall(r"/\*@.*?\*/|//@[^\n]*", open(f).read(), re.S)
+       if re.search(r"\b(admit|axiom|check)\b", m)]
+[print(f, m[:200]) for f, m in bad]; sys.exit(1 if bad else 0)' "$W/cs.c" "$W"/stubs/*.h "$W"/stubs/nvim/*.h; then :; else echo "forbidden clause"; exit 1; fi
 run() {  # $1 = label, rest = frama-c selection options
   local l=$1; shift
   (cd "$W" && frama-c -machdep x86_64 -cpp-extra-args="-I stubs" cs.c -wp "$@" -wp-rte \
@@ -22,6 +26,6 @@ run() {  # $1 = label, rest = frama-c selection options
 }
 FUNCS="${*:-ascii_iswhite ascii_isdigit ascii_isxdigit ascii_isbdigit ascii_isodigit nr2hex skipwhite skipwhite_len getwhitecols
   skipdigits skipbin skiphex skiptodigit skiptobin skiptohex skiptowhite skiptowhite_esc skip_to_newline
-  vim_isblankline hex2nr hexhex2nr rem_backslash backslash_halve backslash_halve_save vp_parse_bin vp_parse_oct vp_parse_dec vp_parse_hex vim_str2nr subj_exists try_getdigits getdigits getdigits_int getdigits_long getdigits_int32}"
+  vim_isblankline hex2nr hexhex2nr rem_backslash backslash_halve backslash_halve_save vp_parse_bin vp_parse_oct vp_parse_dec vp_parse_hex vp_finish vim_str2nr subj_exists try_getdigits getdigits getdigits_int getdigits_long getdigits_int32}"
 for f in $FUNCS; do run "$f" -wp-fct "$f"; done
 echo "logs: $W"; exit $status
