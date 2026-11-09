@@ -242,11 +242,13 @@ uint32_t KEY_NAME(mh_get_)(SET_TYPE *set, KEY_TYPE key)
 void KEY_NAME(mh_rehash_)(SET_TYPE *set)
 {
   /*@ loop invariant 0 <= k <= set->h.n_keys;
+      loop invariant set->h.n_buckets == \at(set->h.n_buckets, Pre) && set->h.n_keys == \at(set->h.n_keys, Pre)
+                     && set->h.hash == \at(set->h.hash, Pre) && set->keys == \at(set->keys, Pre);
       loop invariant \forall integer j; 0 <= j < k ==>
                        vp_slot[j] < set->h.n_buckets && set->h.hash[vp_slot[j]] == j + 1;
       loop invariant wf_hash(set);
       loop invariant \forall integer i; 0 <= i < set->h.n_buckets ==> set->h.hash[i] <= k;
-      loop assigns k, set->h.hash[0 .. set->h.n_buckets - 1], vp_slot[0 .. set->h.n_keys - 1];
+      loop assigns k, \at(set->h.hash, Pre)[0 .. \at(set->h.n_buckets, Pre) - 1], vp_slot[0 .. \at(set->h.n_keys, Pre) - 1];
       loop variant set->h.n_keys - k;
   */
   for (uint32_t k = 0; k < set->h.n_keys; k++) {
