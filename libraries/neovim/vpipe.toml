@@ -114,6 +114,6 @@ prove = ["bash marktree/wp/run_wp.sh {src} upstream", "bash marktree/wp/run_wp.s
 
 [targets.mark_helpers]
 file = "src/nvim/mark.c"
-functions = ["mark_view_make", "mark_check_line_bounds", "next_buffer_mark", "mark_jumplist_iter"]
+functions = ["free_fmark", "free_xfmark", "clear_fmark", "free_jumplist", "mark_view_make", "mark_check_line_bounds", "next_buffer_mark", "mark_jumplist_iter"]
 annotate = "mark/wp/build.py"
-prove = ["bash mark/wp/run_wp.sh {src} 60 mark_view_make mark_check_line_bounds next_buffer_mark mark_jumplist_iter"]
+prove = ["bash mark/wp/run_wp.sh {src} 60"]

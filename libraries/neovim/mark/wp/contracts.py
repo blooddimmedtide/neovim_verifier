@@ -4,9 +4,9 @@ LOGIC = r"""
 /*@ predicate has_mark{L}(xfmark_T *a, integer k) = a[k].fmark.mark.lnum != 0;
     // name of global mark k: 'A'..'Z' for 0..25, '0'..'9' for 26..35
     // fm holds INIT_FMARK, except its timestamp
-    predicate init_fmark(fmark_T fm) = fm.mark.lnum == 0 && fm.mark.col == 0 && fm.mark.coladd == 0
-      && fm.fnum == 0 && fm.view.topline_offset == MAXLNUM && fm.view.skipcol == 0
-      && fm.additional_data == \null;
+    predicate init_fmark{L}(fmark_T *fm) = fm->mark.lnum == 0 && fm->mark.col == 0 && fm->mark.coladd == 0
+      && fm->fnum == 0 && fm->view.topline_offset == MAXLNUM && fm->view.skipcol == 0
+      && fm->additional_data == \null;
     logic integer gname(integer k) = k < NMARKS ? 'A' + k : '0' + (k - NMARKS);
 */
 """
@@ -24,7 +24,10 @@ def contracts():
         "clear_fmark": r"""requires \valid(fm) && 0 <= vp_nfreed < 1000;
     assigns *fm, vp_freed[vp_nfreed], vp_nfreed;
     ensures vp_nfreed == \old(vp_nfreed) + 1 && vp_freed[\old(vp_nfreed)] == \old(fm->additional_data);
-    ensures init_fmark(*fm) && fm->timestamp == timestamp;""",
+    ensures fm->mark.lnum == 0 && fm->mark.col == 0 && fm->mark.coladd == 0;
+    ensures fm->fnum == 0 && fm->timestamp == timestamp;
+    ensures fm->view.topline_offset == MAXLNUM && fm->view.skipcol == 0;
+    ensures fm->additional_data == \null;""",
         "free_jumplist": r"""requires \valid(wp) && 0 <= wp->w_jumplistlen <= JUMPLISTSIZE;
     requires 0 <= vp_nfreed && vp_nfreed + 2 * wp->w_jumplistlen < 1000;
     assigns wp->w_jumplistlen, vp_freed[vp_nfreed .. vp_nfreed + 2 * wp->w_jumplistlen - 1], vp_nfreed;
@@ -38,10 +41,10 @@ def contracts():
     assigns *buf, vp_freed[vp_nfreed .. vp_nfreed + NMARKS + 2 + buf->b_changelistlen], vp_nfreed;
     ensures vp_nfreed == \old(vp_nfreed) + NMARKS + 3 + \old(buf->b_changelistlen);
     ensures \forall integer i; 0 <= i < NMARKS ==>
-      init_fmark(buf->b_namedm[i]) && buf->b_namedm[i].timestamp == timestamp
+      init_fmark(&buf->b_namedm[i]) && buf->b_namedm[i].timestamp == timestamp
       && vp_freed[\old(vp_nfreed) + i] == \old(buf->b_namedm[i].additional_data);
-    ensures init_fmark(buf->b_last_insert) && buf->b_last_insert.timestamp == timestamp;
-    ensures init_fmark(buf->b_last_change) && buf->b_last_change.timestamp == timestamp;
+    ensures init_fmark(&buf->b_last_insert) && buf->b_last_insert.timestamp == timestamp;
+    ensures init_fmark(&buf->b_last_change) && buf->b_last_change.timestamp == timestamp;
     ensures buf->b_last_cursor.mark.lnum == 1 && buf->b_last_cursor.mark.col == 0 && buf->b_last_cursor.timestamp == timestamp
       && buf->b_last_cursor.fnum == 0 && buf->b_last_cursor.additional_data == \null;
     ensures vp_freed[\old(vp_nfreed) + NMARKS] == \old(buf->b_last_cursor.additional_data);
@@ -117,7 +120,7 @@ def annotations():
         "clrallmarks": [("  for (size_t i = 0; i < NMARKS; i++) {",
             r"""loop invariant 0 <= i <= NMARKS && vp_nfreed == \at(vp_nfreed, Pre) + i;
       loop invariant \forall integer j; 0 <= j < i ==>
-        init_fmark(buf->b_namedm[j]) && buf->b_namedm[j].timestamp == timestamp
+        init_fmark(&buf->b_namedm[j]) && buf->b_namedm[j].timestamp == timestamp
         && vp_freed[\at(vp_nfreed, Pre) + j] == \at(buf->b_namedm[j].additional_data, Pre);
       loop invariant \forall integer j; i <= j < NMARKS ==> buf->b_namedm[j] == \at(buf->b_namedm[j], Pre);
       loop assigns i, vp_nfreed, buf->b_namedm[0 .. NMARKS - 1], vp_freed[\at(vp_nfreed, Pre) .. \at(vp_nfreed, Pre) + NMARKS - 1];
@@ -126,10 +129,10 @@ def annotations():
             r"""loop invariant 0 <= i <= buf->b_changelistlen && vp_nfreed == \at(vp_nfreed, Pre) + NMARKS + 3 + i;
       loop invariant buf->b_changelistlen == \at(buf->b_changelistlen, Pre);
       loop invariant \forall integer j; 0 <= j < NMARKS ==>
-        init_fmark(buf->b_namedm[j]) && buf->b_namedm[j].timestamp == timestamp
+        init_fmark(&buf->b_namedm[j]) && buf->b_namedm[j].timestamp == timestamp
         && vp_freed[\at(vp_nfreed, Pre) + j] == \at(buf->b_namedm[j].additional_data, Pre);
-      loop invariant init_fmark(buf->b_last_insert) && buf->b_last_insert.timestamp == timestamp;
-      loop invariant init_fmark(buf->b_last_change) && buf->b_last_change.timestamp == timestamp;
+      loop invariant init_fmark(&buf->b_last_insert) && buf->b_last_insert.timestamp == timestamp;
+      loop invariant init_fmark(&buf->b_last_change) && buf->b_last_change.timestamp == timestamp;
       loop invariant buf->b_last_cursor.mark.lnum == 1 && buf->b_last_cursor.mark.col == 0 && buf->b_last_cursor.timestamp == timestamp
         && buf->b_last_cursor.fnum == 0 && buf->b_last_cursor.additional_data == \null;
       loop invariant vp_freed[\at(vp_nfreed, Pre) + NMARKS] == \at(buf->b_last_cursor.additional_data, Pre);
