@@ -3,12 +3,13 @@
 # Exit 0 = every goal of every listed function proved (no admits, no axioms).
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd); T=${2:-30}; shift 2 2>/dev/null || shift $#
-FUNCS=${*:-mf_free_fnames mf_set_fnames mf_new_page_size mf_alloc_bhdr mf_free_bhdr mf_ins_free mf_rem_free mf_need_trans ml_new_data ml_new_ptr ml_add_stack}
+FUNCS=${*:-lemmas mf_free_fnames mf_set_fnames mf_new_page_size mf_alloc_bhdr mf_free_bhdr mf_ins_free mf_rem_free mf_need_trans ml_new_data ml_new_ptr ml_add_stack}
 W=$(mktemp -d); status=0
 python3 -I "$HERE/build.py" "$NV" "$W/ml.c" || exit 1
 if grep -nE '\b(admit|axiom|check)\b' "$W/ml.c"; then echo "forbidden clause"; exit 1; fi
 for f in $FUNCS; do
-  (cd "$W" && frama-c -machdep x86_64 ml.c -wp -wp-fct "$f" -wp-rte -warn-signed-downcast -warn-unsigned-overflow \
+  if [ "$f" = lemmas ]; then sel="-wp-prop=@lemma"; else sel="-wp-fct $f"; fi
+  (cd "$W" && frama-c -machdep x86_64 ml.c -wp $sel -wp-rte -warn-signed-downcast -warn-unsigned-overflow \
      -wp-model Typed+Cast -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" -wp-cache none -wp-smoke-tests > "wp_$f.log" 2>&1)
   r=$(grep -E "Proved goals" "$W/wp_$f.log" | sed 's/.*goals: *//')
   echo "$f: ${r:-no result}"; grep -E '\[(Timeout|Unknown|Failed)\]|[Ee]rror|Doomed' "$W/wp_$f.log" | head -10 | sed 's/^/   /'

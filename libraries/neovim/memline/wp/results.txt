@@ -1,8 +1,8 @@
+lemmas: 1 / 1
 mf_free_fnames: 26 / 26
 mf_set_fnames: 14 / 14
 mf_new_page_size: 6 / 6
-mf_alloc_bhdr: 20 / 21
-   [wp] [Timeout] typed_cast_mf_alloc_bhdr_ensures_2 (Qed 6ms) (Z3) (Stronger)
+mf_alloc_bhdr: 21 / 21
 mf_free_bhdr: 16 / 16
 mf_ins_free: 9 / 9
 mf_rem_free: 9 / 9

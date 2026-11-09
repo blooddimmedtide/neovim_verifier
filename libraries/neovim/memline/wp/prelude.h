@@ -125,6 +125,11 @@ char *FullName_save(const char *fname, bool force);
 bhdr_T *mf_new(memfile_T *mfp, bool negative, unsigned page_count);
 
 // ---------------------------------------------------------------- proved
+/*@ // proved below with the functions (run label "lemmas"): a product of two
+    // unsigned ints never wraps a 64-bit size_t.
+    lemma vp_u32_mul_fits: \forall integer a, b; 0 <= a <= UINT_MAX && 0 <= b <= UINT_MAX ==>
+      0 <= a * b <= SIZE_MAX;
+*/
 /*@ requires \valid(mfp);
     assigns mfp->mf_page_size;
     ensures mfp->mf_page_size == new_size;
@@ -135,7 +140,7 @@ void mf_new_page_size(memfile_T *mfp, unsigned new_size);
     assigns \result \from mfp->mf_page_size, page_count;
     assigns \at(\result, Post)->bh_data, \at(\result, Post)->bh_page_count;   // the new header only
     ensures \valid(\result) && \result->bh_page_count == page_count;
-    ensures \valid((char *)\result->bh_data + (0 .. (integer)mfp->mf_page_size * page_count - 1));
+    ensures \valid((char *)\result->bh_data + (0 .. (integer)\old(mfp->mf_page_size) * page_count - 1));
 */
 static bhdr_T *mf_alloc_bhdr(memfile_T *mfp, unsigned page_count);
 

@@ -1,0 +1,8 @@
+caught:   s[3] = (uint8_t)(n & 0x7f);
+caught:   retval |= s[1];
+caught:   long retval = (int8_t)s[3];
+caught:   s[1] = (uint8_t)(n >> 1 & 0xff);
+caught:   return b0p->b0_id[0] == BLOCK0_ID0;
+caught:          || b0p->b0_magic_short != (int16_t)B0_MAGIC_INT
+caught:           && memchr(b0p->b0_hname, NUL, B0_HNAME_SIZE + 1)
+caught:           && memchr(b0p->b0_fname, NUL, B0_FNAME_SIZE_ORG));

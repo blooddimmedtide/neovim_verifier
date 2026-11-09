@@ -4,12 +4,15 @@ Claim: neovim_verifier draft PR #9 (branch claude/project-thread-kiwgsl).
 Pinned upstream: neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Tool: Frama-C 33 WP
 (z3, cvc5), model Typed+Cast, RTE guards, unsigned-overflow warnings, smoke tests on.
 
-**Not finished.** 10 of 104 functions proved; 94 still unverified (list below).
+**Not finished.** 16 of 104 functions proved; 88 still unverified (list below).
 
 ## Status (2026-11-09, session stopped at the 09:00 UTC deadline)
 
-- Proved, every goal, smoke tests pass (no dead code/vacuous contracts): mf_free_bhdr, mf_free_fnames, mf_ins_free, mf_need_trans, mf_new_page_size, mf_rem_free, mf_set_fnames, ml_add_stack, ml_new_data, ml_new_ptr.
-  Results: wp/results.txt. Planted bugs: wp/mutants.sh (14 mutants), results in wp/mutants_results.txt.
+- Proved with WP, every goal, smoke tests pass (no dead code or vacuous contracts): mf_alloc_bhdr, mf_free_bhdr, mf_free_fnames, mf_ins_free, mf_need_trans, mf_new_page_size, mf_rem_free, mf_set_fnames, ml_add_stack, ml_new_data, ml_new_ptr.
+  Results: wp/results.txt (plus one helper lemma, proved). Planted bugs: wp/mutants.sh, 14/14 caught (wp/mutants_results.txt).
+- Proved with CBMC 6.11 (bounds, pointer, overflow and shift checks, unwinding assertions, signed and
+  unsigned char): b0_magic_wrong, char_to_long, long_to_char, ml_check_b0_id, ml_check_b0_strings. Specs in cbmc/harness.c and cbmc/harness_b0.c. Planted bugs:
+  cbmc/mutants.sh, 8/8 caught. Trusted: a C-standard memchr in cbmc/prelude.h (CBMC has no model).
 - Not done yet from the AGENT_PROMPT gates: independent adversarial review (REVIEW.md, mutants.toml),
   differential test, --unsigned-char run (these functions do no char arithmetic, but the gate is still open),
   CLAIM.md, vpipe.toml target, status.tsv rows.
@@ -19,6 +22,8 @@ Pinned upstream: neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Tool: Frama-C 
 
     bash wp/run_wp.sh <neovim checkout at 7b87ce8> [timeout] [function...]
     bash wp/mutants.sh <neovim checkout at 7b87ce8>
+    bash cbmc/run_cbmc.sh <neovim checkout at 7b87ce8>
+    bash cbmc/mutants.sh <neovim checkout at 7b87ce8>
 
 ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function body verbatim
 (sha256 pinned) and checks the copied type/macro lines against upstream.
@@ -48,9 +53,7 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 - Lesson: a stub whose ensures says the result is valid must also say `allocates \result`, or WP treats
   the call as dead and proves anything after it. -wp-smoke-tests caught this (run_wp.sh now always uses it).
 
-## Function list
-
-| file | function | status |
+## Function list| file | function | status |
 |---|---|---|
 | memfile.c | mf_open | not started |
 | memfile.c | mf_open_file | not started |
@@ -64,7 +67,7 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 | memfile.c | mf_sync | not started |
 | memfile.c | mf_set_dirty | not started |
 | memfile.c | mf_release_all | not started |
-| memfile.c | mf_alloc_bhdr | open: 20/21 goals; open: the size_t product (size_t)mf_page_size * page_count equals the exact product (nonlinear, SMT times out). Needs a bvlemmas.py-style lemma. |
+| memfile.c | mf_alloc_bhdr | proved (WP, review pending) |
 | memfile.c | mf_free_bhdr | proved (WP, review pending) |
 | memfile.c | mf_ins_free | proved (WP, review pending) |
 | memfile.c | mf_rem_free | proved (WP, review pending) |
@@ -86,8 +89,8 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 | memline.c | ml_close_all | not started |
 | memline.c | ml_close_notmod | not started |
 | memline.c | ml_timestamp | not started |
-| memline.c | ml_check_b0_id | not started |
-| memline.c | ml_check_b0_strings | not started |
+| memline.c | ml_check_b0_id | proved (CBMC, both char signednesses, review pending) |
+| memline.c | ml_check_b0_strings | proved (CBMC, both char signednesses, review pending) |
 | memline.c | ml_upd_block0 | not started |
 | memline.c | set_b0_fname | not started |
 | memline.c | set_b0_dir_flag | not started |
@@ -144,10 +147,10 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 | memline.c | attention_message | not started |
 | memline.c | do_swapexists | not started |
 | memline.c | findswapname | not started |
-| memline.c | b0_magic_wrong | not started |
+| memline.c | b0_magic_wrong | proved (CBMC, both char signednesses, review pending) |
 | memline.c | fnamecmp_ino | not started |
-| memline.c | long_to_char | not started |
-| memline.c | char_to_long | not started |
+| memline.c | long_to_char | proved (CBMC, both char signednesses, review pending) |
+| memline.c | char_to_long | proved (CBMC, both char signednesses, review pending) |
 | memline.c | ml_setflags | not started |
 | memline.c | ml_updatechunk | not started |
 | memline.c | ml_find_line_or_offset | not started |
