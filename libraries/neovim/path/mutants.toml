@@ -106,3 +106,7 @@ new = "(all && p[0] == '~')"
 fn = "vim_backtick"
 old = "*(p + 1) != NUL &&"
 new = ""
+[[mutant]]
+fn = "has_env_var"
+old = "if (*p == '\\\\' && p[1] != NUL) {"
+new = "if (*p == '\\\\' && p[1] != NUL && p[1] != '$') {"

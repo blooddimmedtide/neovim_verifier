@@ -36,6 +36,7 @@ SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd, in callee-first or
     "path_to_backslash": "e1ce9afcf790005f7d6ca890a190c30fe0b629ccba195f3ad99f74e9a03c43b3",
     "path_has_wildcard": "37b041689a3ffcda97f42391df71991613cfa14bf1253001b17b55551df403ed",
     "vim_backtick": "89a4b0d6496d85159f5805913e64bef99e45e35008aed1bc6d99449712c61195",
+    "has_env_var": "91f4b3ded115f3344ae3d1bbed1037ec2d3d126bae9323055772547d6e2250f0",
     "invocation_path_tail": "98ec5fa5d4d44edf0a06e92c4a87f6d8c4d2e939d2365974bddf4de70103d713",
 }
 FIXED_SHA = {  # verified_neovim branch claude/project-thread-t2grsh (fix: backslash at end)
@@ -81,6 +82,7 @@ static const char vp_esc_wild[] = {'*', '?', '[', '{', '\\0'};
 #define PATH_ESC_WILDCARDS ((char *)vp_esc_wild)
 static const char vp_all_wild[] = {'*', '?', '[', '{', '`', '\\'', '$', '\\0'};
 #define PATH_ALL_WILDCARDS ((char *)vp_all_wild)
+static const char vp_dollar[] = {'$', '\\0'};  // has_env_var's "$" (tool patch)
 // strings.c vim_strchr, by contract from its doc comment (proved or not in strings.c's own
 // thread): the first byte of c in string, NULL when absent; NUL is never found; a
 // character >= 0x80 is searched as its UTF-8 bytes, so never found in an ASCII string.

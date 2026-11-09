@@ -137,6 +137,9 @@ C = {
 "vim_backtick": r"""requires is_str(p);
     assigns \nothing;
     ensures \forall integer n; str_len(p, n) ==> \result == ((n >= 2 && p[0] == '`' && p[n - 1] == '`') ? 1 : 0);""",
+"has_env_var": r"""requires str_len(p, n);
+    assigns \nothing;
+    ensures \result == ((\exists integer j; 0 <= j < n && unesc(p, j) && p[j] == '$') ? 1 : 0);""",
 # Memory safety, termination and bounds only (not the quote rules): the result lies in
 # the string after the head, just past a '/' (or at the head), and *len stays inside.
 "invocation_path_tail": r"""requires str_len((char *)invocation, n);
@@ -148,7 +151,7 @@ C = {
 }
 
 GHOST = {f: "size_t n" for f in ("path_skip_sep", "get_past_head", "path_tail", "path_with_url",
-                                 "vim_isAbsName", "path_tail_with_sep", "add_pathsep", "path_to_slash", "path_to_backslash", "path_has_wildcard",
+                                 "vim_isAbsName", "path_tail_with_sep", "add_pathsep", "path_to_slash", "path_to_backslash", "path_has_wildcard", "has_env_var",
                                  "path_next_component", "invocation_path_tail")}
 
 SIG = {  # the signature line the ghost parameter goes after
@@ -157,6 +160,7 @@ SIG = {  # the signature line the ghost parameter goes after
 "path_tail_with_sep": "char *path_tail_with_sep(char *fname)",
 "add_pathsep": "bool add_pathsep(char *p)",
 "path_has_wildcard": "bool path_has_wildcard(const char *p, bool all)",
+"has_env_var": "static bool has_env_var(char *p)",
 "path_to_slash": "char *path_to_slash(char *p)",
 "path_to_backslash": "char *path_to_backslash(char *p)",
 "path_skip_sep": "char *path_skip_sep(const char *path, bool colon)",
@@ -212,6 +216,21 @@ def annotations(fixed):
         ("before", "  return path_is_url(p);", r"""assert scheme_end((char *)fname, n, p - fname);"""),
         ("before", "  return path_is_url(p);", r"""assert str_len((char *)p, fname + n - p);""")],
     "vim_isAbsName": [("after", "path_with_url(name)", "ghost (n)")],
+    "has_env_var": [("before", "  return false;", r"""assert p - \at(p, Pre) == n;"""),
+        ("before", "  for (; *p; p++) {",
+         r"""assert str_len((char *)vp_dollar, 1) && vp_dollar[0] == '$';"""),
+        ("before", "  for (; *p; p++) {",
+         r"""loop invariant within(p, \at(p, Pre), n);
+      loop invariant unesc(\at(p, Pre), p - \at(p, Pre)) || *p == 0;
+      loop invariant \forall integer j; 0 <= j < p - \at(p, Pre) ==> !(unesc(\at(p, Pre), j) && \at(p, Pre)[j] == '$');
+      loop assigns p;
+      loop variant \at(p, Pre) + n - p;"""),
+        ("before", "    if (*p == '\\\\'",
+         r"""assert bsrun(\at(p, Pre), p + 1 - \at(p, Pre)) == (p[0] == '\\' ? 1 + bsrun(\at(p, Pre), p - \at(p, Pre)) : 0);"""),
+        ("before", "      p++;",
+         r"""assert bsrun(\at(p, Pre), p + 2 - \at(p, Pre)) == (p[1] == '\\' ? 2 + bsrun(\at(p, Pre), p - \at(p, Pre)) : 0);"""),
+        ("before", "      return true;",
+         r"""assert unesc(\at(p, Pre), p - \at(p, Pre)) && *p == '$';""")],
     "path_has_wildcard": [("before", "  return false;", r"""assert p - \at(p, Pre) == n;"""),
         ("before", "  for (; *p; p++) {",
         r"""loop invariant within((char *)p, (char *)\at(p, Pre), n);

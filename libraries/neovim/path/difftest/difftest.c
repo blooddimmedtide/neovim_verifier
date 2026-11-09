@@ -1,6 +1,6 @@
 // Differential test: the compiled path.c functions (the WP build output, which is the
 // pinned text plus ACSL comments gcc ignores) against references written from the doc
-// comments. Exhaustive over every string of length 0..6 on a 15-byte alphabet, each in an
+// comments. Exhaustive over every string of length 0..6 on a 16-byte alphabet, each in an
 // exact-size heap block so ASan catches any read past the NUL. ASCII only: the mbyte.c
 // helpers are their ASCII behavior (utfc_ptr2len 1, utf_head_off 0).
 #include <stdio.h>
@@ -28,7 +28,7 @@ char *vim_strchr(const char *const string, const int c)
 }
 #include "path_built.c"
 
-static const char AL[] = "/a:\\\"~+.C| -9*`";
+static const char AL[] = "/a:\\\"~+.C| -9*`$";
 static int isal(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 static int issch(int c) { return isal(c) || (c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.'; }
 static size_t lead(const char *s) { size_t i = 0; while (s[i] == '/') i++; return i; }
@@ -63,6 +63,15 @@ static int r_wild(const char *s, int all) {
   return 0;
 }
 
+// has_env_var reference: an unescaped '$'
+static int r_env(const char *s) {
+  for (size_t i = 0; s[i]; i++) {
+    size_t b = 0; while (b < i && s[i - 1 - b] == '\\') b++;
+    if (b % 2 == 0 && s[i] == '$') return 1;
+  }
+  return 0;
+}
+
 static long fails;
 #define EXPECT(cond, s) do { if (!(cond)) { if (fails++ < 20) printf("FAIL %s: [%s]\n", #cond, s); } } while (0)
 
@@ -79,6 +88,7 @@ static void one(const char *src, size_t n)
   EXPECT(path_with_url(s) == r_url(s), s);
   EXPECT(vim_isAbsName(s) == (r_url(s) != 0 || s[0] == '/' || s[0] == '~'), s);
   EXPECT(path_is_url(s) == r_urlk(s), s);
+  EXPECT(has_env_var(s) == r_env(s), s);
   EXPECT(vim_backtick(s) == (n >= 2 && s[0] == '`' && s[n - 1] == '`'), s);
   EXPECT(path_has_wildcard(s, false) == r_wild(s, 0), s);
   EXPECT(path_has_wildcard(s, true) == r_wild(s, 1), s);

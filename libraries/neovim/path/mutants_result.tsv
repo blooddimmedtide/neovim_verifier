@@ -25,3 +25,4 @@ n	function	mode	result	change
 24	path_has_wildcard	upstream	caught	if (p[0] == '\\' && p[1] != NUL) { -> if (p[0] == '\\') {
 25	path_has_wildcard	upstream	caught	(all && p[0] == '~' && p[1] != NUL) -> (all && p[0] == '~')
 26	vim_backtick	upstream	caught	*(p + 1) != NUL && -> 
+27	has_env_var	upstream	caught	if (*p == '\\' && p[1] != NUL) { -> if (*p == '\\' && p[1] != NUL && p[1] != '$') {

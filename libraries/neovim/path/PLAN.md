@@ -3,7 +3,7 @@
 Claimed by draft PR (this branch). Upstream pinned at neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd, Linux x86_64 (UNIX, no BACKSLASH_IN_FILENAME).
 Tool: Frama-C WP (loops over NUL-terminated strings).
 
-Progress: 21 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 45 open. See CLAIM.md.
+Progress: 22 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 44 open. See CLAIM.md.
 
 | function | line | status |
 |---|---|---|
@@ -40,7 +40,7 @@ Progress: 21 / 67 proved (candidate, needs review and owner sign-off), 1 partial
 | uniquefy_paths | 906 | open |
 | gettail_dir | 1056 | open |
 | expand_in_path | 1084 | open |
-| has_env_var | 1122 | open |
+| has_env_var | 1122 | proved (candidate), WP |
 | has_special_wildchar | 1139 | open |
 | gen_expand_wildcards | 1188 | open |
 | FreeWild | 1329 | open |
