@@ -28,7 +28,7 @@ Status per function is in `PLAN.md`. This card says what the proofs that pass ac
 The references are written from the doc comments (quoted in `wp/contracts.py`), as comma-list
 predicates (`item_start`, `key_at`, `item_end`), not from the code.
 
-Each run also passes `-wp-smoke-tests` (93/93: no stub or precondition set was found
+A `-wp-smoke-tests` run over all functions passed (93/93: no stub or precondition set was found
 contradictory). The stubs here are new; the garray allocation stubs are not used.
 
 ## What the proofs rely on (trusted, all in wp/stubs)

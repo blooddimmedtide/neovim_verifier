@@ -89,11 +89,11 @@ def main(tree, out):
         piece = "\n".join(lines[s:e + 1])
         h = hashlib.sha256(piece.encode()).hexdigest()
         if name == "stropt_concat_with_comma":
-            if h not in (want, FIXED_SHA[name]):
+            if h not in (want, FIXED_SHA[name]) and not os.environ.get("VP_MUTANT"):
                 sys.exit(f"build: {name} changed: {h}")
             print(f"{name}: {'upstream' if h == want else 'fixed'} text")
             contract, anchors = concat_contract(h == want), CONCAT_ANCHORS
-        elif h != want:
+        elif h != want and not os.environ.get("VP_MUTANT"):
             sys.exit(f"build: {name} changed upstream: {h}")
         else:
             contract, anchors = CONTRACTS[name]
