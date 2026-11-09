@@ -1,0 +1,44 @@
+id	function	tool	result	detail	expected	verdict
+bogosqrt-n-gt-1	xdl_bogosqrt	cbmc:h_bogosqrt	caught	[h_bogosqrt.assertion.1] line 34 2^ceil(bits(n)/2): FAILURE	caught	ok
+bogosqrt-shift1	xdl_bogosqrt	cbmc:h_bogosqrt	caught	[h_bogosqrt.assertion.1] line 34 2^ceil(bits(n)/2): FAILURE	caught	ok
+bogosqrt-add	xdl_bogosqrt	cbmc:h_bogosqrt	survived		equivalent	ok
+hashbits-le	xdl_hashbits	cbmc:h_hashbits	caught	[h_hashbits.assertion.1] line 44 smallest b >= 1 with 2^b >= size: FAILURE	caught	ok
+hashbits-cap31	xdl_hashbits	cbmc:h_hashbits	caught	[h_hashbits.assertion.1] line 44 smallest b >= 1 with 2^b >= size: FAILURE	caught	ok
+hashbits-zero	xdl_hashbits	cbmc:h_hashbits	caught	[h_hashbits.assertion.1] line 44 smallest b >= 1 with 2^b >= size: FAILURE	caught	ok
+diffrec-cr	xdl_emit_diffrec	cbmc:h_emit_diffrec	caught	[h_emit_diffrec.assertion.2] line 89 marker only for an incomplete line: FAILURE	caught	ok
+diffrec-size1	xdl_emit_diffrec	cbmc:h_emit_diffrec	caught	[h_emit_diffrec.assertion.2] line 89 marker only for an incomplete line: FAILURE	caught	ok
+diffrec-marker-len	xdl_emit_diffrec	cbmc:h_emit_diffrec	caught	[h_emit_diffrec.assertion.4] line 93 marker length: FAILURE	caught	ok
+diffrec-marker-text	xdl_emit_diffrec	cbmc:h_emit_diffrec	caught	[h_emit_diffrec.assertion.5] line 95 marker text: FAILURE	caught	ok
+diffrec-ret-le0	xdl_emit_diffrec	cbmc:h_emit_diffrec	caught	[h_emit_diffrec.assertion.6] line 97 result: FAILURE	caught	ok
+diffrec-psize	xdl_emit_diffrec	cbmc:h_emit_diffrec	caught	[h_emit_diffrec.assertion.3] line 90 pre, then the line: FAILURE	caught	ok
+mmfile-first-size	xdl_mmfile_first	cbmc:h_mmfile	caught	[h_mmfile.assertion.1] line 105 first: FAILURE	caught	ok
+mmfile-size	xdl_mmfile_size	cbmc:h_mmfile	caught	[h_mmfile.assertion.2] line 106 size: FAILURE	caught	ok
+cha-alloc-ge	xdl_cha_alloc	cbmc:h_cha_alloc	survived		equivalent	ok
+cha-alloc-tail	xdl_cha_alloc	cbmc:h_cha_alloc	survived		equivalent	ok
+cha-alloc-step1	xdl_cha_alloc	cbmc:h_cha_alloc	caught	[h_cha_alloc.assertion.7] line 150 next free slot, after every earlier item: FAILURE	caught	ok
+cha-alloc-head	xdl_cha_alloc	cbmc:h_cha_alloc	caught	[h_cha_alloc.assertion.10] line 156 appended: FAILURE	caught	ok
+cha-alloc-nolink	xdl_cha_alloc	cbmc:h_cha_alloc	caught	[h_cha_alloc.assertion.10] line 156 appended: FAILURE	caught	ok
+cha-alloc-nonext	xdl_cha_alloc	cbmc:h_cha_alloc	caught	[h_cha_alloc.assertion.5] line 147 the tail is the current block: FAILURE	caught	ok
+cha-alloc-nocheck	xdl_cha_alloc	cbmc:h_cha_alloc	caught	[h_cha_alloc.assertion.4] line 146 isize writable bytes: FAILURE	caught	ok
+cha-alloc-short-block	xdl_cha_alloc	cbmc:h_cha_alloc	caught	[h_cha_alloc.assertion.4] line 146 isize writable bytes: FAILURE	caught	ok
+hunk-cb-empty-start	xdl_emit_hunk_hdr	cbmc:h_emit_hunk_hdr_cb	caught	[h_emit_hunk_hdr_cb.assertion.2] line 177 range: FAILURE	caught	ok
+hunk-cb-funclen	xdl_emit_hunk_hdr	cbmc:h_emit_hunk_hdr_cb	caught	[h_emit_hunk_hdr_cb.assertion.3] line 178 function name: FAILURE	caught	ok
+hunk-cb-gt0	xdl_emit_hunk_hdr	cbmc:h_emit_hunk_hdr_cb	survived		equivalent	ok
+fbd-count-short	xdl_fall_back_diff	cbmc:h_fall_back_diff	caught	[h_fall_back_diff.assertion.6] line 283 file 1 range copied: FAILURE	caught	ok
+fbd-offset	xdl_fall_back_diff	cbmc:h_fall_back_diff	caught	[h_fall_back_diff.assertion.8] line 285 file 2 range copied: FAILURE	caught	ok
+fbd-no-free	xdl_fall_back_diff	cbmc:h_fall_back_diff	caught	[h_fall_back_diff.assertion.5] line 282 success frees the temporary environment: FAILURE	caught	ok
+fbd-size-first-rec	xdl_fall_back_diff	cbmc:h_fall_back_diff	caught	[h_fall_back_diff.assertion.2] line 276 the two ranges as files: FAILURE	caught	ok
+fbd-ret-le0	xdl_fall_back_diff	cbmc:h_fall_back_diff	caught	[h_fall_back_diff.assertion.5] line 282 success frees the temporary environment: FAILURE	caught	ok
+fbd-free-before-copy	xdl_fall_back_diff	cbmc:h_fall_back_diff	survived		caught	GAP
+fbd-free-on-failure	xdl_fall_back_diff	cbmc:h_fall_back_diff	caught	[h_fall_back_diff.assertion.4] line 279 failure changes nothing: FAILURE	caught	ok
+cha-init-sum	xdl_cha_init	wp:xdl_cha_init	caught	21/23 	caught	ok
+cha-init-scurr	xdl_cha_init	wp:xdl_cha_init	caught	20/21 	caught	ok
+cha-free-uaf	xdl_cha_free	wp:xdl_cha_free	survived	23/23	caught	GAP
+guess-lines-tsize	xdl_guess_lines	wp:xdl_guess_lines	caught	58/59 	caught	ok
+guess-lines-no-tsize-test	xdl_guess_lines	wp:xdl_guess_lines	survived	58/58	equivalent	ok
+guess-lines-div1	xdl_guess_lines	wp:xdl_guess_lines	caught	58/59 	caught	ok
+blankline-upstream	xdl_blankline	wp:xdl_blankline	caught	20/21 	caught	ok
+blankline-ge	xdl_blankline	wp:xdl_blankline	survived	26/26	equivalent	ok
+blankline-skip-first	xdl_blankline	wp:xdl_blankline	caught	28/29 	caught	ok
+eol-cr-gt1	len_without_eol	wp:len_without_eol	caught	10/11 	caught	ok
+eol-lone-cr	len_without_eol	wp:len_without_eol	caught	14/15 	caught	ok

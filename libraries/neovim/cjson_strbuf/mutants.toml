@@ -1,0 +1,526 @@
+# Planted bugs for the src/cjson/strbuf.c / strbuf.h CBMC proof, chosen by the
+# independent adversarial reviewer (see REVIEW.md). Applied to the FIXED sources
+# (branch claude/project-thread-gritim of verified_neovim: strbuf.c with `size_t i`,
+# strbuf.h unchanged from upstream 7b87ce8).
+#
+# Keys: id, file (strbuf.c | strbuf.h), function, original (occurs exactly once in
+# that file; run_mutants.py refuses otherwise), mutated, why, expect:
+#   expect = "caught"            a real bug: some harness of cbmc/run_cbmc.sh must fail
+#   expect = "equivalent: <why>"  same behaviour on every input the claim covers
+# Survivors of an expect = "caught" mutant are proof gaps; REVIEW.md explains each,
+# and run_mutants.py also runs review/harness_review.c (the suggested fix) on them.
+
+# ---------------- die ----------------
+[[mutant]]
+id = "die-returns"
+file = "strbuf.c"
+function = "die"
+original = "    abort();"
+mutated = "    ;"
+why = "die returns; every caller continues with a NULL buffer or a bad size"
+expect = "caught"
+
+# ---------------- strbuf_init ----------------
+[[mutant]]
+id = "init-default-size"
+file = "strbuf.c"
+function = "strbuf_init"
+original = "        size = STRBUF_DEFAULT_SIZE;"
+mutated = "        size = STRBUF_DEFAULT_SIZE + 1;"
+why = "len 0 gets 1024 bytes instead of the documented 1023"
+expect = "caught"
+
+[[mutant]]
+id = "init-no-nul-room"
+file = "strbuf.c"
+function = "strbuf_init"
+original = "        size = len + 1;         /* \\0 terminator */"
+mutated = "        size = len;         /* \\0 terminator */"
+why = "no room for the NUL: strbuf_init(s, n) then n appends writes past the block"
+expect = "caught"
+
+[[mutant]]
+id = "init-len1-default"
+file = "strbuf.c"
+function = "strbuf_init"
+original = "    if (!len)"
+mutated = "    if (len <= 1)"
+why = "len 1 gets the default size instead of 2"
+expect = "caught"
+
+[[mutant]]
+id = "init-overflow-le"
+file = "strbuf.c"
+function = "strbuf_init"
+original = "    if (size < len)"
+mutated = "    if (size <= len)"
+why = "size == len never holds: size is 1023 > 0 or len + 1, which is <= len only after wrapping"
+expect = "equivalent: size <= len iff size < len for every len (size is never equal to len)"
+
+[[mutant]]
+id = "init-reallocs-kept"
+file = "strbuf.c"
+function = "strbuf_init"
+original = "    s->reallocs = 0;"
+mutated = "    ;"
+why = "reallocs keeps stack garbage; later reallocs++ can overflow"
+expect = "caught"
+
+[[mutant]]
+id = "init-no-nul"
+file = "strbuf.c"
+function = "strbuf_init"
+original = """
+    strbuf_ensure_null(s);
+}
+
+strbuf_t *strbuf_new"""
+mutated = """
+}
+
+strbuf_t *strbuf_new"""
+why = "a fresh strbuf's buffer is not \"\" (strbuf_string on it reads garbage)"
+expect = "caught"
+
+[[mutant]]
+id = "init-malloc-len"
+file = "strbuf.c"
+function = "strbuf_init"
+original = "    s->buf = (char *)malloc(size);"
+mutated = "    s->buf = (char *)malloc(len);"
+why = "allocates len bytes but records len + 1 (or 1023 with malloc(0))"
+expect = "caught"
+
+# ---------------- strbuf_new ----------------
+[[mutant]]
+id = "new-not-dynamic"
+file = "strbuf.c"
+function = "strbuf_new"
+original = "    s->dynamic = 1;"
+mutated = "    s->dynamic = 0;"
+why = "strbuf_free leaks the struct"
+expect = "caught"
+
+[[mutant]]
+id = "new-sizeof-pointer"
+file = "strbuf.c"
+function = "strbuf_new"
+original = "    s = (strbuf_t*)malloc(sizeof(strbuf_t));"
+mutated = "    s = (strbuf_t*)malloc(sizeof(strbuf_t *));"
+why = "classic sizeof(pointer) bug: 8 bytes for a 40-byte struct"
+expect = "caught"
+
+# ---------------- debug_stats ----------------
+[[mutant]]
+id = "debug-inverted"
+file = "strbuf.c"
+function = "debug_stats"
+original = "    if (s->debug) {\n        fprintf(stderr, \"strbuf(%lx) reallocs"
+mutated = "    if (!s->debug) {\n        fprintf(stderr, \"strbuf(%lx) reallocs"
+why = "prints when debug is off"
+expect = "equivalent: only stderr output differs, which the spec (debug output only) does not constrain"
+
+[[mutant]]
+id = "debug-clobbers-reallocs"
+file = "strbuf.c"
+function = "debug_stats"
+original = "                (long)s, s->reallocs, s->length, s->size);"
+mutated = "                (long)s, s->reallocs = 0, s->length, s->size);"
+why = "reporting resets the counter (a side effect in the printf arguments)"
+expect = "caught"
+
+[[mutant]]
+id = "debug-clobbers-buffer"
+file = "strbuf.c"
+function = "debug_stats"
+original = "static inline void debug_stats(strbuf_t *s)\n{\n"
+mutated = "static inline void debug_stats(strbuf_t *s)\n{\n    if (s->length) s->buf[0] = 0;\n"
+why = "debug_stats writes into the string; h_debug_stats checks only the struct fields"
+expect = "caught"
+
+# ---------------- strbuf_free ----------------
+[[mutant]]
+id = "free-no-clear"
+file = "strbuf.c"
+function = "strbuf_free"
+original = "        s->buf = NULL;"
+mutated = "        ;"
+why = "documented: a non-dynamic strbuf may be freed any number of times; this double-frees buf"
+expect = "caught"
+
+[[mutant]]
+id = "free-uaf-order"
+file = "strbuf.c"
+function = "strbuf_free"
+original = """
+    if (s->buf) {
+        free(s->buf);
+        s->buf = NULL;
+    }
+    if (s->dynamic)
+        free(s);
+"""
+mutated = """
+    int dyn = s->dynamic;
+    if (dyn)
+        free(s);
+    if (s->buf) {
+        free(s->buf);
+        s->buf = NULL;
+    }
+"""
+why = "frees the struct first, then reads and writes s->buf: use after free when dynamic"
+expect = "caught"
+
+[[mutant]]
+id = "free-dynamic-leak"
+file = "strbuf.c"
+function = "strbuf_free"
+original = "    if (s->dynamic)\n        free(s);\n}"
+mutated = "    if (s->dynamic > 1)\n        free(s);\n}"
+why = "never frees a strbuf_new struct"
+expect = "caught"
+
+# ---------------- strbuf_free_to_string ----------------
+[[mutant]]
+id = "fts-no-nul"
+file = "strbuf.c"
+function = "strbuf_free_to_string"
+original = """
+    debug_stats(s);
+
+    strbuf_ensure_null(s);
+"""
+mutated = """
+    debug_stats(s);
+"""
+why = "the returned string is not NUL-terminated"
+expect = "caught"
+
+[[mutant]]
+id = "fts-uaf-return"
+file = "strbuf.c"
+function = "strbuf_free_to_string"
+original = "    return buf;"
+mutated = "    return s->buf;"
+why = "reads s->buf after free(s) when dynamic: use after free"
+expect = "caught"
+
+[[mutant]]
+id = "fts-len-skip-empty"
+file = "strbuf.c"
+function = "strbuf_free_to_string"
+original = "    if (len)\n        *len = s->length;\n\n    if (s->dynamic)"
+mutated = "    if (len && s->length)\n        *len = s->length;\n\n    if (s->dynamic)"
+why = "*len is left unset for an empty string (callers then use a garbage length)"
+expect = "caught"
+
+[[mutant]]
+id = "fts-frees-buf"
+file = "strbuf.c"
+function = "strbuf_free_to_string"
+original = "    if (s->dynamic)\n        free(s);\n\n    return buf;"
+mutated = "    if (s->dynamic)\n        free(s);\n    if (!s->dynamic) free(buf);\n\n    return buf;"
+why = "returns a freed buffer for a non-dynamic strbuf"
+expect = "caught"
+
+# ---------------- calculate_new_size ----------------
+[[mutant]]
+id = "cns-len-lt1"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "    if (len <= 0)"
+mutated = "    if (len < 1)"
+why = "len is size_t"
+expect = "equivalent: for size_t, len <= 0 iff len < 1"
+
+[[mutant]]
+id = "cns-no-nul-room"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "    reqsize = len + 1;"
+mutated = "    reqsize = len;"
+why = "forgets the NUL byte"
+expect = "caught"
+
+[[mutant]]
+id = "cns-shrink-ge"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "    if (s->size > reqsize)"
+mutated = "    if (s->size >= reqsize)"
+why = "at size == reqsize both branches return size"
+expect = "equivalent: for size == reqsize the shrink branch returns reqsize == size, and the loop also returns size"
+
+[[mutant]]
+id = "cns-shrink-off-by-one"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "        return reqsize;"
+mutated = "        return reqsize - 1;"
+why = "shrinking leaves no room for the NUL"
+expect = "caught"
+
+[[mutant]]
+id = "cns-threshold"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "    if (reqsize >= SIZE_MAX / 2) {"
+mutated = "    if (reqsize >= SIZE_MAX / 4) {"
+why = "wrong cut-over to exact sizing (the doubling must hold up to SIZE_MAX / 2)"
+expect = "caught"
+
+[[mutant]]
+id = "cns-growth-factor"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "            newsize *= 2;"
+mutated = "            newsize += newsize / 2 + 1;"
+why = "1.5x growth: big enough, but not the documented size * 2^k"
+expect = "caught"
+
+[[mutant]]
+id = "cns-loop-le"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "        while (newsize < reqsize)"
+mutated = "        while (newsize <= reqsize)"
+why = "one doubling too many when size * 2^k == reqsize (not the least)"
+expect = "caught"
+
+[[mutant]]
+id = "cns-dead-check"
+file = "strbuf.c"
+function = "calculate_new_size"
+original = "    if (newsize < reqsize)\n        die(\"BUG: strbuf length would overflow"
+mutated = "    if (0)\n        die(\"BUG: strbuf length would overflow"
+why = "removes the final safety check"
+expect = "equivalent: unreachable, both branches above already give newsize >= reqsize (the loop exits only then; it cannot wrap since reqsize < SIZE_MAX / 2)"
+
+# ---------------- strbuf_resize ----------------
+[[mutant]]
+id = "resize-no-reallocs"
+file = "strbuf.c"
+function = "strbuf_resize"
+original = "    s->reallocs++;"
+mutated = "    ;"
+why = "missing reallocs++"
+expect = "caught"
+
+[[mutant]]
+id = "resize-realloc-short"
+file = "strbuf.c"
+function = "strbuf_resize"
+original = "    s->buf = (char *)realloc(s->buf, s->size);"
+mutated = "    s->buf = (char *)realloc(s->buf, s->size - 1);"
+why = "block one byte shorter than the recorded size"
+expect = "caught"
+
+[[mutant]]
+id = "resize-no-oom-check"
+file = "strbuf.c"
+function = "strbuf_resize"
+original = "    if (!s->buf)\n        die(\"Out of memory, len: %zu\", len);"
+mutated = "    if (0)\n        die(\"Out of memory, len: %zu\", len);"
+why = "returns with buf == NULL when realloc fails"
+expect = "caught"
+
+[[mutant]]
+id = "resize-debug-branch"
+file = "strbuf.c"
+function = "strbuf_resize"
+original = "                (long)s, s->size, newsize);"
+mutated = "                (long)s, s->size, newsize), s->length = 0;"
+why = "corrupts the strbuf, but only when debug > 1"
+expect = "caught"
+
+# ---------------- strbuf_append_string ----------------
+[[mutant]]
+id = "append-int-index"
+file = "strbuf.c"
+function = "strbuf_append_string"
+original = "    size_t i;"
+mutated = "    int i;"
+why = "the upstream bug (findings/cjson-strbuf-append-over-2gib.md): int overflow at 2^31 bytes"
+expect = "caught"
+
+[[mutant]]
+id = "append-resize-short"
+file = "strbuf.c"
+function = "strbuf_append_string"
+original = "            strbuf_resize(s, s->length + 1);"
+mutated = "            strbuf_resize(s, s->length);"
+why = "asks for no more room than it has: writes past the block"
+expect = "caught"
+
+[[mutant]]
+id = "append-no-space-dec"
+file = "strbuf.c"
+function = "strbuf_append_string"
+original = "        space--;"
+mutated = "        ;"
+why = "space never decreases: never resizes, overflows"
+expect = "caught"
+
+[[mutant]]
+id = "append-space-stale"
+file = "strbuf.c"
+function = "strbuf_append_string"
+original = "            strbuf_resize(s, s->length + 1);\n            space = strbuf_empty_length(s);"
+mutated = "            strbuf_resize(s, s->length + 1);\n            space = 1;"
+why = "forgets the new room: resizes on every further byte (quadratic), still correct"
+expect = "equivalent: space = 1 under-estimates the room, so it resizes more often; the result (bytes, length < size) is the same; only reallocs/size differ, which the spec of append_string does not fix"
+
+[[mutant]]
+id = "append-space-early"
+file = "strbuf.c"
+function = "strbuf_append_string"
+original = "        if (space < 1) {"
+mutated = "        if (space < 2) {"
+why = "resizes one byte early"
+expect = "equivalent: over-allocation only; the appended bytes and length < size are unchanged"
+
+[[mutant]]
+id = "append-truncated-room"
+file = "strbuf.c"
+function = "strbuf_append_string"
+original = "    space = strbuf_empty_length(s);\n\n    for"
+mutated = "    space = (unsigned)strbuf_empty_length(s);\n\n    for"
+why = "32-bit truncation of the initial room: with >= 4 GiB of room it resizes needlessly (harmless) and with room = 2^32 k it thinks there is none"
+expect = "equivalent: a smaller space only makes it resize earlier (strbuf_resize(s, length + 1) never shrinks below length + 2); the result is the same"
+
+# ---------------- strbuf.h helpers ----------------
+[[mutant]]
+id = "h-reset-noop"
+file = "strbuf.h"
+function = "strbuf_reset"
+original = "    s->length = 0;"
+mutated = "    ;"
+why = "reset does nothing"
+expect = "caught"
+
+[[mutant]]
+id = "h-allocated-true"
+file = "strbuf.h"
+function = "strbuf_allocated"
+original = "    return s->buf != NULL;"
+mutated = "    return 1;"
+why = "reports a freed strbuf as allocated (lua_cjson checks it before reuse)"
+expect = "caught"
+
+[[mutant]]
+id = "h-empty-length-trunc"
+file = "strbuf.h"
+function = "strbuf_empty_length"
+original = "    return s->size - s->length - 1;"
+mutated = "    return (unsigned)(s->size - s->length - 1);"
+why = "the repo's most common bug class: a size truncated to 32 bits; wrong for >= 4 GiB of room"
+expect = "caught"
+
+[[mutant]]
+id = "h-empty-length-no-nul"
+file = "strbuf.h"
+function = "strbuf_empty_length"
+original = "    return s->size - s->length - 1;"
+mutated = "    return s->size - s->length;"
+why = "forgets the NUL byte: append_char can fill the last byte"
+expect = "caught"
+
+[[mutant]]
+id = "h-ensure-ge"
+file = "strbuf.h"
+function = "strbuf_ensure_empty_length"
+original = "    if (len > strbuf_empty_length(s))"
+mutated = "    if (len >= strbuf_empty_length(s))"
+why = "resizes when the room is exactly enough"
+expect = "caught"
+
+[[mutant]]
+id = "h-empty-ptr"
+file = "strbuf.h"
+function = "strbuf_empty_ptr"
+original = "    return s->buf + s->length;"
+mutated = "    return s->buf + s->length + 1;"
+why = "points one past the end of the string"
+expect = "caught"
+
+[[mutant]]
+id = "h-set-length-off"
+file = "strbuf.h"
+function = "strbuf_set_length"
+original = "    s->length = len;"
+mutated = "    s->length = len + 1;"
+why = "off by one (set_length is OPEN in CLAIM.md and has no harness)"
+expect = "caught"
+
+[[mutant]]
+id = "h-extend-off"
+file = "strbuf.h"
+function = "strbuf_extend_length"
+original = "    s->length += len;\n}\n\nstatic inline size_t strbuf_length"
+mutated = "    s->length += len + 1;\n}\n\nstatic inline size_t strbuf_length"
+why = "off by one"
+expect = "caught"
+
+[[mutant]]
+id = "h-length-trunc"
+file = "strbuf.h"
+function = "strbuf_length"
+original = "    return s->length;\n}\n\nstatic inline void strbuf_append_char("
+mutated = "    return (unsigned)s->length;\n}\n\nstatic inline void strbuf_append_char("
+why = "32-bit truncation of the length (lua_cjson saves and restores it via strbuf_length)"
+expect = "caught"
+
+[[mutant]]
+id = "h-append-char-no-room"
+file = "strbuf.h"
+function = "strbuf_append_char"
+original = "    strbuf_ensure_empty_length(s, 1);"
+mutated = "    strbuf_ensure_empty_length(s, 0);"
+why = "never grows: writes past the block or over the NUL byte"
+expect = "caught"
+
+[[mutant]]
+id = "h-append-char-unsafe-noinc"
+file = "strbuf.h"
+function = "strbuf_append_char_unsafe"
+original = "static inline void strbuf_append_char_unsafe(strbuf_t *s, const char c)\n{\n    s->buf[s->length++] = c;"
+mutated = "static inline void strbuf_append_char_unsafe(strbuf_t *s, const char c)\n{\n    s->buf[s->length] = c;"
+why = "wrong increment: writes the byte but does not count it"
+expect = "caught"
+
+[[mutant]]
+id = "h-append-mem-short-room"
+file = "strbuf.h"
+function = "strbuf_append_mem"
+original = "    strbuf_ensure_empty_length(s, len);\n    memcpy"
+mutated = "    strbuf_ensure_empty_length(s, len ? len - 1 : 0);\n    memcpy"
+why = "reserves one byte too few: overwrites the NUL room or the block end"
+expect = "caught"
+
+[[mutant]]
+id = "h-append-mem-unsafe-offset"
+file = "strbuf.h"
+function = "strbuf_append_mem_unsafe"
+original = "static inline void strbuf_append_mem_unsafe(strbuf_t *s, const char *c, size_t len)\n{\n    memcpy(s->buf + s->length, c, len);"
+mutated = "static inline void strbuf_append_mem_unsafe(strbuf_t *s, const char *c, size_t len)\n{\n    memcpy(s->buf + s->length - 1, c, len);"
+why = "copies one byte early, over the last character"
+expect = "caught"
+
+[[mutant]]
+id = "h-ensure-null-skip-empty"
+file = "strbuf.h"
+function = "strbuf_ensure_null"
+original = "    s->buf[s->length] = 0;"
+mutated = "    if (s->length) s->buf[s->length] = 0;"
+why = "an empty string is not terminated"
+expect = "caught"
+
+[[mutant]]
+id = "h-string-len-skip-empty"
+file = "strbuf.h"
+function = "strbuf_string"
+original = "    if (len)\n        *len = s->length;\n\n    return s->buf;"
+mutated = "    if (len && s->length)\n        *len = s->length;\n\n    return s->buf;"
+why = "*len is not set for an empty string"
+expect = "caught"

@@ -1,0 +1,54 @@
+id	function	result	caught_by	expected	review_caught_by
+die-returns	die	caught	h_die (signed): line 124 die returned	caught	
+init-default-size	strbuf_init	caught	h_init (signed): line 34 size	caught	
+init-no-nul-room	strbuf_init	caught	h_init (signed): line 34 size	caught	
+init-len1-default	strbuf_init	caught	h_init (signed): line 34 size	caught	
+init-overflow-le	strbuf_init	survived		equivalent	not caught
+init-reallocs-kept	strbuf_init	caught	h_init (signed): line 36 counters	caught	
+init-no-nul	strbuf_init	caught	h_init (signed): line 35 empty string	caught	
+init-malloc-len	strbuf_init	caught	h_init (signed): line 34 size	caught	
+new-not-dynamic	strbuf_new	caught	h_new (signed): line 50 two allocations, dynamic	caught	
+new-sizeof-pointer	strbuf_new	caught	h_new (signed): line 34 size	caught	
+debug-inverted	debug_stats	survived		equivalent	not caught
+debug-clobbers-reallocs	debug_stats	caught	h_debug_stats (signed): line 132 unchanged	caught	
+debug-clobbers-buffer	debug_stats	caught	h_free (signed): line 87 dereference failure: pointer NULL in s->buf[(signed long int)0]	caught	
+free-no-clear	strbuf_free	caught	h_free (signed): line 65 buf cleared	caught	
+free-uaf-order	strbuf_free	survived		caught	r_free (signed): line 102 dereference failure: deallocated dynamic object in s->buf
+free-dynamic-leak	strbuf_free	caught	h_free (signed): line 61 frees exactly buf and, if dynamic, s	caught	
+fts-no-nul	strbuf_free_to_string	caught	h_free_to_string (signed): line 78 same buffer, string kept, NUL at length	caught	
+fts-uaf-return	strbuf_free_to_string	survived		caught	r_free_to_string (signed): line 122 dereference failure: deallocated dynamic object in s->buf
+fts-len-skip-empty	strbuf_free_to_string	survived		caught	r_free_to_string (signed): line 82 *len = length
+fts-frees-buf	strbuf_free_to_string	caught	h_free_to_string (signed): line 80 struct freed iff dynamic; buf not freed	caught	
+cns-len-lt1	calculate_new_size	survived		equivalent	not caught
+cns-no-nul-room	calculate_new_size	caught	h_calculate_new_size (signed): line 89 returns only for 0 < len < SIZE_MAX	caught	
+cns-shrink-ge	calculate_new_size	survived		equivalent	not caught
+cns-shrink-off-by-one	calculate_new_size	caught	h_calculate_new_size (signed): line 90 shrink exactly	caught	
+cns-threshold	calculate_new_size	caught	h_calculate_new_size (signed): line 95 size times a power of two	caught	
+cns-growth-factor	calculate_new_size	caught	h_calculate_new_size (signed): line 95 size times a power of two	caught	
+cns-loop-le	calculate_new_size	caught	h_calculate_new_size (signed): line 96 least such	caught	
+cns-dead-check	calculate_new_size	survived		equivalent	not caught
+resize-no-reallocs	strbuf_resize	caught	h_resize (signed): line 117 length kept, one more realloc	caught	
+resize-realloc-short	strbuf_resize	caught	h_resize (signed): line 115 block of the new size	caught	
+resize-no-oom-check	strbuf_resize	caught	h_resize (signed): line 113 returns only when realloc worked	caught	
+resize-debug-branch	strbuf_resize	survived		caught	r_resize (signed): line 120 length kept, one more realloc
+append-int-index	strbuf_append_string	survived		caught	not caught
+append-resize-short	strbuf_append_string	caught	h_append_string (signed): line 152 length grows by n, room for the NUL	caught	
+append-no-space-dec	strbuf_append_string	caught	h_append_string (signed): line 152 length grows by n, room for the NUL	caught	
+append-space-stale	strbuf_append_string	survived		equivalent	not caught
+append-space-early	strbuf_append_string	survived		equivalent	not caught
+append-truncated-room	strbuf_append_string	survived		equivalent	r_append_string (signed): line 183 arithmetic overflow on unsigned to unsigned type conversion in (unsigned int)return_value_strbuf_empty_length
+h-reset-noop	strbuf_reset	caught	h_helpers (signed): line 165 reset	caught	
+h-allocated-true	strbuf_allocated	survived		caught	r_helpers -DWHICH=1 (signed): line 170 allocated
+h-empty-length-trunc	strbuf_empty_length	survived		caught	r_helpers -DWHICH=2 (signed): line 171 room left, NUL kept
+h-empty-length-no-nul	strbuf_empty_length	caught	h_helpers (signed): line 167 room left, NUL kept	caught	
+h-ensure-ge	strbuf_ensure_empty_length	caught	h_helpers (signed): line 179 no resize when room	caught	
+h-empty-ptr	strbuf_empty_ptr	caught	h_helpers (signed): line 168 end of string	caught	
+h-set-length-off	strbuf_set_length	survived		caught	r_helpers -DWHICH=13 (signed): line 203 set_length
+h-extend-off	strbuf_extend_length	caught	h_helpers (signed): line 196 extend	caught	
+h-length-trunc	strbuf_length	survived		caught	r_helpers -DWHICH=4 (signed): line 173 length
+h-append-char-no-room	strbuf_append_char	caught	h_helpers (signed): line 182 append_char	caught	
+h-append-char-unsafe-noinc	strbuf_append_char_unsafe	caught	h_helpers (signed): line 186 append_char_unsafe	caught	
+h-append-mem-short-room	strbuf_append_mem	caught	h_helpers (signed): line 192 append_mem length	caught	
+h-append-mem-unsafe-offset	strbuf_append_mem_unsafe	caught	h_helpers (signed): line 192 append_mem length	caught	
+h-ensure-null-skip-empty	strbuf_ensure_null	caught	h_init (signed): line 35 empty string	caught	
+h-string-len-skip-empty	strbuf_string	survived		caught	r_helpers -DWHICH=5 (signed): line 176 string
