@@ -1,0 +1,230 @@
+// Prelude: the types these helpers use, copied from memfile_defs.h, memline.c and
+// memline_defs.h (key lines checked against upstream by build.py), and contracts
+// for what they call (xmalloc, xrealloc, xfree, mf_new). Everything in the
+// "trusted" section is listed in ../CLAIM.md. No axioms.
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <limits.h>
+#include <assert.h>
+#define CHECK(c, s) do {} while (0)
+#define _(x) ((char *)(x))
+#define STACK_INCR      5
+#define XFREE_CLEAR(ptr) \
+  do { \
+    /* Take the address to avoid double evaluation. #1375 */ \
+    void **ptr_ = (void **)&(ptr); \
+    xfree(*ptr_); \
+    /* coverity[dead-store] */ \
+    *ptr_ = NULL; \
+    (void)(*ptr_); \
+  } while (0)
+typedef int64_t blocknr_T;
+typedef int32_t linenr_T;
+typedef struct {
+  blocknr_T bh_bnum;
+  void *bh_data;
+  unsigned bh_page_count;
+  unsigned bh_flags;
+} bhdr_T;
+// memfile_T: the map fields (mf_hash, mf_trans) are left out; none of these
+// functions touches them.
+typedef enum { MF_DIRTY_NO = 0, MF_DIRTY_YES, MF_DIRTY_YES_NOSYNC } mfdirty_T;
+typedef struct {
+  char *mf_fname; char *mf_ffname; int mf_fd; int mf_flags; bool mf_reopen;
+  bhdr_T *mf_free_first;
+  blocknr_T mf_blocknr_max; blocknr_T mf_blocknr_min; blocknr_T mf_neg_count;
+  blocknr_T mf_infile_count;
+  unsigned mf_page_size;
+  mfdirty_T mf_dirty;
+} memfile_T;
+enum { DATA_ID = (('d' << 8) + 'a'), PTR_ID = (('p' << 8) + 't') };
+typedef struct {
+  blocknr_T pe_bnum; linenr_T pe_line_count; linenr_T pe_old_lnum; int pe_page_count;
+} PointerEntry;
+typedef struct {
+  uint16_t pb_id; uint16_t pb_count; uint16_t pb_count_max; PointerEntry pb_pointer[];
+} PointerBlock;
+#define PB_COUNT_MAX(mfp) \
+  (uint16_t)((mfp->mf_page_size - offsetof(PointerBlock, pb_pointer)) / sizeof(PointerEntry))
+typedef struct {
+  uint16_t db_id; unsigned db_free; unsigned db_txt_start; unsigned db_txt_end;
+  long db_line_count; unsigned db_index[];
+} DataBlock;
+#define HEADER_SIZE (offsetof(DataBlock, db_index))
+// x86_64 layout constants used in the ACSL below (ACSL cannot use offsetof).
+_Static_assert(offsetof(DataBlock, db_index) == 24, "HEADER_SIZE");
+_Static_assert(offsetof(PointerBlock, pb_pointer) == 8, "pb_pointer offset");
+_Static_assert(sizeof(PointerEntry) == 24, "PointerEntry size");
+typedef struct {
+  blocknr_T ip_bnum; linenr_T ip_low; linenr_T ip_high; int ip_index;
+} infoptr_T;
+_Static_assert(sizeof(infoptr_T) == 24, "infoptr_T size");
+// buf_T / memline_T reduced to the fields ml_add_stack uses.
+typedef struct { infoptr_T *ml_stack; int ml_stack_top; int ml_stack_size; } memline_T;
+typedef struct { memline_T b_ml; } buf_T;
+
+// ---------------------------------------------------------------- trusted
+// Ghost log of frees, in order, so contracts can say exactly what is freed.
+/*@ ghost size_t vp_nfree; */
+/*@ ghost void *vp_freelog[1024]; */
+
+/*@ // memory.c xmalloc: never returns NULL (preserve_exit() on OOM); new memory
+    requires n >= 1;
+    assigns \result \from n;
+    allocates \result;
+    ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
+*/
+void *xmalloc(size_t n);
+
+/*@ // memory.c xrealloc: n bytes, first bytes kept, never NULL
+    requires n >= 1;
+    assigns \result \from p, n;
+    allocates \result;
+    ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
+    // realloc keeps the old bytes; stated for the one element type it is used
+    // with here (infoptr_T, 24 bytes), which follows from keeping the bytes.
+    ensures \forall integer i; 0 <= i && (i + 1) * 24 <= n && \valid_read{Pre}((infoptr_T *)p + i) ==>
+              ((infoptr_T *)\result)[i] == \at(((infoptr_T *)p)[i], Pre);
+    ensures \forall char *q; \valid_read{Pre}(q) && \base_addr(q) != \base_addr((char *)p)
+              ==> \base_addr(q) != \base_addr((char *)\result);
+*/
+void *xrealloc(void *p, size_t n);
+
+/*@ requires vp_nfree < 1024;
+    assigns vp_nfree, vp_freelog[vp_nfree];
+    ensures vp_nfree == \old(vp_nfree) + 1 && vp_freelog[\old(vp_nfree)] == p;
+*/
+void xfree(void *p);
+
+/*@ // path.c FullName_save (not verified here): a new string, or NULL
+    assigns \result \from fname[0 ..], force;
+    allocates \result;
+    ensures \result == \null || \forall char *q; \valid_read{Pre}(q) ==> \base_addr(q) != \base_addr(\result);
+*/
+char *FullName_save(const char *fname, bool force);
+
+/*@ // memfile.c mf_new (not yet verified; see ../PLAN.md): a block of
+    // mf_page_size * page_count bytes, separate from mfp. Pages are never smaller
+    // than a DataBlock header (MIN_SWAP_PAGE_SIZE is 1048).
+    requires \valid(mfp) && page_count >= 1 && mfp->mf_page_size >= 24;
+    assigns *mfp, \result \from *mfp, negative, page_count;
+    ensures \valid(\result) && \separated(\result, mfp);
+    ensures \result->bh_page_count == page_count;
+    // (stated field by field: WP drops \valid on a struct with a flexible array)
+    ensures \let dp = (DataBlock *)\result->bh_data;
+      \valid(&dp->db_id) && \valid(&dp->db_free) && \valid(&dp->db_txt_start) &&
+      \valid(&dp->db_txt_end) && \valid(&dp->db_line_count) &&
+      \separated(&dp->db_id, &dp->db_free, &dp->db_txt_start, &dp->db_txt_end,
+                 &dp->db_line_count, \result, mfp);
+    ensures \let pp = (PointerBlock *)\result->bh_data;
+      \valid(&pp->pb_id) && \valid(&pp->pb_count) && \valid(&pp->pb_count_max) &&
+      \separated(&pp->pb_id, &pp->pb_count, &pp->pb_count_max, \result, mfp);
+    ensures mfp->mf_page_size == \old(mfp->mf_page_size);
+*/
+bhdr_T *mf_new(memfile_T *mfp, bool negative, unsigned page_count);
+
+// ---------------------------------------------------------------- proved
+/*@ requires \valid(mfp);
+    assigns mfp->mf_page_size;
+    ensures mfp->mf_page_size == new_size;
+*/
+void mf_new_page_size(memfile_T *mfp, unsigned new_size);
+
+/*@ requires \valid_read(mfp) && page_count >= 1 && mfp->mf_page_size >= 1;
+    assigns \result \from mfp->mf_page_size, page_count;
+    assigns \at(\result, Post)->bh_data, \at(\result, Post)->bh_page_count;   // the new header only
+    ensures \valid(\result) && \result->bh_page_count == page_count;
+    ensures \valid((char *)\result->bh_data + (0 .. (integer)mfp->mf_page_size * page_count - 1));
+*/
+static bhdr_T *mf_alloc_bhdr(memfile_T *mfp, unsigned page_count);
+
+/*@ requires \valid(hp) && vp_nfree < 1023;
+    assigns vp_nfree, vp_freelog[vp_nfree], vp_freelog[vp_nfree + 1];
+    ensures vp_nfree == \old(vp_nfree) + 2;
+    ensures vp_freelog[\old(vp_nfree)] == \old(hp->bh_data);   // data first
+    ensures vp_freelog[\old(vp_nfree) + 1] == hp;              // then the header
+*/
+static void mf_free_bhdr(bhdr_T *hp);
+
+/*@ requires \valid(mfp) && \valid(hp) && \separated(mfp, hp);
+    assigns hp->bh_data, mfp->mf_free_first;
+    ensures mfp->mf_free_first == hp && hp->bh_data == \old(mfp->mf_free_first);
+*/
+static void mf_ins_free(memfile_T *mfp, bhdr_T *hp);
+
+/*@ requires \valid(mfp) && mfp->mf_free_first != \null;   // documented: caller checks
+    requires \valid_read(mfp->mf_free_first);
+    assigns mfp->mf_free_first;
+    ensures \result == \old(mfp->mf_free_first);
+    ensures mfp->mf_free_first == \old(mfp->mf_free_first->bh_data);
+*/
+static bhdr_T *mf_rem_free(memfile_T *mfp);
+
+/*@ requires \valid_read(mfp);
+    assigns \nothing;
+    ensures \result <==> (mfp->mf_fname != \null && mfp->mf_neg_count > 0);
+*/
+bool mf_need_trans(memfile_T *mfp);
+
+/*@ // An empty data block: text area empty at the end of the block, free space
+    // is everything after the header. Callers (ml_append_int) give page counts
+    // from an int-sized line length, so the block size fits in unsigned.
+    requires \valid(mfp) && 1 <= page_count <= UINT_MAX && mfp->mf_page_size >= 24;
+    requires page_count * mfp->mf_page_size <= UINT_MAX;
+    assigns *mfp, \result, ((DataBlock *)\result->bh_data)->db_id,
+            ((DataBlock *)\result->bh_data)->db_txt_start, ((DataBlock *)\result->bh_data)->db_txt_end,
+            ((DataBlock *)\result->bh_data)->db_free, ((DataBlock *)\result->bh_data)->db_line_count;
+    ensures \valid(\result) && \result->bh_page_count == page_count;
+    ensures \let dp = (DataBlock *)\result->bh_data;
+      dp->db_id == DATA_ID && dp->db_line_count == 0 &&
+      dp->db_txt_start == page_count * mfp->mf_page_size &&
+      dp->db_txt_end == page_count * mfp->mf_page_size &&
+      dp->db_free == page_count * mfp->mf_page_size - 24;
+*/
+static bhdr_T *ml_new_data(memfile_T *mfp, bool negative, int64_t page_count);
+
+/*@ // An empty pointer block of one page; pb_count_max = how many PointerEntry
+    // fit after the header, which fits in uint16_t for pages up to 1 MiB.
+    requires \valid(mfp) && mfp->mf_page_size >= 24;
+    assigns *mfp, \result, ((PointerBlock *)\result->bh_data)->pb_id,
+            ((PointerBlock *)\result->bh_data)->pb_count, ((PointerBlock *)\result->bh_data)->pb_count_max;
+    ensures \valid(\result) && \result->bh_page_count == 1;
+    ensures \let pp = (PointerBlock *)\result->bh_data;
+      pp->pb_id == PTR_ID && pp->pb_count == 0 &&
+      ((mfp->mf_page_size - 8) / 24 <= 65535 ==>
+        pp->pb_count_max == (mfp->mf_page_size - 8) / 24);
+*/
+static bhdr_T *ml_new_ptr(memfile_T *mfp);
+
+/*@ // Push one entry: return the old top; grow by STACK_INCR when full, keeping
+    // the existing entries.
+    requires \valid(buf);
+    requires 0 <= buf->b_ml.ml_stack_top <= buf->b_ml.ml_stack_size <= INT_MAX - STACK_INCR;
+    requires \valid(buf->b_ml.ml_stack + (0 .. buf->b_ml.ml_stack_size - 1));
+    requires \base_addr(buf) != \base_addr(buf->b_ml.ml_stack);   // the stack is its own allocation
+    assigns buf->b_ml;
+    ensures \result == \old(buf->b_ml.ml_stack_top);
+    ensures buf->b_ml.ml_stack_top == \old(buf->b_ml.ml_stack_top) + 1;
+    ensures buf->b_ml.ml_stack_top <= buf->b_ml.ml_stack_size;
+    ensures \valid(buf->b_ml.ml_stack + (0 .. buf->b_ml.ml_stack_size - 1));
+    ensures \forall integer i; 0 <= i < \old(buf->b_ml.ml_stack_top) ==>
+              buf->b_ml.ml_stack[i] == \old(buf->b_ml.ml_stack[i]);
+*/
+static int ml_add_stack(buf_T *buf);
+
+/*@ requires \valid(mfp) && vp_nfree < 1023;
+    assigns vp_nfree, vp_freelog[vp_nfree], vp_freelog[vp_nfree + 1], mfp->mf_fname, mfp->mf_ffname;
+    ensures vp_nfree == \old(vp_nfree) + 2;
+    ensures vp_freelog[\old(vp_nfree)] == \old(mfp->mf_fname);
+    ensures vp_freelog[\old(vp_nfree) + 1] == \old(mfp->mf_ffname);
+    ensures mfp->mf_fname == \null && mfp->mf_ffname == \null;
+*/
+void mf_free_fnames(memfile_T *mfp);
+
+/*@ requires \valid(mfp) && \valid_read(fname);   // fname: an allocated string (documented)
+    assigns mfp->mf_fname, mfp->mf_ffname;
+    ensures mfp->mf_fname == fname;
+    ensures mfp->mf_ffname == \null || \base_addr(mfp->mf_ffname) != \base_addr(fname);
+*/
+void mf_set_fnames(memfile_T *mfp, char *fname);

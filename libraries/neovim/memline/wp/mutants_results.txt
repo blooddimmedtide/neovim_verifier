@@ -1,0 +1,14 @@
+caught   ml_new_data: dp->db_free = dp->db_txt_start;
+caught   ml_new_data: dp->db_line_count = 1;
+caught   ml_new_data: dp->db_id = PTR_ID;
+caught   ml_new_ptr: pp->pb_count = 1;
+caught   ml_new_ptr: pp->pb_count_max = PB_COUNT_MAX(mfp) + 1;
+caught   ml_add_stack: buf->b_ml.ml_stack_size += 0;
+caught   ml_add_stack:   return top + 1;
+caught   ml_add_stack:   if (top > buf->b_ml.ml_stack_size) {
+caught   mf_rem_free:   mfp->mf_free_first = hp;
+caught   mf_ins_free:   hp->bh_data = NULL;
+caught   mf_need_trans: mfp->mf_neg_count >= 0;
+caught   mf_alloc_bhdr:   hp->bh_page_count = page_count - 1;
+caught   mf_free_bhdr:   xfree(hp);
+caught   mf_free_fnames:   xfree(mfp->mf_ffname);
