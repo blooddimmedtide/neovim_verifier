@@ -27,7 +27,7 @@ unwound (`--unwinding-assertions`).
 
 ## Update 08:55Z
 - N=8 (unwind 11), both char types: parse_tag_line, tag_strnicmp, matching_line_len VERIFICATION SUCCESSFUL.
-- test_for_static at N=8 failed because the harness let `command` point past an embedded NUL (outside the line). Harness fixed (`off <= strlen`); the fixed harness is NOT re-run yet at N=8. Note N=6 could not reach a true result (needs 7 bytes), so test_for_static's "true" case is covered only by the difftest so far.
+- test_for_static at N=8 failed because the harness let `command` point past an embedded NUL (outside the line). Harness fixed (`off <= strlen`); fixed harness re-run at N=7 (smallest size where "true" is reachable), signed char: VERIFICATION SUCCESSFUL (3.4 min). Unsigned char and N=8 not re-run yet. Note N=6 could not reach a true result (needs 7 bytes), so test_for_static's "true" case is covered only by the difftest so far.
 - Differential test (`cbmc/difftest.c`, gcc -O2, real libc, signed and unsigned char): parse_tag_line and test_for_static exhaustive over an 8-symbol alphabet up to 7 bytes (2,396,745 lines) plus tag_strnicmp case pairs: 0 failures.
 
 ## Relies on
