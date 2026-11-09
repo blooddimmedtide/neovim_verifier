@@ -14,6 +14,11 @@ from contracts import LOGIC, contracts, annotations
 
 F = "src/nvim/mark.c"
 PIECES = [  # sha256 at upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
+    ("free_fmark", "0da7e6f3f66f4a8e08f8441b3e566aa377900b8512270add1cccc9c4816a193f"),
+    ("free_xfmark", "f5144ee636b043d29cc39dc06e763e048b60bc51b53158757a4252e4205d5529"),
+    ("clear_fmark", "4b564b130eec66f7045aac4d4e05e6d5870eeeb5c45b67edb495f62eb66835ed"),
+    ("free_jumplist", "e2f07b633e0a4c8bd811fc784dc4ee07eab86dc1c79974d7ca26fbba2e539006"),
+    ("clrallmarks", "730b9845ebf1772032f0c56431d9b4578a9285b741d3ddc4c19d18b1397826ce"),
     ("mark_view_make", "ca1f2df190b2ed4a8daceb6f1d465de51bd6ceac85197fa0990f2f69a0984b65"),
     ("mark_check_line_bounds", "244396d7a7a6a123de27c0538eb35c3707adbc77d011ca6fdc94cb1295bdae4e"),
     ("next_buffer_mark", "b00619ac2d2eb3c8f2c2f1bc5816474fdf58ae63c376456521549ed33f2e2502"),
@@ -23,7 +28,7 @@ PIECES = [  # sha256 at upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 HEADERS = ["src/nvim/pos_defs.h", "src/nvim/mark_defs.h", "src/nvim/os/time_defs.h", "src/nvim/types_defs.h",
            "src/nvim/buffer_defs.h", "src/nvim/memline_defs.h", "src/nvim/ascii_defs.h", "src/nvim/gettext_defs.h"]
 EXEMPT = ("#include", "//", "typedef struct {", "} ", "#define MAXLNUM", "#define ARRAY_SIZE", "#define FUNC_ATTR",
-          "extern const char e_markinval", "xfmark_T namedfm", "typedef struct AdditionalData")
+          "extern const char e_markinval", "xfmark_T namedfm", "typedef struct AdditionalData", "/*@", "    assigns vp_freed", "    ensures vp_nfreed", "void xfree")
 EXTRA = [("src/nvim/pos_defs.h", "enum { MAXLNUM = 0x7fffffff, };  ///< Maximal (invalid) line number"),
          ("src/nvim/macros_defs.h", "#define ARRAY_SIZE(arr) \\"),
          ("src/nvim/mark.h", "EXTERN xfmark_T namedfm[NGLOBALMARKS] INIT( = { 0 });"),

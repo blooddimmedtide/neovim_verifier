@@ -48,6 +48,10 @@ typedef struct {
   fmark_T b_last_cursor;        // cursor position when last unloading this
   fmark_T b_last_insert;        // where Insert mode was left
   fmark_T b_last_change;        // position of last change: '. mark
+  fmark_T b_changelist[JUMPLISTSIZE];
+  int b_changelistlen;                  // number of active entries
+  pos_T b_op_start;
+  pos_T b_op_end;
 } buf_T;
 typedef struct {
   linenr_T w_topline;               // buffer line number of the line at the
@@ -64,3 +68,10 @@ typedef struct {
 #define FUNC_ATTR_NONNULL_ARG(...)
 extern const char e_markinval[];
 xfmark_T namedfm[NGLOBALMARKS];
+// xfree: a ghost log records each pointer freed, in order, so contracts can say exactly
+// what a function frees (WP has no model of free itself).
+/*@ ghost void *vp_freed[1000]; int vp_nfreed; */
+/*@ requires 0 <= vp_nfreed < 1000;
+    assigns vp_freed[vp_nfreed], vp_nfreed;
+    ensures vp_nfreed == \old(vp_nfreed) + 1 && vp_freed[\old(vp_nfreed)] == ptr; */
+void xfree(void *ptr);
