@@ -1,0 +1,10 @@
+strncmp(name, "WinBar", 6)	strncmp(name, "WinBar", 5)
+strncmp(name, "PopUp", 5)	strncmp(name, "Popup", 5)
+strncmp(name, "ToolBar", 7)	strncmp(name, "ToolBar", 8)
+&& *name != MNU_HIDDEN_CHAR;	;
+name[strlen(name) - 1] == '-'	name[1] == '-'
+&& name[5] != NUL)	&& name[4] != NUL)
+for (i = 0; name[i] != NUL && name[i] != TAB; i++) {	for (i = 0; name[i] != NUL; i++) {
+&& (mname[i] == NUL || mname[i] == TAB)	&& (mname[i] == NUL)
+while (*p != NUL && *p != '.' && !ascii_iswhite(*p)) {	while (*p != NUL && *p != '.' && *p != ' ') {
+if ((*p == '\\' || *p == Ctrl_V) && p[1] != NUL) {	if ((*p == '\\' || *p == Ctrl_V)) {

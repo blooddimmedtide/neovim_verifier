@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/menu.c | 0 | 8 | 35 | 43 |
 
 ## Function details
 
@@ -74,6 +75,14 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/menu.c | `menu_is_winbar` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
+| src/nvim/menu.c | `menu_is_popup` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
+| src/nvim/menu.c | `menu_is_toolbar` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
+| src/nvim/menu.c | `menu_is_menubar` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
+| src/nvim/menu.c | `menu_is_separator` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
+| src/nvim/menu.c | `menu_is_hidden` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
+| src/nvim/menu.c | `menu_namecmp` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
+| src/nvim/menu.c | `menu_skip_part` | candidate | menu/cbmc (CBMC, bounded: strings < 12 bytes) | see menu/CLAIM.md; bounded only, no review yet |
 
 ## All files
 

@@ -104,3 +104,10 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.menu_names]
+file = "src/nvim/menu.c"
+functions = ["menu_is_winbar", "menu_is_popup", "menu_is_toolbar", "menu_is_menubar", "menu_is_separator", "menu_is_hidden", "menu_namecmp", "menu_skip_part"]
+annotate = "menu/cbmc/build.py"   # verbatim extraction, sha256 pinned per function
+prove = ["bash menu/cbmc/run_cbmc.sh {src}"]
+mutants = "bash menu/cbmc/run_mutants.sh {src}"
