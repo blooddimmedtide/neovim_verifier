@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/undo.c | 0 | 25 | 58 | 83 |
+| src/nvim/undo.c | 0 | 27 | 56 | 83 |
 
 ## Function details
 
@@ -100,6 +100,8 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/undo.c | `u_update_named_mark` | candidate | undo/cbmc/run_misc.sh (CBMC) | zeroes lnum of mark idx in current/newest header; idx 0..25 (mark.c passes c - 'a' for a lowercase c); 2 own planted bugs caught; no independent review yet |
 | src/nvim/undo.c | `serialize_extmark` | candidate | undo/cbmc/run_ext.sh (CBMC) | magic, type, raw struct bytes; 7 own planted bugs caught (with unserialize); no independent review yet |
 | src/nvim/undo.c | `unserialize_extmark` | candidate | undo/cbmc/run_ext.sh (CBMC) | splice/move object with the file's bytes, else NULL + error; no leak; no independent review yet |
+| src/nvim/undo.c | `undo_allowed` | candidate | undo/cbmc/run_allow.sh (CBMC, with expr_map_locked of ex_docmd.c) | E21/E48/E565 in order, else true; emsg recorded; 6 own planted bugs caught (with corruption_error); no independent review yet |
+| src/nvim/undo.c | `corruption_error` | candidate | undo/cbmc/run_allow.sh (CBMC) | one E825 message with mesg and file name; semsg recorded; no independent review yet |
 
 ## All files
 
