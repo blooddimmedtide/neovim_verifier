@@ -52,6 +52,7 @@ enum {
 #define ASCII_ISUPPER(c) ((unsigned)(c) >= 'A' && (unsigned)(c) <= 'Z')
 #define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))
 #define ASCII_ISALNUM(c) (ASCII_ISALPHA(c) || ascii_isdigit(c))
+/*@ assigns \\nothing; ensures \\result <==> '0' <= c <= '9'; */
 static inline bool ascii_isdigit(int c)
 {
   return c >= '0' && c <= '9';

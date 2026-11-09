@@ -89,7 +89,7 @@ REMOVE_COMMA_ITEM = r"""
       assumes item[itemlen] == ',';
       ensures str_at((char *)str, n - itemlen - 1);
       ensures \forall integer j; 0 <= j < item - str ==> str[j] == \old(str[j]);
-      ensures \forall integer j; item - str <= j <= n - itemlen - 1 ==> str[j] == \old(str[j + itemlen + 1]);
+      ensures \forall integer i; 0 <= i <= n - (item - str) - itemlen - 1 ==> item[i] == \old(item[i + itemlen + 1]);
     behavior last:    // the last of several items: drop the comma before it and the item
       assumes item[itemlen] != ',' && item > str && *(item - 1) == ',';
       ensures str_at((char *)str, n - itemlen - 1);
@@ -157,7 +157,7 @@ CONTRACTS = {
          "    /*@ assert str_len(item + itemlen + 1, n - (item - str) - itemlen - 1); */\n"
          "    /*@ assert \\forall integer j; 0 <= j < n ==> str[j] != 0; */\n", "before"),
         ("    STRMOVE(item, item + itemlen + 1);",
-         "\n    /*@ assert \\forall integer j; item - str <= j <= n - itemlen - 1 ==> str[j] == \\at(str[j + itemlen + 1], Pre); */"
+         "\n    /*@ assert \\forall integer i; 0 <= i <= n - (item - str) - itemlen - 1 ==> item[i] == \\at(item[i + itemlen + 1], Pre); */"
          "\n    /*@ assert \\forall integer j; 0 <= j < item - str ==> str[j] != 0; */"
          "\n    /*@ assert \\forall integer j; item - str <= j < n - itemlen - 1 ==> \\at(str[j + itemlen + 1], Pre) != 0; */"
          "\n    /*@ assert \\forall integer j; item - str <= j < n - itemlen - 1 ==> str[j] != 0; */", "after"),
@@ -215,16 +215,14 @@ ALNUM = r"""
 # 'filetype'): true iff every byte of val is an ASCII letter or digit or one of `allowed`.
 VALID_NAME = ALNUM + r"""
 /*@ requires str_len((char *)val, n) && n < PTRDIFF_MAX;
-    requires \exists integer m; str_len((char *)allowed, m);
-    requires ascii_str((char *)allowed);
+    requires str_len((char *)allowed, m) && ascii_str((char *)allowed);
     assigns \nothing;
-    ensures \result <==> \forall integer j; 0 <= j < n ==>
-              alnum(val[j]) || \exists integer m; str_len((char *)allowed, m) && in_str((char *)allowed, m, val[j]);
+    ensures \result <==> \forall integer j; 0 <= j < n ==> alnum(val[j]) || in_str((char *)allowed, m, val[j]);
 */
 """
 VALID_NAME_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && val <= s <= val + n;
-      loop invariant \forall integer j; 0 <= j < s - val ==>
-        alnum(val[j]) || \exists integer m; str_len((char *)allowed, m) && in_str((char *)allowed, m, val[j]);
+      loop invariant \forall integer j; 0 <= j < s - val ==> alnum(val[j]) || in_str((char *)allowed, m, val[j]);
+      loop invariant *s == val[s - val];
       loop assigns s;
       loop variant n - (s - val); */
 """
@@ -233,23 +231,23 @@ VALID_NAME_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && v
 LISTFLAG = r"""
 /*@ predicate in_str2{L}(char *a, integer m, integer c) = \exists integer i; 0 <= i < m && a[i] == c; */
 /*@ requires str_len(val, n) && n < PTRDIFF_MAX;
-    requires \exists integer m; str_len(flags, m);
-    requires ascii_str(flags);
+    requires str_len(flags, m) && ascii_str(flags);
     requires errbuf == \null || (\valid_read(errbuf) && \valid(errbuf->data + (0 .. errbuf->size - 1)));
     assigns errbuf->data[0 .. errbuf->size - 1];
-    ensures \result == \null <==> \forall integer j; 0 <= j < n ==>
-              \exists integer m; str_len(flags, m) && in_str2(flags, m, \at(val[j], Pre));
+    ensures \result == \null <==> \forall integer j; 0 <= j < n ==> in_str2(flags, m, \at(val[j], Pre));
 */
 """
 LISTFLAG_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && val <= s <= val + n;
-      loop invariant \forall integer j; 0 <= j < s - val ==>
-        \exists integer m; str_len(flags, m) && in_str2(flags, m, val[j]);
+      loop invariant \forall integer j; 0 <= j < s - val ==> in_str2(flags, m, val[j]);
+      loop invariant *s == val[s - val];
       loop assigns s;
       loop variant n - (s - val); */
 """
 CONTRACTS["valid_name"] = (VALID_NAME, [
-    ("const char *allowed)", GHOST_N, "after"),
-    ("  for (const char *s = val; *s != NUL; s++) {", VALID_NAME_LOOP, "before")])
+    ("const char *allowed)", " /*@ ghost (size_t n, size_t m) */", "after"),
+    ("  for (const char *s = val; *s != NUL; s++) {", VALID_NAME_LOOP, "before"),
+    ("      return false;", "      /*@ assert s - val < n && !alnum(val[s - val]) && !in_str((char *)allowed, m, val[s - val]); */\n", "before")])
 CONTRACTS["check_option_listflag"] = (LISTFLAG, [
-    ("const CharBuf *errbuf)", GHOST_N, "after"),
-    ("  for (char *s = val; *s; s++) {", LISTFLAG_LOOP, "before")])
+    ("const CharBuf *errbuf)", " /*@ ghost (size_t n, size_t m) */", "after"),
+    ("  for (char *s = val; *s; s++) {", LISTFLAG_LOOP, "before"),
+    ("      return illegal_char(errbuf, (uint8_t)(*s));", "      /*@ assert s - val < n && !in_str2(flags, m, val[s - val]); */\n", "before")])
