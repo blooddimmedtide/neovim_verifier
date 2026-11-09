@@ -1,0 +1,12 @@
+# sed mutant applied to extracted body -> result of run_cbmc.sh (all caught)
+s/p\[2\] == 0xbf/p[2] == 0xbe/	caught
+s/size >= 3 \&\& //	caught
+s/len = 4;/len = 3;/	caught
+s/flags == FIO_UCS2) {/flags == FIO_UTF16) {/	caught
+s/flags == 0)/flags == 1)/	caught
+s/size >= 4 \&\& p\[0\] == 0/p[0] == 0/	caught
+s/"ucs-2le"/"ucs-2"/	caught
+s/int len = 2;/int len = 0;/	caught
+s/p\[1\] == 0xfe) {/p[1] == 0xff) {/	caught
+s/FIO_ENDIAN_L))) {/FIO_ENDIAN_L) || flags == 0)) {/	caught
+s/size >= 4 \&\& p\[2\] == 0/p[2] == 0/	caught
