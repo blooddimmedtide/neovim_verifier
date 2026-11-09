@@ -25,6 +25,9 @@ M=(
  "ml_add_deleted_len_buf|  buf->deleted_bytes2 += (size_t)len + 1;|  buf->deleted_bytes2 += (size_t)len;"
  "ml_add_deleted_len_buf|    buf->deleted_codeunits++;|    buf->deleted_codepoints++;"
  "ml_add_deleted_len_buf|  if (inhibit_delete_count) {|  if (!inhibit_delete_count) {"
+ "ml_get_buf_mut|  return ml_get_buf_impl(buf, lnum, true);|  return ml_get_buf_impl(buf, lnum, false);"
+ "ml_get_pos|  return ml_get_buf(curbuf, pos->lnum) + pos->col;|  return ml_get_buf(curbuf, pos->lnum + 1) + pos->col;"
+ "ml_get_pos_len|  return ml_get_buf_len(curbuf, pos->lnum) - pos->col;|  return ml_get_buf_len(curbuf, pos->lnum) - pos->col - 1;"
  "ml_line_alloced|  return curbuf->b_ml.ml_flags & ML_LINE_DIRTY;|  return curbuf->b_ml.ml_flags & 0x01;"
 )
 export PATH=$HOME/.vpipe/bin:$PATH

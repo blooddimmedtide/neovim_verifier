@@ -23,6 +23,10 @@
   } while (0)
 typedef int64_t blocknr_T;
 typedef int32_t linenr_T;
+typedef int colnr_T;
+typedef struct { linenr_T lnum; colnr_T col; colnr_T coladd; } pos_T;
+#define FUNC_ATTR_NONNULL_ALL
+#define FUNC_ATTR_NONNULL_RET
 typedef struct {
   blocknr_T bh_bnum;
   void *bh_data;
@@ -152,6 +156,24 @@ bhdr_T *mf_new(memfile_T *mfp, bool negative, unsigned page_count);
     ensures *codeunits == \old(*codeunits) + vp_cus(s, len);
 */
 void mb_utflen(const char *s, size_t len, size_t *codepoints, size_t *codeunits);
+
+/*@ // ml_get_buf_impl / ml_get_buf_len (memline.c, not yet verified): the text of
+    // line lnum of buf (vp_line, uninterpreted) and its length vp_len, a string
+    // with vp_len readable bytes before its NUL. will_change asks for a writable copy.
+    logic char *vp_line{L}(buf_T *buf, integer lnum, integer will_change);
+    logic integer vp_len{L}(buf_T *buf, integer lnum);
+*/
+/*@ requires \valid(buf);
+    assigns \result \from buf, lnum, will_change;
+    ensures \result == vp_line(buf, lnum, will_change) && \result != \null;
+    ensures 0 <= vp_len(buf, lnum) && \valid_read(\result + (0 .. vp_len(buf, lnum)));
+*/
+static char *ml_get_buf_impl(buf_T *buf, linenr_T lnum, bool will_change);
+/*@ requires \valid(buf);
+    assigns \result \from buf, lnum;
+    ensures \result == vp_len(buf, lnum) && 0 <= \result;
+*/
+colnr_T ml_get_buf_len(buf_T *buf, linenr_T lnum);
 
 // ---------------------------------------------------------------- proved
 /*@ // proved below with the functions (run label "lemmas"): a product of two
@@ -333,3 +355,37 @@ void ml_add_deleted_len_buf(buf_T *buf, char *ptr, ssize_t len);
     ensures inhibit_delete_count != 0 ==> curbuf->deleted_bytes == \old(curbuf->deleted_bytes);
 */
 void ml_add_deleted_len(char *ptr, ssize_t len);
+
+/*@ requires \valid(curbuf);
+    assigns \nothing;
+    ensures \result == vp_line(curbuf, lnum, 0);
+*/
+char *ml_get(linenr_T lnum);
+
+/*@ requires \valid(buf);
+    assigns \nothing;
+    ensures \result == vp_line(buf, lnum, 0);
+*/
+char *ml_get_buf(buf_T *buf, linenr_T lnum);
+
+/*@ requires \valid(buf);
+    assigns \nothing;
+    ensures \result == vp_line(buf, lnum, 1);
+*/
+char *ml_get_buf_mut(buf_T *buf, linenr_T lnum);
+
+/*@ // pointer to column col of the line; col must lie within the line (or at its NUL)
+    requires \valid(curbuf) && \valid_read(pos);
+    requires 0 <= pos->col <= vp_len(curbuf, pos->lnum);
+    assigns \nothing;
+    ensures \result == vp_line(curbuf, pos->lnum, 0) + pos->col;
+*/
+char *ml_get_pos(const pos_T *pos);
+
+/*@ // bytes from column col to the end of the line
+    requires \valid(curbuf) && \valid_read(pos);
+    requires 0 <= pos->col <= vp_len(curbuf, pos->lnum);
+    assigns \nothing;
+    ensures \result == vp_len(curbuf, pos->lnum) - pos->col;
+*/
+colnr_T ml_get_pos_len(pos_T *pos);

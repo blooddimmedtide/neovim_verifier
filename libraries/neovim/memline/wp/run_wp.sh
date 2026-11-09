@@ -3,7 +3,7 @@
 # Exit 0 = every goal of every listed function proved (no admits, no axioms).
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd); T=${2:-30}; shift 2 2>/dev/null || shift $#
-FUNCS=${*:-lemmas mf_free_fnames mf_set_fnames mf_new_page_size mf_alloc_bhdr mf_free_bhdr mf_ins_free mf_rem_free mf_need_trans ml_new_data ml_new_ptr ml_add_stack ml_flush_deleted_bytes ml_line_alloced ml_add_deleted_len_buf ml_add_deleted_len}
+FUNCS=${*:-lemmas mf_free_fnames mf_set_fnames mf_new_page_size mf_alloc_bhdr mf_free_bhdr mf_ins_free mf_rem_free mf_need_trans ml_new_data ml_new_ptr ml_add_stack ml_flush_deleted_bytes ml_line_alloced ml_add_deleted_len_buf ml_add_deleted_len ml_get ml_get_buf ml_get_buf_mut ml_get_pos ml_get_pos_len}
 W=$(mktemp -d); status=0
 python3 -I "$HERE/build.py" "$NV" "$W/ml.c" || exit 1
 if grep -nE '\b(admit|axiom|check)\b' "$W/ml.c"; then echo "forbidden clause"; exit 1; fi

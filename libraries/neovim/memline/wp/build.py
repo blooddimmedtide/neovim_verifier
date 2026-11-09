@@ -27,6 +27,11 @@ PIECES = [  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
     (ML, "ml_line_alloced", "84656911ced12fcfd845bfb3ebedbdf0e79fcb7a61e95c2c7ff3394aee088cd7"),
     (ML, "ml_add_deleted_len", "6fa08d6bfd4b5db7a45ace1dbb3dbf06dadea7f539cffa708c29fe560b892f00"),
     (ML, "ml_add_deleted_len_buf", "c0e2109260bf4a54b1a75090344ca5e60ac31afd723b117bfff141e351a47935"),
+    (ML, "ml_get", "c587abbebb0bbb274610bf7cae989333458d6df19aa8130db70eddca2a958a44"),
+    (ML, "ml_get_buf", "9a01a5d3ef30bcae13606b4e1a93347f389d51f3adcd5ff4c7a079ca276629ad"),
+    (ML, "ml_get_buf_mut", "425ee1b512741fb254bcc34f87afa4881b947f998cc48f5acc0cbd752f3659f4"),
+    (ML, "ml_get_pos", "1edd975894537a7577a977b438b9e3b47e9094dd3fedd4c4540f5634d78a2938"),
+    (ML, "ml_get_pos_len", "625a45ec669ac8f72ff128201e13b36d86a67aeedc631586076a1251a415ebfc"),
     (ML, "ml_add_stack", "bede1c526990704cf8f0bb5ad43cd5a3107373cc2708b0b68c0fe21458a17cfc"),
 ]
 CHECKS = [
@@ -57,6 +62,8 @@ CHECKS = [
     ("src/nvim/buffer_defs.h", "  bool update_need_codepoints;"),
     ("src/nvim/globals.h", "EXTERN int inhibit_delete_count INIT( = 0);"),
     ("src/nvim/pos_defs.h", "typedef int32_t linenr_T;"),
+    ("src/nvim/pos_defs.h", "typedef int colnr_T;"),
+    ("src/nvim/pos_defs.h", "  colnr_T coladd;"),
 ]
 PRELUDE = open(os.path.join(HERE, "prelude.h")).read()
 

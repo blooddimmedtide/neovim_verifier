@@ -18,4 +18,7 @@ caught   ml_add_deleted_len_buf: | len > maxlen) {|  if (len == -1) {
 caught   ml_add_deleted_len_buf:   buf->deleted_bytes2 += (size_t)len;
 caught   ml_add_deleted_len_buf:     buf->deleted_codepoints++;
 caught   ml_add_deleted_len_buf:   if (!inhibit_delete_count) {
+caught   ml_get_buf_mut:   return ml_get_buf_impl(buf, lnum, false);
+caught   ml_get_pos:   return ml_get_buf(curbuf, pos->lnum + 1) + pos->col;
+caught   ml_get_pos_len:   return ml_get_buf_len(curbuf, pos->lnum) - pos->col - 1;
 caught   ml_line_alloced:   return curbuf->b_ml.ml_flags & 0x01;
