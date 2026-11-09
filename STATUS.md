@@ -9,6 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/indent.c | 0 | 4 | 35 | 39 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -74,6 +75,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/indent.c | `tabstop_at` | candidate | indent/cbmc (CBMC, bounded: vartabstop lists of <= 3 entries) | see indent/CLAIM.md; signed and unsigned char proved; no difftest or review yet |
+| src/nvim/indent.c | `tabstop_copy` | candidate | indent/cbmc (CBMC, bounded: vartabstop lists of <= 3 entries) | see indent/CLAIM.md; signed and unsigned char proved; no difftest or review yet |
+| src/nvim/indent.c | `tabstop_count` | candidate | indent/cbmc (CBMC, bounded: vartabstop lists of <= 3 entries) | see indent/CLAIM.md; signed and unsigned char proved; no difftest or review yet |
+| src/nvim/indent.c | `tabstop_first` | candidate | indent/cbmc (CBMC, bounded: vartabstop lists of <= 3 entries) | see indent/CLAIM.md; signed and unsigned char proved; no difftest or review yet |
 
 ## All files
 
