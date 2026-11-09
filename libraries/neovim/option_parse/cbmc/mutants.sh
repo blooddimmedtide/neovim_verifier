@@ -15,4 +15,5 @@ m tty-p3       's/p\[2\] \&\& p\[3\]/p[2]/'
 m tty-p4       's/p += 4;/p += 3;/'
 m tty-gt       "s/\*p != '>') {/*p == '<') {/"
 m tty-eqnull   's/arg == p ? NULL : p/p/'
+m tty-isnot     's/!= NULL;/== NULL;/'
 cp extracted.orig extracted.c; rm extracted.orig

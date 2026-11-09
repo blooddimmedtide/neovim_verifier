@@ -59,3 +59,8 @@ static const char *find_tty_option_end(const char *arg)
 
   return arg == p ? NULL : p;
 }
+bool is_tty_option(const char *name)
+  FUNC_ATTR_NONNULL_ALL FUNC_ATTR_PURE FUNC_ATTR_WARN_UNUSED_RESULT
+{
+  return find_tty_option_end(name) != NULL;
+}

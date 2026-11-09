@@ -10,3 +10,4 @@ caught: tty-p3
 caught: tty-p4
 caught: tty-gt
 caught: tty-eqnull
+caught: tty-isnot

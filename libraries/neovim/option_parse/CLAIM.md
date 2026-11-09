@@ -10,6 +10,7 @@ up to 64 bytes signed char), plus an exhaustive differential test of the compile
 | `get_op` | returns `+=`/`^=`/`-=` operator from the first two chars, else `OP_NONE`; never reads past the NUL | candidate |
 | `get_option_prefix` | `no` prefix (skip 2) wins over `inv` (skip 3), else `PREFIX_NONE` with the pointer unchanged; no OOB | candidate |
 | `find_tty_option_end` | end of `term`, `ttytype` (whole string), `t_xx`, `<t_xx>`, `<...>` names, else NULL; no OOB | candidate |
+| `is_tty_option` | true exactly when `find_tty_option_end` finds a name | candidate |
 
 ## What the reference (`cbmc/spec.h`) decides itself
 - `term`/`ttytype` match only the whole string (the code uses `strequal`), so `termx` is not a tty name.
@@ -22,13 +23,13 @@ up to 64 bytes signed char), plus an exhaustive differential test of the compile
 - `strequal` is copied from `memory.c` (already a separate proof target).
 
 ## Evidence
-- `cbmc/run.sh 16`: 548/548 properties, signed and `--unsigned-char` (`cbmc_result.txt`).
-- `cbmc/run.sh 64`: signed char, 548/548 (`cbmc_result_64.txt`).
+- `cbmc/run.sh 16`: 549/549 properties, signed and `--unsigned-char` (`cbmc_result.txt`).
+- `cbmc/run.sh 64`: signed char, 548/548 before `is_tty_option` was added (`cbmc_result_64.txt`).
 - `cbmc/difftest.c`: gcc -O2, ASan+UBSan, both signednesses, all 1,118,481 strings of length 0..5
   over a 16-char alphabet that hits every branch: 0 mismatches.
-- `cbmc/mutants.sh`: 12/12 planted bugs caught (`mutants_result.txt`).
+- `cbmc/mutants.sh`: 13/13 planted bugs caught (`mutants_result.txt`).
 
 ## Not done (deadline 2026-11-09 09:00 UTC)
 - Unbounded proof of `find_tty_option_end`'s `>` search loop (WP); bounded only here.
 - Independent adversarial review (REVIEW.md) and CI target in vpipe.toml.
-- No bug found in these three functions.
+- No bug found in these four functions.

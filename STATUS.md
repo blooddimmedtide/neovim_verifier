@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/option.c | 0 | 3 | 228 | 231 |
+| src/nvim/option.c | 0 | 4 | 227 | 231 |
 
 ## Function details
 
@@ -78,6 +78,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/option.c | `get_op` | candidate | option_parse/cbmc (CBMC, bounded n<=64) | see option_parse/CLAIM.md; review pending |
 | src/nvim/option.c | `get_option_prefix` | candidate | option_parse/cbmc (CBMC, bounded n<=64) | see option_parse/CLAIM.md; review pending |
 | src/nvim/option.c | `find_tty_option_end` | candidate | option_parse/cbmc (CBMC, bounded n<=64) | bounded only; unbounded WP proof of the > loop open; review pending |
+| src/nvim/option.c | `is_tty_option` | candidate | option_parse/cbmc (CBMC, bounded n<=16) | see option_parse/CLAIM.md; review pending |
 
 ## All files
 

@@ -59,3 +59,4 @@ src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memo
 src/nvim/option.c	get_op	candidate	option_parse/cbmc (CBMC, bounded n<=64)	see option_parse/CLAIM.md; review pending
 src/nvim/option.c	get_option_prefix	candidate	option_parse/cbmc (CBMC, bounded n<=64)	see option_parse/CLAIM.md; review pending
 src/nvim/option.c	find_tty_option_end	candidate	option_parse/cbmc (CBMC, bounded n<=64)	bounded only; unbounded WP proof of the > loop open; review pending
+src/nvim/option.c	is_tty_option	candidate	option_parse/cbmc (CBMC, bounded n<=16)	see option_parse/CLAIM.md; review pending

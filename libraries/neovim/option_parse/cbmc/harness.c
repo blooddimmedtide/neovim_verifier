@@ -6,6 +6,9 @@
 #include <string.h>
 #include <stdlib.h>
 #define NUL '\0'
+#define FUNC_ATTR_NONNULL_ALL
+#define FUNC_ATTR_PURE
+#define FUNC_ATTR_WARN_UNUSED_RESULT
 typedef enum { OP_NONE = 0, OP_ADDING, OP_PREPENDING, OP_REMOVING } set_op_T;
 typedef enum { PREFIX_NO = 0, PREFIX_NONE, PREFIX_INV } set_prefix_T;
 static bool strequal(const char *a, const char *b)  // memory.c, verbatim body
@@ -36,5 +39,6 @@ int main(void)
   long r = ref_tty_end(s, n);
   const char *e = find_tty_option_end(s);
   __CPROVER_assert(r < 0 ? e == NULL : e == s + r, "find_tty_option_end matches spec");
+  __CPROVER_assert(is_tty_option(s) == (r >= 0), "is_tty_option matches spec");
   return 0;
 }
