@@ -78,3 +78,19 @@ fn = "invocation_path_tail"
 mode = "fixed"
 old = "      l = utfc_ptr2len(p);"
 new = "      l = 1;"
+[[mutant]]
+fn = "add_pathsep"
+old = "if (plen > MAXPATHL - pathsep_len) {"
+new = "if (plen > MAXPATHL - pathsep_len + 1) {"
+[[mutant]]
+fn = "add_pathsep"
+old = "if (!after_pathsep(p, p + plen)) {"
+new = "if (!after_pathsep(p, p + plen - 1)) {"
+[[mutant]]
+fn = "path_to_slash"
+old = "if (p != NULL && !path_with_url(p)) {"
+new = "if (p != NULL && !path_with_url(p) && *p != 'a') {"
+[[mutant]]
+fn = "path_to_backslash"
+old = "if (p != NULL) {"
+new = "if (p != NULL && *p != '/') {"

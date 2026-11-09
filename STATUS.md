@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/path.c | 0 | 17 | 50 | 67 |
+| src/nvim/path.c | 0 | 20 | 47 | 67 |
 
 ## Function details
 
@@ -91,6 +91,9 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/path.c | `vim_isAbsName` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (5,229,043 strings, 0 failures) | true exactly for a URL (as path_with_url) or a name starting with '/' or '~'; see path/CLAIM.md. Review by a fresh agent not done yet |
 | src/nvim/path.c | `after_pathsep` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (5,229,043 strings, 0 failures) | true exactly when p > b and p[-1] == '/' (relies on utf_head_off returning 0 at an ASCII byte); see path/CLAIM.md. Review by a fresh agent not done yet |
 | src/nvim/path.c | `path_tail_with_sep` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (5,229,043 strings, 0 failures) | path_tail moved back over the '/' run before it, never into the leading '/' head; see path/CLAIM.md. Review by a fresh agent not done yet |
+| src/nvim/path.c | `add_pathsep` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (5,229,043 strings, 0 failures) | appends '/' unless empty or already ending in '/'; false and unchanged when it would not fit in MAXPATHL; relies on memory.c strchrsub's proof where called; see path/CLAIM.md. Review by a fresh agent not done yet |
+| src/nvim/path.c | `path_to_backslash` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (5,229,043 strings, 0 failures) | every '/' becomes '\\', nothing else changes; relies on memory.c strchrsub's proof where called; see path/CLAIM.md. Review by a fresh agent not done yet |
+| src/nvim/path.c | `path_to_slash` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (5,229,043 strings, 0 failures) | every '\\' becomes '/' unless the name is a URL; relies on memory.c strchrsub's proof where called; see path/CLAIM.md. Review by a fresh agent not done yet |
 | src/nvim/path.c | `invocation_path_tail` | partial | path/wp (upstream 34/35: out-of-bounds read; fixed 40/40), findings/path-invocation-tail.md | upstream reads past the NUL after a quoted trailing backslash; fix in verified_neovim claude/project-thread-t2grsh proved memory-safe, terminating, result and len inside the string. The quote/escape rules themselves are not proved yet |
 
 ## All files

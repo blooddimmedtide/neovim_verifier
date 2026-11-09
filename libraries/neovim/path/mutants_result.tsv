@@ -1,0 +1,20 @@
+n	function	mode	result	change
+1	vim_ispathsep	upstream	caught	return c == '/'; -> return c == '/' || c == ':';
+2	vim_ispathlistsep	upstream	caught	return c == ':'; -> return c == ';';
+3	is_path_head	upstream	caught	return vim_ispathsep(*path); -> return vim_ispathsep(path[1]);
+4	path_skip_sep	upstream	caught	path++; -> path += 2;
+5	get_past_head	upstream	caught	  return (char *)retval; ->   return (char *)retval + (*retval != 0);
+6	path_tail	upstream	caught	tail = p + 1; -> tail = p;
+7	path_next_component	upstream	caught	  if (*fname != NUL) { ->   if (1) {
+8	path_is_absolute	upstream	caught	*fname == '/' || *fname == '~' -> *fname == '/'
+9	path_has_drive_letter	upstream	caught	(p[1] == ':' || p[1] == '|') -> (p[1] == ':')
+10	path_has_drive_letter	upstream	caught	path_len >= 2 -> path_len >= 1
+11	path_is_url	upstream	caught	return URL_BACKSLASH; -> return URL_SLASH;
+12	path_is_url	upstream	caught	}, 3) -> }, 2)
+13	path_with_url	upstream	caught	(p[-1] == '.') -> (p[-1] == '/')
+14	path_with_url	upstream	caught	(*p == '-') -> (*p == '_')
+15	vim_isAbsName	upstream	caught	path_with_url(name) != 0 || -> path_with_url(name) == 0 ||
+16	after_pathsep	upstream	caught	p > b && -> p >= b &&
+17	path_tail_with_sep	upstream	caught	tail > past_head && -> tail >= past_head &&
+18	invocation_path_tail	fixed	caught	tail_end = p + l; -> tail_end = p + l + 1;
+19	invocation_path_tail	fixed	caught	      l = utfc_ptr2len(p); ->       l = 1;

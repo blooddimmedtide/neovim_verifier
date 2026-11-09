@@ -3,7 +3,7 @@
 Claimed by draft PR (this branch). Upstream pinned at neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd, Linux x86_64 (UNIX, no BACKSLASH_IN_FILENAME).
 Tool: Frama-C WP (loops over NUL-terminated strings).
 
-Progress: 16 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 50 open. See CLAIM.md.
+Progress: 19 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 47 open. See CLAIM.md.
 
 | function | line | status |
 |---|---|---|
@@ -25,7 +25,7 @@ Progress: 16 / 67 proved (candidate, needs review and owner sign-off), 1 partial
 | do_concat_fnames | 378 | open |
 | concat_fnames | 403 | open |
 | concat_fnames_realloc | 424 | open |
-| add_pathsep | 438 | open |
+| add_pathsep | 438 | proved (candidate), WP |
 | FullName_save | 463 | open |
 | save_abs_path | 481 | open |
 | path_has_wildcard | 499 | open |
@@ -47,8 +47,8 @@ Progress: 16 / 67 proved (candidate, needs review and owner sign-off), 1 partial
 | vim_backtick | 1341 | open |
 | expand_backtick | 1352 | open |
 | slash_adjust | 1406 | open |
-| path_to_backslash | 1428 | open |
-| path_to_slash | 1438 | open |
+| path_to_backslash | 1428 | proved (candidate), WP |
+| path_to_slash | 1438 | proved (candidate), WP |
 | path_to_slash_save | 1447 | open |
 | addfile | 1461 | open |
 | simplify_filename | 1509 | open |

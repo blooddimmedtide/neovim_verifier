@@ -97,6 +97,30 @@ C = {
     ensures \forall char *t, char *h; within(t, fname, n) && (t == fname || t[-1] == '/') && noc(t, fname + n, '/')
               && within(h, fname, n) && allc(fname, h, '/') && *h != '/' ==>
               h <= \result <= t && allc(\result, t, '/') && (\result == h || \result[-1] != '/');""",
+# p is a MAXPATHL buffer when it matters: writable for the '/' and NUL when they fit
+"add_pathsep": r"""requires str_len(p, n);
+    requires n + 2 <= MAXPATHL ==> \valid(p + (0 .. n + 1));
+    assigns p[n .. n + 1];
+    behavior has_sep:
+      assumes n == 0 || p[n - 1] == '/';
+      ensures \result == 1 && p[n] == 0;
+    behavior too_long:
+      assumes n > 0 && p[n - 1] != '/' && n + 2 > MAXPATHL;
+      ensures \result == 0 && p[n] == 0;
+    behavior add:
+      assumes n > 0 && p[n - 1] != '/' && n + 2 <= MAXPATHL;
+      ensures \result == 1 && p[n] == '/' && p[n + 1] == 0;
+    complete behaviors; disjoint behaviors;""",
+"path_to_backslash": r"""requires p == \null || (str_len(p, n) && \valid(p + (0 .. n)));
+    assigns p[0 .. n];
+    ensures \result == p;
+    ensures p != \null ==> \forall integer i; 0 <= i <= n ==>
+              p[i] == (\at(p[i], Pre) == '/' ? '\\' : \at(p[i], Pre));""",
+"path_to_slash": r"""requires p == \null || (str_len(p, n) && \valid(p + (0 .. n)));
+    assigns p[0 .. n];
+    ensures \result == p;
+    ensures p != \null ==> \forall integer r; url_kind{Pre}(p, n, r) ==> \forall integer i; 0 <= i <= n ==>
+              p[i] == (r == 0 && \at(p[i], Pre) == '\\' ? '/' : \at(p[i], Pre));""",
 # Memory safety, termination and bounds only (not the quote rules): the result lies in
 # the string after the head, just past a '/' (or at the head), and *len stays inside.
 "invocation_path_tail": r"""requires str_len((char *)invocation, n);
@@ -108,13 +132,16 @@ C = {
 }
 
 GHOST = {f: "size_t n" for f in ("path_skip_sep", "get_past_head", "path_tail", "path_with_url",
-                                 "vim_isAbsName", "path_tail_with_sep",
+                                 "vim_isAbsName", "path_tail_with_sep", "add_pathsep", "path_to_slash", "path_to_backslash",
                                  "path_next_component", "invocation_path_tail")}
 
 SIG = {  # the signature line the ghost parameter goes after
 "path_with_url": "int path_with_url(const char *fname)",
 "vim_isAbsName": "bool vim_isAbsName(const char *name)",
 "path_tail_with_sep": "char *path_tail_with_sep(char *fname)",
+"add_pathsep": "bool add_pathsep(char *p)",
+"path_to_slash": "char *path_to_slash(char *p)",
+"path_to_backslash": "char *path_to_backslash(char *p)",
 "path_skip_sep": "char *path_skip_sep(const char *path, bool colon)",
 "get_past_head": "char *get_past_head(const char *path)",
 "path_tail": "char *path_tail(const char *fname)",
@@ -168,6 +195,8 @@ def annotations(fixed):
         ("before", "  return path_is_url(p);", r"""assert scheme_end((char *)fname, n, p - fname);"""),
         ("before", "  return path_is_url(p);", r"""assert str_len((char *)p, fname + n - p);""")],
     "vim_isAbsName": [("after", "path_with_url(name)", "ghost (n)")],
+    "path_to_backslash": [("after", "strchrsub(p, PATHSEP, '\\\\')", "ghost (n)")],
+    "path_to_slash": [("after", "!path_with_url(p)", "ghost (n)"), ("after", "strchrsub(p, '\\\\', PATHSEP)", "ghost (n)")],
     "path_tail_with_sep": [
         ("after", "get_past_head(fname)", "ghost (n)"),
         ("after", "path_tail(fname)", "ghost (n)"),

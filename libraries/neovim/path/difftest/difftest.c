@@ -8,6 +8,15 @@
 #include <string.h>
 int utfc_ptr2len(const char *const p) { return *p ? 1 : 0; }
 int utf_head_off(const char *b, const char *p) { (void)b; (void)p; return 0; }
+// memory.c strchrsub, verbatim (proved separately: memory/wp)
+#include <assert.h>
+void strchrsub(char *str, char c, char x)
+{
+  assert(c != 0);  // NUL in memory.c
+  while ((str = strchr(str, c))) {
+    *str++ = x;
+  }
+}
 #include "path_built.c"
 
 static const char AL[] = "/a:\\\"~+.C| -9";
@@ -53,6 +62,19 @@ static void one(const char *src, size_t n)
     EXPECT(path_has_drive_letter(s, m) == r_drive(s, m), s);
     EXPECT(after_pathsep(s, s + m) == (m > 0 && s[m - 1] == '/'), s);
   }
+  {
+    char *a = malloc(n + 1), *b = malloc(n + 1); memcpy(a, s, n + 1); memcpy(b, s, n + 1);
+    path_to_backslash(a); path_to_slash(b);
+    for (size_t i = 0; i <= n; i++) {
+      EXPECT(a[i] == (s[i] == '/' ? '\\' : s[i]), s);
+      EXPECT(b[i] == (r_url(s) == 0 && s[i] == '\\' ? '/' : s[i]), s);
+    }
+    free(a); free(b);
+    char big[MAXPATHL]; memcpy(big, s, n + 1);
+    bool r = add_pathsep(big);
+    if (n == 0 || s[n - 1] == '/') EXPECT(r && strcmp(big, s) == 0, s);
+    else EXPECT(r && big[n] == '/' && big[n + 1] == 0 && memcmp(big, s, n) == 0, s);
+  }
 #ifdef FIXED
   size_t len; const char *t = invocation_path_tail(s, &len);
   EXPECT(t >= s && t + len <= s + n && (t == s || t[-1] == '/'), s);
@@ -75,6 +97,13 @@ int main(void)
   EXPECT(strcmp(path_tail("dir/file.txt"), "file.txt") == 0, "dir/file.txt");
   EXPECT(strcmp(path_tail("dir/"), "") == 0, "dir/");
   { char e[] = "dir///file.txt"; EXPECT(strcmp(path_tail_with_sep(e), "///file.txt") == 0, e); }
+  {  // add_pathsep at the MAXPATHL limit
+    static char big[MAXPATHL];
+    memset(big, 'a', MAXPATHL - 2); big[MAXPATHL - 2] = 0;
+    EXPECT(add_pathsep(big) && big[MAXPATHL - 2] == '/' && big[MAXPATHL - 1] == 0, "4094");
+    memset(big, 'a', MAXPATHL - 1); big[MAXPATHL - 1] = 0;
+    EXPECT(!add_pathsep(big) && big[MAXPATHL - 1] == 0, "4095");
+  }
   size_t L = strlen(AL);
   for (size_t n = 0; n <= 6; n++) {
     size_t tot = 1; for (size_t i = 0; i < n; i++) tot *= L;

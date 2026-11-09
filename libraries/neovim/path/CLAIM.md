@@ -1,5 +1,5 @@
 ---
-entry: neovim/src/nvim/path.c (string and path helpers, first 16 of 67 functions)
+entry: neovim/src/nvim/path.c (string and path helpers, first 19 of 67 functions)
 upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: https://github.com/blooddimmedtide/verified_neovim (branch claude/project-thread-t2grsh, commit ae63bc4)
@@ -10,8 +10,8 @@ platform: x86_64 Linux (UNIX defined, no MSWIN, no BACKSLASH_IN_FILENAME), char 
 
 # Claim card: Neovim path.c string and path helpers
 
-Not finished: 16 of 67 path.c functions are proved, 1 more (`invocation_path_tail`) has a
-fix proved memory-safe but not yet against its quoting rules, and 50 are open. The list is in
+Not finished: 19 of 67 path.c functions are proved, 1 more (`invocation_path_tail`) has a
+fix proved memory-safe but not yet against its quoting rules, and 47 are open. The list is in
 `PLAN.md`.
 
 ## What is proved, for every input
@@ -37,6 +37,9 @@ past the NUL), writes nothing (`assigns \nothing`), and returns:
 | `path_is_url(p)` | 1 (URL_SLASH) for `":/"`, 2 (URL_BACKSLASH) for `":\\"`, else 0 |
 | `path_with_url(f)` | when f starts with an RFC 3986 scheme (ASCII letter, then letters, digits, `+ - .`), the scheme does not end in `+ - .`, f is not a drive letter, and `":/"` or `":\\"` follows: that kind (1 or 2); else 0 |
 | `vim_isAbsName(n)` | true exactly when n is a URL as above or starts with '/' or '~' |
+| `add_pathsep(p)` | "" or a name ending in '/': true, unchanged; else if the name plus "/" fits in MAXPATHL (4096) bytes with its NUL: appends "/", true; else false, unchanged. Writes only `p[len]`, `p[len+1]` |
+| `path_to_backslash(p)` | returns p; every '/' becomes '\', nothing else changes (NULL: nothing) |
+| `path_to_slash(p)` | returns p; when p is not a URL (as `path_with_url`), every '\' becomes '/'; a URL is unchanged (NULL: nothing) |
 
 The specs are written from each doc comment (and the WHATWG / RFC 3986 rules the comments
 cite), not from the code. Where the doc is silent the reference follows the UNIX build's
@@ -63,20 +66,22 @@ Its quoting/escaping behavior is not specified or proved yet, so it is not count
    `FUNC_ATTR_*` macros as nothing (attributes only).
 3. **One tool patch** (`wp/tool_patches.py`): Frama-C 33 WP assumes string literals are all
    zero bytes (verification-notes/toolchain-bugs/framac33-wp-string-init.md; it showed up here
-   as an unprovable goal in `path_is_url`). The two literals in `path_is_url` become compound
-   literals with the same bytes; `equiv/literals.c` checks the bytes match (run by run_wp.sh).
+   as an unprovable goal in `path_is_url`). The two literals in `path_is_url`, and `PATHSEPSTR` (`"/"`) in the prelude, become
+   compound literals with the same bytes; `equiv/literals.c` checks the bytes match (run by run_wp.sh).
    The only other literal is `path_tail`'s `""`, which really is all zeros.
 4. **C library**: `strlen` and `strncmp` meet the C11 contracts in `memory/wp/stubs/vp_string.h`.
 5. **Unproved mbyte.c callees**, by contract from their doc comments (`wp/stubs/vp_path.h`):
    `utfc_ptr2len(p)` returns 0 at the NUL and 1 .. strlen(p) otherwise; `utf_head_off(b, p)` is
    0 at an ASCII byte (an ASCII byte always starts a UTF-8 character).
-6. **Preconditions**: strings are NUL-terminated; each string function gets its length as a
+6. **memory.c `strchrsub`** meets the contract proved for it in `memory/wp` (candidate there).
+7. **Preconditions**: strings are NUL-terminated; each string function gets its length as a
    ghost parameter (it adds no runtime behavior). `path_has_drive_letter` needs
-   `min(len, 3)` readable bytes; `after_pathsep` needs `b .. p` readable.
+   `min(len, 3)` readable bytes; `after_pathsep` needs `b .. p` readable. `add_pathsep` needs `p[len]`, `p[len+1]` writable when they fit in MAXPATHL (its callers pass MAXPATHL buffers). The prelude defines MAXPATHL as 4096 (os_defs.h's DEFAULT_MAXPATHL; Linux PATH_MAX is 4096, so the header picks 4096).
+8. **Smoke tests** (`-wp-smoke-tests`, all functions): no contract or stub is contradictory. The one doomed smoke test is the `utf_head_off(...) != 0` outcome in `after_pathsep`, which is dead code: `p[-1]` is '/' there, an ASCII byte.
 
 ## Not covered
 
-- The other 50 path.c functions (file system, globbing, expansion, `path_cmp`, ...), and the
+- The other 47 path.c functions (file system, globbing, expansion, `path_cmp`, ...), and the
   quoting rules of `invocation_path_tail`.
 - The MSWIN build (drive letters, backslashes as separators).
 - Independent review by a fresh agent, CI in the pinned container, owner sign-off.
@@ -85,8 +90,8 @@ Its quoting/escaping behavior is not specified or proved yet, so it is not count
 
 | Check | Command | Result |
 |---|---|---|
-| WP, upstream | `bash wp/run_wp.sh <nvim> upstream` | 17 functions (16 + ascii_isdigit) all goals, signed and unsigned char; `invocation_path_tail` 34/35 (the finding) |
-| WP, fixed fork | `bash wp/run_wp.sh <verified_neovim> fixed` | 18 / 18 functions all goals, signed and unsigned char |
+| WP, upstream | `bash wp/run_wp.sh <nvim> upstream` | 20 functions (19 + ascii_isdigit) all goals, signed and unsigned char; `invocation_path_tail` 34/35 (the finding) |
+| WP, fixed fork | `bash wp/run_wp.sh <verified_neovim> fixed` | 21 / 21 functions all goals, signed and unsigned char |
 | Differential test (gcc -O2, ASan+UBSan) | `bash difftest/run_difftest.sh <nvim> upstream` (and `fixed`) | 5,229,043 strings (all of length 0..6 over 13 bytes), 0 failures, both signednesses |
 | Planted bugs | `python3 -I run_mutants.py <nvim> <verified_neovim>` | see `mutants_result.tsv` |
 | Independent review | — | pending |

@@ -31,6 +31,9 @@ SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd, in callee-first or
     "vim_isAbsName": "5aa01b38e65eed63d95f1c547ad1a92dc9ddd6f1adcec6ff46884cbe1ef854ce",
     "after_pathsep": "f0844600fa21d41dbc73ae9d5e2cb4ca1dd0165f47b69496e7f2f78c06a77b9b",
     "path_tail_with_sep": "b5f33925f2e170571434579c48d82569cd8339c3c9a22ad50987aa32a56e8388",
+    "add_pathsep": "30da35d8e8ce0208b15ab8e08a0c1d3fef2d5f8f7da14cfaf4137ed66b8ee5f2",
+    "path_to_slash": "74fdbbd964ad41bf235e8713eab9598f4f14c4a97ed67032598edd77b4b4f0d8",
+    "path_to_backslash": "e1ce9afcf790005f7d6ca890a190c30fe0b629ccba195f3ad99f74e9a03c43b3",
     "invocation_path_tail": "98ec5fa5d4d44edf0a06e92c4a87f6d8c4d2e939d2365974bddf4de70103d713",
 }
 FIXED_SHA = {  # verified_neovim branch claude/project-thread-t2grsh (fix: backslash at end)
@@ -59,6 +62,15 @@ static inline bool ascii_isdigit(int c)
 {
   return c >= '0' && c <= '9';
 }
+#define MAXPATHL 4096   // os_defs.h: DEFAULT_MAXPATHL, Linux PATH_MAX is 4096 (not larger)
+#define PATHSEP '/'
+// ascii_defs.h has #define PATHSEPSTR "/"; tool patch: the same bytes as a compound
+// literal (Frama-C 33 WP assumes string literals are zeros; ../equiv/literals.c checks)
+#define PATHSEPSTR ((const char[]){'/', '\\0'})
+/*@ requires c != 0 && str_len(str, n) && \\valid(str + (0 .. n));
+    assigns str[0 .. n];
+    ensures \\forall integer i; 0 <= i <= n ==> str[i] == (\\at(str[i], Pre) == c ? x : \\at(str[i], Pre)); */
+void strchrsub(char *str, char c, char x) /*@ ghost (size_t n) */;
 enum {
   URL_SLASH = 1,      // path_is_url() has found ":/"
   URL_BACKSLASH = 2,  // path_is_url() has found ":\\\\"
@@ -70,6 +82,10 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
           ("src/nvim/macros_defs.h", "#define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))"),
           ("src/nvim/macros_defs.h", "#define ASCII_ISALNUM(c) (ASCII_ISALPHA(c) || ascii_isdigit(c))"),
           ("src/nvim/ascii_defs.h", "  return c >= '0' && c <= '9';"),
+          ("src/nvim/ascii_defs.h", "#define PATHSEP        '/'"),
+          ("src/nvim/ascii_defs.h", "#define PATHSEPSTR     \"/\""),
+          ("src/nvim/os/os_defs.h", "#define DEFAULT_MAXPATHL 4096"),
+          ("src/nvim/memory.c", "void strchrsub(char *str, char c, char x)"),
           (F, "  URL_SLASH = 1,      // path_is_url() has found \":/\""),
           (F, "  URL_BACKSLASH = 2,  // path_is_url() has found \":\\\\\"")]
 
