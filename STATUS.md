@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/eval/typval.c | 0 | 57 | 131 | 188 |
+| src/nvim/eval/typval.c | 0 | 58 | 130 | 188 |
 
 ## Function details
 
@@ -140,6 +140,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/eval/typval.c | `tv_get_string_buf` | candidate | typval/wp (Frama-C WP), via tv_get_string_buf_chk | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
 | src/nvim/eval/typval.h | `tv_is_func` | candidate | typval/wp (Frama-C WP), typval.h inline | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
 | src/nvim/eval/typval.c | `tv_dict_wrong_func_name` | candidate | typval/wp (Frama-C WP), modulo get_globvar_dict/get_funccal_local_ht/var_wrong_func_name (modelled by their results) | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
+| src/nvim/eval/typval.c | `tv_dict_watcher_matches` | candidate | typval/wp (Frama-C WP), strcmp/strncmp by libc contracts | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
 
 ## All files
 

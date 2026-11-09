@@ -692,9 +692,49 @@ static inline bool tv_is_func(const typval_T tv);
     ensures !((d == vp_globvar_dict || &d->dv_hashtab == vp_funccal_local_ht)
               && (tv->v_type == VAR_FUNC || tv->v_type == VAR_PARTIAL)) ==> vp_msgs == \old(vp_msgs); */
 int tv_dict_wrong_func_name(dict_T *d, typval_T *tv, const char *name);
+
+// ---- dict watchers
+typedef struct queue {
+  struct queue *next;
+  struct queue *prev;
+} QUEUE;
+typedef struct {
+  Callback callback;
+  char *key_pattern;
+  size_t key_pattern_len;
+  QUEUE node;
+  bool busy;  // prevent recursion if the dict is changed in the callback
+  bool needs_free;
+} DictWatcher;
+// strcmp / strncmp: the libc contracts used in memory/wp (stubs/vp_string.h)
+/*@ requires is_str((char *)a) && is_str((char *)b);
+    assigns \result \from ((char *)a)[0 ..], ((char *)b)[0 ..];
+    ensures \result == 0 <==> \exists integer n; str_len((char *)a, n) && str_len((char *)b, n)
+                              && \forall integer i; 0 <= i < n ==> a[i] == b[i]; */
+int strcmp(const char *a, const char *b);
+/*@ requires \forall integer i; 0 <= i < n ==>
+               (\forall integer j; 0 <= j < i ==> a[j] != 0 && a[j] == b[j]) ==> \valid_read(a + i) && \valid_read(b + i);
+    assigns \result \from ((char *)a)[0 .. n - 1], ((char *)b)[0 .. n - 1];
+    ensures \result == 0 <==> \forall integer i; 0 <= i < n ==>
+                                (\forall integer j; 0 <= j < i ==> a[j] != 0) ==> a[i] == b[i]; */
+int strncmp(const char *a, const char *b, size_t n);
+
+/*@ requires \valid_read(watcher) && is_str((char *)key) && str_len(watcher->key_pattern, watcher->key_pattern_len);
+    assigns \nothing;
+    ensures \result == 0 || \result == 1;
+    behavior glob: assumes watcher->key_pattern_len > 0 && watcher->key_pattern[watcher->key_pattern_len - 1] == '*';
+      // key starts with the pattern minus its final '*'
+      ensures \result == 1 <==> \forall integer i; 0 <= i < watcher->key_pattern_len - 1 ==>
+                (\forall integer j; 0 <= j < i ==> key[j] != 0) ==> key[i] == watcher->key_pattern[i];
+    behavior exact: assumes !(watcher->key_pattern_len > 0 && watcher->key_pattern[watcher->key_pattern_len - 1] == '*');
+      ensures \result == 1 <==> str_eq((char *)key, watcher->key_pattern);
+    complete behaviors; disjoint behaviors; */
+static bool tv_dict_watcher_matches(DictWatcher *watcher, const char *const key);
 '''
 
 CHECKS = [
+    ("src/nvim/eval/typval_defs.h", "  size_t key_pattern_len;"),
+    ("src/nvim/lib/queue_defs.h", "  struct queue *prev;"),
     ("src/nvim/memory.h", "#define STRCPY(d, s)        strcpy((char *)(d), (char *)(s))  // NOLINT(runtime/printf)"),
     ("src/nvim/eval/typval_defs.h", "#define PRIdVARNUMBER PRId64"),
     ("src/nvim/eval/typval.h", "#define TV_TRANSLATE (SIZE_MAX)"),

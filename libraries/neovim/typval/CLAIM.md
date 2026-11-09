@@ -61,6 +61,7 @@ texts in `tv_check_str_or_nr`, `tv_get_float`), and the values of format argumen
 | `tv_get_string_buf_chk(tv, buf)` | String: the string itself (NULL string: a non-NULL empty literal); Number/Float/Bool/Special: `buf`, holding a NUL-terminated string within `NUMBUFLEN`; other types: NULL with one message (`str_errors[type]`). The digits written are not specified (snprintf is trusted) |
 | `tv_get_string_buf(tv, buf)` | the same, but never NULL (error: an empty literal, not `buf`) |
 | `tv_dict_wrong_func_name(d, tv, name)` | true iff `d` is g: or the current l: scope, the value is a Funcref/Partial, and `var_wrong_func_name(name)` says the name is wrong; no message otherwise. The three callees are modelled by their results only |
+| `tv_dict_watcher_matches(w, key)` | pattern ending in `*`: true iff `key` starts with the pattern minus the `*`; otherwise true iff `key` equals the pattern (pattern length = `key_pattern_len`) |
 | 21 `tv_check_for_*_arg(args, idx)` | OK iff `args[idx]` has an accepted type (the `opt_` forms also accept `VAR_UNKNOWN`; `bool` also accepts Number 0/1; `nonempty_string` needs a non-NULL non-empty string; `nonnull_dict` a non-NULL dict); else FAIL with exactly one message |
 
 ## Assumptions (preconditions) and trusted base

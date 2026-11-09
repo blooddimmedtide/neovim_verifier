@@ -38,6 +38,7 @@ PIECES = [  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
     (TV, "tv_check_lock", "PIN"),
     (TH, "tv_is_func", "PIN"),
     (TV, "tv_dict_wrong_func_name", "PIN"),
+    (TV, "tv_dict_watcher_matches", "PIN"),
     (TV, "tv_get_string_buf_chk", "PIN"),
     (TV, "tv_get_string_buf", "PIN"),
     (TV, "tv_blob_check_index", "PIN"),
