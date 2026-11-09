@@ -48,7 +48,7 @@ harness_helpers.c:h_ascii_fuzzy_index:8
 harness_helpers.c:h_try_skip:8
 $(cat "$HERE/match_list.txt" 2>/dev/null)
 "
-ulimit -v 6000000   # 6 GB per cbmc: the machine is shared
+ulimit -v "${CBMC_MEM_KB:-6000000}"   # 6 GB per cbmc by default: the machine is shared
 status=0
 for e in $LIST; do
   IFS=: read -r file fn unw extra <<< "$e"

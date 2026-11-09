@@ -12,6 +12,10 @@ import hashlib, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from contracts import CONTRACTS, LOOPS, LOGIC
+import contracts_match
+CONTRACTS = {**CONTRACTS, **contracts_match.CONTRACTS}
+LOOPS = {**LOOPS, **contracts_match.LOOPS}
+LOGIC = LOGIC + contracts_match.LOGIC
 
 # region start line, region end line (exact text), sha256 of the region
 REGION = ("// TODO(conni2461): UNICODE HEADER", "} char_types;",
@@ -21,6 +25,10 @@ SHA = {
     "copy_runes": None, "copy_into_i16": None, "trim_whitespace_left": None,
     "max16": None, "min64u": None, "char_class_of_ascii": None, "char_class_of": None,
     "bonus_for": None, "bonus_at": None, "normalize_rune": None, "is_ascii": None,
+    # positions and scoring (contracts_match.py)
+    "resize_pos": None, "unsafe_append_pos": None, "append_pos": None, "insert_range": None,
+    "calculate_score": None,
+    "fzf_prefix_match": None, "fzf_suffix_match": None, "fzf_equal_match": None,
 }
 PINS = os.path.join(HERE, "pins.txt")   # name sha256, reviewed
 PRELUDE = """\
@@ -29,6 +37,7 @@ PRELUDE = """\
 #include <string.h>
 #include <stdlib.h>
 #include "fzf_ctype.h"
+#include "fzf_realloc.h"   // realloc as C11 7.22.3.5 describes it, on uint32_t arrays
 """
 INCLUDES = ['#include "fzf.h"', "#include <string.h>", "#include <ctype.h>", "#include <stdlib.h>"]
 
