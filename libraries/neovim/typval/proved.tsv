@@ -1,0 +1,42 @@
+tv_list_len	wp (Frama-C WP), typval.h inline used by typval.c
+tv_list_uidx	wp (Frama-C WP), typval.h inline used by typval.c
+tv_list_locked	wp (Frama-C WP), typval.h inline used by typval.c
+tv_blob_len	wp (Frama-C WP), typval.h inline used by typval.c
+tv_blob_get	wp (Frama-C WP), typval.h inline used by typval.c
+tv_check_str_or_nr	wp (Frama-C WP)
+tv_check_num	wp (Frama-C WP)
+tv_check_str	wp (Frama-C WP)
+tv_islocked	wp (Frama-C WP)
+check_repeat_count	wp (Frama-C WP)
+tv_get_float	wp (Frama-C WP)
+tv2bool	wp (Frama-C WP)
+tv_get_number_chk	wp (Frama-C WP), modulo vim_str2nr (charset.c, uninterpreted value)
+tv_get_bool_chk	wp (Frama-C WP), via tv_get_number_chk (modulo vim_str2nr)
+tv_get_bool	wp (Frama-C WP), via tv_get_number_chk (modulo vim_str2nr)
+tv_callback_equal	wp (Frama-C WP), uses strequal's contract proved in memory/wp
+tv_blob_check_index	wp (Frama-C WP)
+tv_blob_check_range	wp (Frama-C WP)
+tv_blob_equal	wp (Frama-C WP)
+tv_check_for_string_arg	wp (Frama-C WP)
+tv_check_for_nonempty_string_arg	wp (Frama-C WP)
+tv_check_for_opt_string_arg	wp (Frama-C WP)
+tv_check_for_number_arg	wp (Frama-C WP)
+tv_check_for_opt_number_arg	wp (Frama-C WP)
+tv_check_for_float_or_nr_arg	wp (Frama-C WP)
+tv_check_for_bool_arg	wp (Frama-C WP)
+tv_check_for_opt_bool_arg	wp (Frama-C WP)
+tv_check_for_blob_arg	wp (Frama-C WP)
+tv_check_for_list_arg	wp (Frama-C WP)
+tv_check_for_dict_arg	wp (Frama-C WP)
+tv_check_for_nonnull_dict_arg	wp (Frama-C WP)
+tv_check_for_opt_dict_arg	wp (Frama-C WP)
+tv_check_for_string_or_number_arg	wp (Frama-C WP)
+tv_check_for_buffer_arg	wp (Frama-C WP)
+tv_check_for_lnum_arg	wp (Frama-C WP)
+tv_check_for_string_or_list_arg	wp (Frama-C WP)
+tv_check_for_string_or_list_or_blob_arg	wp (Frama-C WP)
+tv_check_for_opt_string_or_list_arg	wp (Frama-C WP)
+tv_check_for_string_or_func_arg	wp (Frama-C WP)
+tv_check_for_list_or_blob_arg	wp (Frama-C WP)
+value_check_lock	wp (Frama-C WP), strlen by its libc contract
+tv_check_lock	wp (Frama-C WP)

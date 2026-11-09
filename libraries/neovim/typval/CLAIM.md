@@ -41,6 +41,11 @@ still evaluated, so overflow in them is checked).
 | `tv_blob_check_index(len, n1, quiet)` | OK iff `0 <= n1 <= len` (`len` itself allowed: append position); else FAIL, one message unless quiet |
 | `tv_blob_check_range(len, n1, n2, quiet)` | OK iff `n1 <= n2` and `0 <= n2 < len`; else FAIL, one message unless quiet |
 | `tv_blob_equal(b1, b2)` | true iff same length (NULL = empty) and the same bytes |
+| `tv_get_number_chk(tv, err)` | Number: the value; String: 0 for NULL, else the value `vim_str2nr` stores (uninterpreted function of the string); Bool: 1/0; Special: 0; other types: one message, and `*err = true`, result 0 if `err` given, else -1 |
+| `tv_get_bool_chk`, `tv_get_bool` | the same as `tv_get_number_chk` (with `err`, resp. NULL) |
+| `tv_callback_equal` | true iff same type and equal payload (string equality for Funcref/Expr by `strequal`'s proved contract; pointer/ref equality for Partial/Lua) |
+| `value_check_lock(lock, name, len)` | true iff `lock != VAR_UNLOCKED`, and then exactly one message; `assert(error_message != NULL)` proved |
+| `tv_check_lock(tv, name, len)` | true iff the value's lock or its Blob/List/Dict's lock is set; exactly one message when true |
 | 21 `tv_check_for_*_arg(args, idx)` | OK iff `args[idx]` has an accepted type (the `opt_` forms also accept `VAR_UNKNOWN`; `bool` also accepts Number 0/1; `nonempty_string` needs a non-NULL non-empty string; `nonnull_dict` a non-NULL dict); else FAIL with exactly one message |
 
 ## Assumptions (preconditions) and trusted base
@@ -50,6 +55,12 @@ still evaluated, so overflow in them is checked).
 - `tv_check_for_*_arg`: `0 <= idx <= MAX_FUNC_ARGS` (arguments are counted by the evaluator,
   at most 20). Needed only for the `idx + 1` in the message.
 - `check_repeat_count`: `slen > 0`; all three callers (funcs.c repeat_list/blob/string) test this first.
+- `value_check_lock` / `tv_check_lock`: the name length (given, or `strlen(name)`) is at most
+  `INT_MAX`, because the code converts it with `(int)name_len` for `%.*s`. Above that the
+  conversion is implementation-defined (the message would print a different length; no memory error).
+- `vim_str2nr` (charset.c) is modelled by its effect only: it writes `*nptr` with a value that
+  depends on the string and the old `*nptr`. Its own proof belongs to the charset.c claim (PR #3).
+- `strequal`: the contract proved in `memory/wp`. `strlen`: the libc contract used in `memory/wp`.
 - `emsg`, `semsg`, `vim_snprintf` are stubs (messages only; `vim_snprintf` writes only `buf`).
 - `struct dictvar_S` is copied up to `dv_hashtab`; later fields (used-list links, watchers)
   are left out because no proved function reads them. `listitem_S.li_tv` is left out for the same reason.

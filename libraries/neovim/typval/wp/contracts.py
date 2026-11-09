@@ -3,6 +3,7 @@ PRELUDE = r'''
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <limits.h>
 #define OK 1
 #define FAIL 0
 #define FUNC_ATTR_PURE
@@ -407,7 +408,6 @@ extern const char e_string_or_function_required_for_argument_nr[];
 extern const char e_list_or_blob_required_for_argument_nr[];
 #define NUL '\000'
 
-#include <limits.h>
 enum { NUMBUFLEN = 65, };
 extern const char e_val_too_large[];
 /*@ requires \valid(buf + (0 .. len - 1)) && len > 0;
@@ -549,9 +549,55 @@ varnumber_T tv_get_bool(const typval_T *const tv);
       (cb1->type == kCallbackLua ==> cb1->data.luaref == cb2->data.luaref) &&
       (cb1->type == kCallbackExpr ==> str_eq(cb1->data.expr, cb2->data.expr)); */
 bool tv_callback_equal(const Callback *cb1, const Callback *cb2);
+
+// ---- locks
+#define TV_TRANSLATE (SIZE_MAX)
+#define TV_CSTRING (SIZE_MAX - 1)
+extern const char e_value_is_locked[];
+extern const char e_value_is_locked_str[];
+extern const char e_cannot_change_value[];
+extern const char e_cannot_change_value_of_str[];
+// assert(): its condition must be proved at each use.
+/*@ requires c != 0; assigns \nothing; */
+void vp_assert(int c);
+#define assert(x) vp_assert((x) != 0)
+// strlen: the libc contract used by memory/wp (stubs/vp_string.h)
+/*@ requires is_str((char *)s);
+    assigns \result \from ((char *)s)[0 ..];
+    ensures str_len((char *)s, \result); */
+size_t strlen(const char *s);
+
+/*@ predicate lock_ok(integer l) = l \in {VAR_UNLOCKED, VAR_LOCKED, VAR_FIXED};
+    predicate name_ok(char *name, size_t name_len) =
+      name == \null ||
+      ((name_len == TV_TRANSLATE || name_len == TV_CSTRING) ?
+         \exists integer n; str_len(name, n) && n <= INT_MAX :
+         name_len <= INT_MAX); */
+/*@ requires lock_ok(lock) && name_ok((char *)name, name_len);
+    assigns vp_msgs;
+    ensures \result == 0 || \result == 1;
+    ensures \result == 1 <==> lock != VAR_UNLOCKED;
+    ensures vp_msgs == \old(vp_msgs) + (lock != VAR_UNLOCKED ? 1 : 0); */
+bool value_check_lock(VarLockStatus lock, const char *name, size_t name_len);
+
+/*@ logic integer inner_lock(typval_T *tv) =
+      tv->v_type == VAR_BLOB && tv->vval.v_blob != \null ? tv->vval.v_blob->bv_lock :
+      tv->v_type == VAR_LIST && tv->vval.v_list != \null ? tv->vval.v_list->lv_lock :
+      tv->v_type == VAR_DICT && tv->vval.v_dict != \null ? tv->vval.v_dict->dv_lock : VAR_UNLOCKED; */
+/*@ requires \valid_read(tv) && lock_ok(tv->v_lock) && name_ok((char *)name, name_len);
+    requires tv->v_type == VAR_BLOB && tv->vval.v_blob != \null ==> \valid_read(tv->vval.v_blob) && lock_ok(tv->vval.v_blob->bv_lock);
+    requires tv->v_type == VAR_LIST && tv->vval.v_list != \null ==> \valid_read(tv->vval.v_list) && lock_ok(tv->vval.v_list->lv_lock);
+    requires tv->v_type == VAR_DICT && tv->vval.v_dict != \null ==> \valid_read(tv->vval.v_dict) && lock_ok(tv->vval.v_dict->dv_lock);
+    assigns vp_msgs;
+    ensures \result == 0 || \result == 1;
+    ensures \result == 1 <==> (tv->v_lock != VAR_UNLOCKED || inner_lock((typval_T *)tv) != VAR_UNLOCKED);
+    ensures vp_msgs == \old(vp_msgs) + (\result == 1 ? 1 : 0); */
+bool tv_check_lock(const typval_T *tv, const char *name, size_t name_len);
 '''
 
 CHECKS = [
+    ("src/nvim/eval/typval.h", "#define TV_TRANSLATE (SIZE_MAX)"),
+    ("src/nvim/eval/typval.h", "#define TV_CSTRING (SIZE_MAX - 1)"),
     ("src/nvim/charset.h", "  STR2NR_ALL = STR2NR_BIN | STR2NR_OCT | STR2NR_HEX | STR2NR_OOCT,"),
     ("src/nvim/eval/typval_defs.h", "    char *expr;    ///< kCallbackExpr: Vimscript, for \"expr\" options."),
     ("src/nvim/eval/typval_defs.h", "  CallbackType type;"),
