@@ -24,7 +24,7 @@ with `size < 2` would read out of bounds; no such call exists.
 
 ## Not yet verified (fileio.c encoding/byte helpers)
 `next_fenc`,
-`set_forced_fenc`, `readfile_charconvert`, `vim_fgets`, `read_string`, `put_bytes`,
+`set_forced_fenc`, `readfile_charconvert`, `vim_fgets`, `read_string`,
 `readfile_linenr`, and the conversion loops inside `readfile`. `get8ctime` was handled by the undo
 thread. The rest of fileio.c (66 functions in inventory.tsv) is also open.
 
