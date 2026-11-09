@@ -1,8 +1,10 @@
 """Annotated standalone copy of charset.c's string helpers for Frama-C WP.
 
-Usage: python3 -I build.py <neovim checkout> <out.c> [--fixed]
+Usage: python3 -I build.py <neovim checkout> <out.c> [--fixed] [--what V]
 --fixed: the checkout is the fixed fork; functions in FIXED_SHA use the fork's pinned
 text and drop their "// upstream only" preconditions.
+--what V: proof case for vim_str2nr: adds `requires what == V`. run_wp.sh runs every V in
+tool_patches.STR2NR_WHAT, which is every value the contract allows (checked there).
 Exact upstream text of each function (sha256 pinned), from charset.c and the
 ascii_defs.h inline helpers it calls, with an ACSL contract placed before each
 function and annotations inserted as comments. The C code is not changed:
@@ -44,7 +46,7 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
 GHOST_RE = r" /\*@ ghost \(.*?\) \*/"
 
 
-def main(tree, out, fixed=False):
+def main(tree, out, fixed=False, what=None):
     for path, text in CHECKS + PRELUDE_CHECKS:
         if text not in open(f"{tree}/{path}").read().split("\n"):
             sys.exit(f"build: {path} no longer contains: {text}")
@@ -64,8 +66,8 @@ def main(tree, out, fixed=False):
             sys.exit(f"build: {name} ({path}:{s + 1}) changed upstream: sha256 {h}")
         patched = tool_patches.apply(name, piece)   # declared rewrites (equiv/ proves them)
         a = patched
-        if name in GHOST_PARAMS:
-            sig, param = GHOST_PARAMS[name]
+        gp = GHOST_PARAMS.get(name, [])
+        for sig, param in ([gp] if isinstance(gp, tuple) else gp):   # one or a list of (signature, param)
             if a.count(sig + "\n") != 1:
                 sys.exit(f"build: {name}: signature not found once: {sig!r}")
             a = a.replace(sig + "\n", f"{sig} /*@ ghost ({param}) */\n")
@@ -76,6 +78,8 @@ def main(tree, out, fixed=False):
         for entry in LOOPS.get(name, []):
             # (anchor, annotation[, nth occurrence (None: must be unique)[, "after"]])
             anchor, annot = entry[0], entry[1]
+            if fixed:   # as for contracts: upstream-only preconditions are dropped
+                annot = "\n".join(l for l in annot.split("\n") if "// upstream only" not in l)
             nth = entry[2] if len(entry) > 2 else None
             after = len(entry) > 3 and entry[3] == "after"   # insert after the anchor text
             k = a.count(anchor)
@@ -95,9 +99,18 @@ def main(tree, out, fixed=False):
         contract = CONTRACTS[name]
         if fixed:   # upstream-only preconditions (the bug's input range) are dropped
             contract = "\n".join(l for l in contract.split("\n") if "// upstream only" not in l)
-        parts.append(f"// {path}:{s + 1} ({'fixed fork' if fixed and name in FIXED_SHA else 'verbatim'}, plus ACSL comments)\n/*@ {contract} */\n{a}\n")
+        if name == "vim_str2nr" and what is not None:
+            contract = f"requires proof_case: what == {int(what)};\n    " + contract
+        # the contract goes right before the function's own definition (a tool patch may put
+        # helper functions in front of it)
+        m = re.search(r"^[^\s/#].*\b" + name + r"\(", a, flags=re.M)
+        k = m.start() if m else 0
+        tag = f"// {path}:{s + 1} ({'fixed fork' if fixed and name in FIXED_SHA else 'verbatim'}{', tool patches' if patched != piece else ''}, plus ACSL comments)\n"
+        parts.append(tag + a[:k] + f"/*@ {contract} */\n" + a[k:] + "\n")
     open(out, "w").write("\n".join(parts))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], "--fixed" in sys.argv[3:])
+    rest = sys.argv[3:]
+    main(sys.argv[1], sys.argv[2], "--fixed" in rest,
+         rest[rest.index("--what") + 1] if "--what" in rest else None)

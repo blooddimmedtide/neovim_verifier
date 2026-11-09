@@ -22,6 +22,6 @@ run() {  # $1 = label, rest = frama-c selection options
 }
 FUNCS="${*:-ascii_iswhite ascii_isdigit ascii_isxdigit ascii_isbdigit ascii_isodigit nr2hex skipwhite skipwhite_len getwhitecols
   skipdigits skipbin skiphex skiptodigit skiptobin skiptohex skiptowhite skiptowhite_esc skip_to_newline
-  vim_isblankline hex2nr hexhex2nr rem_backslash backslash_halve backslash_halve_save vim_str2nr subj_exists try_getdigits getdigits getdigits_int getdigits_long getdigits_int32}"
+  vim_isblankline hex2nr hexhex2nr rem_backslash backslash_halve backslash_halve_save vp_parse_bin vp_parse_oct vp_parse_dec vp_parse_hex vim_str2nr subj_exists try_getdigits getdigits getdigits_int getdigits_long getdigits_int32}"
 for f in $FUNCS; do run "$f" -wp-fct "$f"; done
 echo "logs: $W"; exit $status
