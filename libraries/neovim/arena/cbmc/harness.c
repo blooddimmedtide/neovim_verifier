@@ -87,12 +87,18 @@ void harness(void)
 #endif
 
 #ifdef H_LIFE
+#ifndef LIFE_ROUNDS
+# define LIFE_ROUNDS 2
+#endif
+#ifndef LIFE_K
+# define LIFE_K 3
+#endif
 void harness(void)
 {
-  for (int round = 0; round < 2; round++) {
+  for (int round = 0; round < LIFE_ROUNDS; round++) {
     Arena a = ARENA_EMPTY;
     int k = 0;
-    while (nondet_bool() && k < 3) {
+    while (nondet_bool() && k < LIFE_K) {
       size_t n = nondet_size();
       __CPROVER_assume(n <= 3 * ARENA_BLOCK_SIZE);
       char *p = arena_alloc(&a, n, nondet_bool());
