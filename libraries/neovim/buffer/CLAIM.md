@@ -4,8 +4,8 @@ Status: **in progress, not verified.** Stopped at the 2026-11-09 09:00 UTC deadl
 
 | Function | Tool | Result |
 |---|---|---|
-| calc_percentage | CBMC 6.4.1 (`cbmc/harness.c`, h_calc_percentage) | harness written; run did not finish before the deadline (64-bit nondet division is slow). Not proved. |
-| buf_time_compare | CBMC 6.4.1 (h_buf_time_compare, h_buf_time_compare_bufmatch) | see the run log in the PR; candidate only if both runs pass |
+| calc_percentage | CBMC 6.4.1 (`cbmc/harness.c`, h_calc_percentage) | harness written (division-free reference); CBMC timed out after 230 s in the SAT step. Not proved. Next: split by branch, or Frama-C WP. |
+| buf_time_compare | CBMC 6.4.1 (h_buf_time_compare, h_buf_time_compare_bufmatch) | VERIFICATION SUCCESSFUL, signed and unsigned char, x86_64. Candidate (no review or mutants yet). |
 
 Spec for calc_percentage (from the doc comment and every caller): with 0 <= part <= whole and
 whole >= 1, the result r satisfies 0 <= r <= 100 and r is floor(100*part/whole) or one above it;

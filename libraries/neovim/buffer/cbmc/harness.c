@@ -19,11 +19,12 @@ void h_calc_percentage(void) {
   int64_t part = nondet_i64(), whole = nondet_i64();
   __CPROVER_assume(whole >= 1 && part >= 0 && part <= whole);
   int r = calc_percentage(part, whole);
-  // Reference in 128-bit arithmetic (no overflow possible).
-  __int128 f = ((__int128)part * 100) / whole;
+  // Reference without division: f = floor(100*part/whole) iff f*whole <= 100*part < (f+1)*whole.
+  // 128-bit products cannot overflow (r <= 100 is asserted first).
   assert(r >= 0 && r <= 100);
-  assert(r == f || r == f + 1);
-  if (part <= 1000000) assert(r == f);
+  __int128 P = (__int128)part * 100, W = whole;
+  assert((__int128)(r - 1) * W <= P && P < (__int128)(r + 1) * W);   // r in {f, f+1}
+  if (part <= 1000000) assert((__int128)r * W <= P);                 // exact: r == f
 }
 
 // Outside the caller contract: whole in [1,99] with part > 1e6 divides by zero.
