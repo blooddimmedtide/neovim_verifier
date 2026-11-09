@@ -154,10 +154,13 @@ CONTRACTS = {
     "remove_comma_item": (REMOVE_COMMA_ITEM, [
         ("ptrdiff_t itemlen)", GHOST_N, "after"),
         ("    // Remove item and trailing comma",
-         "    /*@ assert str_len(item + itemlen + 1, n - (item - str) - itemlen - 1); */\n", "before"),
+         "    /*@ assert str_len(item + itemlen + 1, n - (item - str) - itemlen - 1); */\n"
+         "    /*@ assert \\forall integer j; 0 <= j < n ==> str[j] != 0; */\n", "before"),
         ("    STRMOVE(item, item + itemlen + 1);",
          "\n    /*@ assert \\forall integer j; item - str <= j <= n - itemlen - 1 ==> str[j] == \\at(str[j + itemlen + 1], Pre); */"
-         "\n    /*@ assert \\forall integer j; 0 <= j < n - itemlen - 1 ==> str[j] != 0; */", "after"),
+         "\n    /*@ assert \\forall integer j; 0 <= j < item - str ==> str[j] != 0; */"
+         "\n    /*@ assert \\forall integer j; item - str <= j < n - itemlen - 1 ==> \\at(str[j + itemlen + 1], Pre) != 0; */"
+         "\n    /*@ assert \\forall integer j; item - str <= j < n - itemlen - 1 ==> str[j] != 0; */", "after"),
         ("    // Last item: remove leading comma and item",
          "    /*@ assert str_len(item + itemlen, n - (item - str) - itemlen); */\n", "before")]),
     "append_item": (APPEND_ITEM, [("ptrdiff_t item_len)", GHOST_N, "after")]),
@@ -202,3 +205,51 @@ def concat_contract(upstream):
 """
 
 CONCAT_ANCHORS = [("uint32_t flags)", " /*@ ghost (size_t no, size_t nn) */", "after")]
+
+ALNUM = r"""
+/*@ predicate alnum(integer c) = ('a' <= c <= 'z') || ('A' <= c <= 'Z') || ('0' <= c <= '9');
+    predicate in_str{L}(char *a, integer m, integer c) = \exists integer i; 0 <= i < m && a[i] == c;
+*/
+"""
+# valid_name (no doc comment; callers: "Check for a 'normal' name", e.g. 'spelllang' and
+# 'filetype'): true iff every byte of val is an ASCII letter or digit or one of `allowed`.
+VALID_NAME = ALNUM + r"""
+/*@ requires str_len((char *)val, n) && n < PTRDIFF_MAX;
+    requires \exists integer m; str_len((char *)allowed, m);
+    requires ascii_str((char *)allowed);
+    assigns \nothing;
+    ensures \result <==> \forall integer j; 0 <= j < n ==>
+              alnum(val[j]) || \exists integer m; str_len((char *)allowed, m) && in_str((char *)allowed, m, val[j]);
+*/
+"""
+VALID_NAME_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && val <= s <= val + n;
+      loop invariant \forall integer j; 0 <= j < s - val ==>
+        alnum(val[j]) || \exists integer m; str_len((char *)allowed, m) && in_str((char *)allowed, m, val[j]);
+      loop assigns s;
+      loop variant n - (s - val); */
+"""
+# check_option_listflag: "Validate a list of character flags against flags": NULL when
+# every byte of val is one of flags, otherwise an error message (never NULL).
+LISTFLAG = r"""
+/*@ predicate in_str2{L}(char *a, integer m, integer c) = \exists integer i; 0 <= i < m && a[i] == c; */
+/*@ requires str_len(val, n) && n < PTRDIFF_MAX;
+    requires \exists integer m; str_len(flags, m);
+    requires ascii_str(flags);
+    requires errbuf == \null || (\valid_read(errbuf) && \valid(errbuf->data + (0 .. errbuf->size - 1)));
+    assigns errbuf->data[0 .. errbuf->size - 1];
+    ensures \result == \null <==> \forall integer j; 0 <= j < n ==>
+              \exists integer m; str_len(flags, m) && in_str2(flags, m, \at(val[j], Pre));
+*/
+"""
+LISTFLAG_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && val <= s <= val + n;
+      loop invariant \forall integer j; 0 <= j < s - val ==>
+        \exists integer m; str_len(flags, m) && in_str2(flags, m, val[j]);
+      loop assigns s;
+      loop variant n - (s - val); */
+"""
+CONTRACTS["valid_name"] = (VALID_NAME, [
+    ("const char *allowed)", GHOST_N, "after"),
+    ("  for (const char *s = val; *s != NUL; s++) {", VALID_NAME_LOOP, "before")])
+CONTRACTS["check_option_listflag"] = (LISTFLAG, [
+    ("const CharBuf *errbuf)", GHOST_N, "after"),
+    ("  for (char *s = val; *s; s++) {", LISTFLAG_LOOP, "before")])

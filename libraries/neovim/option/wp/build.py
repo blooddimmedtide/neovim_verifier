@@ -19,7 +19,10 @@ SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
     "append_item": "7ae3f2836992e83927a7a19eaee25bf80ad080e0ea9caacea18a9e22b881260c",
     "prepend_item": "834cbedbdb140eafa9a81c255ffa41caf57ff6c30c08e56777ee9e3821399b17",
     "stropt_concat_with_comma": "7a9a6491fe0519e74191504c360f2da628f0415b42ad16a2ee0594d206f59985",
+    "valid_name": "d359a2065b85f96c451bcaabefaa157b41d0eccd180a679e3547eb734f967144",
+    "check_option_listflag": "cd9222e884338fd1e159a739482c556d5708eca954e825e05bea6bcae32d6b7d",
 }
+FILE = {"check_option_listflag": "src/nvim/optionstr.c"}   # the rest are in option.c
 # verified_neovim branch claude/project-thread-33fn39, fix commit 36f4ea6
 FIXED_SHA = {"stropt_concat_with_comma": "1b8956176a636ed2e10821d306924a5f1fef5f5a6bd6afeb9a9542ba09296243"}
 PRELUDE = """\
@@ -28,6 +31,7 @@ PRELUDE = """\
 #include <stddef.h>
 #include <stdint.h>
 #include <limits.h>
+#include <stdbool.h>
 #include "vp_option.h"
 typedef enum {
   OP_NONE = 0,
@@ -41,6 +45,17 @@ enum {
 };
 #define NUL '\\000'
 #define STRMOVE(d, s)       memmove((d), (s), strlen(s) + 1)
+#define FUNC_ATTR_NONNULL_ALL
+#define FUNC_ATTR_PURE
+#define FUNC_ATTR_WARN_UNUSED_RESULT
+#define ASCII_ISLOWER(c) ((unsigned)(c) >= 'a' && (unsigned)(c) <= 'z')
+#define ASCII_ISUPPER(c) ((unsigned)(c) >= 'A' && (unsigned)(c) <= 'Z')
+#define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))
+#define ASCII_ISALNUM(c) (ASCII_ISALPHA(c) || ascii_isdigit(c))
+static inline bool ascii_isdigit(int c)
+{
+  return c >= '0' && c <= '9';
+}
 """
 CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
           ("src/nvim/option_defs.h", "  OP_NONE = 0,"),
@@ -49,6 +64,13 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
           ("src/nvim/option_defs.h", "  OP_REMOVING,    ///< \"opt-=arg\""),
           ("src/nvim/option_defs.h", "  kOptFlagComma     = 1 << 10,  ///< Comma-separated list."),
           ("src/nvim/option_defs.h", "  kOptFlagOneComma  = (1 << 11) | kOptFlagComma,  ///< Comma-separated list that cannot have two consecutive commas."),
+          ("src/nvim/macros_defs.h", "#define ASCII_ISLOWER(c) ((unsigned)(c) >= 'a' && (unsigned)(c) <= 'z')"),
+          ("src/nvim/macros_defs.h", "#define ASCII_ISUPPER(c) ((unsigned)(c) >= 'A' && (unsigned)(c) <= 'Z')"),
+          ("src/nvim/macros_defs.h", "#define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))"),
+          ("src/nvim/macros_defs.h", "#define ASCII_ISALNUM(c) (ASCII_ISALPHA(c) || ascii_isdigit(c))"),
+          ("src/nvim/ascii_defs.h", "static inline bool ascii_isdigit(int c)"),
+          ("src/nvim/ascii_defs.h", "  return c >= '0' && c <= '9';"),
+          ("src/nvim/types_defs.h", "  size_t size;  ///< Total writable bytes, including any space for a terminating NUL."),
           ("src/nvim/memory.h", "#define STRMOVE(d, s)       memmove((d), (s), strlen(s) + 1)")]
 COMMENT = re.compile(r"(?:\s*/\*@(?:(?!\*/).)*\*/)+\s*", re.S)  # ACSL comments only, no code
 
@@ -57,9 +79,11 @@ def main(tree, out):
     for path, text in CHECKS:
         if text not in open(f"{tree}/{path}").read().split("\n"):
             sys.exit(f"build: {path} no longer contains: {text}")
-    lines = open(f"{tree}/{F}").read().split("\n")
+    files = {}
     parts = [PRELUDE, LOGIC]
     for name, want in SHA.items():
+        path = FILE.get(name, F)
+        lines = files.setdefault(path, open(f"{tree}/{path}").read().split("\n"))
         s, e = find(lines, name)
         piece = "\n".join(lines[s:e + 1])
         h = hashlib.sha256(piece.encode()).hexdigest()
