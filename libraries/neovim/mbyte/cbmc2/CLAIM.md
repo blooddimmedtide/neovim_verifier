@@ -17,4 +17,10 @@ establishes them).
 
 Upstream run: 8/10 harness runs proved (h_safe_read fails, both signednesses). Fixed fork: 10/10.
 
-Not done (deadline 2026-11-09 09:00 UTC): differential test, adversarial review + mutants, CI.
+Differential test (`run_difftest.sh`, gcc -O2, signed and unsigned char; exhaustive over all
+1-3 byte inputs, 20M random 4-6 byte inputs): fixed fork 0 mismatches; upstream 95 mismatches,
+all overlong forms in utf_safe_read_char_adv (the finding).
+Planted bugs (`mutants.py`, self-written, NOT the independent review): 8/8 caught.
+
+Not done (deadline 2026-11-09 09:00 UTC): independent adversarial review + its mutants, CI,
+vpipe.toml target entry.
