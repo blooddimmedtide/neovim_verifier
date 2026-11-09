@@ -56,3 +56,14 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/memory.c	arena_align_offset	candidate	arena/cbmc (CBMC, all 64-bit inputs)	smallest multiple of 8 >= off; see arena/CLAIM.md. No review yet
+src/nvim/memory.c	arena_alloc	fixed-candidate	arena/cbmc (CBMC) upstream and fork	upstream proved for size <= SIZE_MAX-4096; size wrap above, findings/arena-alloc-size-wrap.md; fix (verified_neovim branch fix-arena-alloc-size-wrap) proved for every size
+src/nvim/memory.c	arena_alloc_block	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md
+src/nvim/memory.c	alloc_block	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md
+src/nvim/memory.c	free_block	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md
+src/nvim/memory.c	arena_finish	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md
+src/nvim/memory.c	arena_mem_free	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md
+src/nvim/memory.c	arena_free_reuse_blks	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md
+src/nvim/memory.c	arena_allocz	fixed-candidate	arena/cbmc H_ALLOCZ (CBMC) upstream and fork	n+1 writable bytes, byte n NUL; upstream wraps at SIZE_MAX (same finding); fix proved for every size
+src/nvim/memory.c	arena_memdupz	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md
+src/nvim/memory.c	arena_strdup	open	arena/cbmc harness written, not proved (out of memory)	see arena/CLAIM.md

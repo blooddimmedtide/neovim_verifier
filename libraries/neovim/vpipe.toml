@@ -104,3 +104,9 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.memory_arena]
+file = "src/nvim/memory.c"
+functions = ["arena_align_offset", "arena_alloc", "arena_alloc_block", "alloc_block", "free_block", "arena_finish", "arena_mem_free", "arena_free_reuse_blks", "arena_allocz", "arena_memdupz", "arena_strdup"]
+annotate = "arena/cbmc/build.py"   # verbatim extraction, sha256 pinned
+prove = ["bash arena/cbmc/run_cbmc.sh {src}", "bash arena/cbmc/run_cbmc.sh {fixed}"]
