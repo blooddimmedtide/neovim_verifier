@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/msgpack_rpc/unpacker.c | 0 | 6 | 10 | 16 |
+| src/nvim/msgpack_rpc/unpacker.c | 0 | 7 | 9 | 16 |
 
 ## Function details
 
@@ -83,7 +83,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/msgpack_rpc/unpacker.c | `push_additional_data` | fixed-candidate | unpacker/cbmc/harness_ad.c (CBMC, upstream fails, fixed proved) | nbytes wraps at 4 GiB (findings/additional-data-over-4gib.md); fix verified_neovim 76c51e8 |
 | src/nvim/msgpack_rpc/unpacker.c | `unpack` | open |  | not started (needs WP with callee contracts) |
 | src/nvim/msgpack_rpc/unpacker.c | `api_parse_enter` | open |  | not started (needs WP with callee contracts) |
-| src/nvim/msgpack_rpc/unpacker.c | `api_parse_exit` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `api_parse_exit` | candidate | unpacker/cbmc (CBMC) | empty |
 | src/nvim/msgpack_rpc/unpacker.c | `unpacker_init` | open |  | not started (needs WP with callee contracts) |
 | src/nvim/msgpack_rpc/unpacker.c | `unpacker_teardown` | open |  | not started (needs WP with callee contracts) |
 | src/nvim/msgpack_rpc/unpacker.c | `unpacker_parse_header` | open |  | not started (needs WP with callee contracts) |

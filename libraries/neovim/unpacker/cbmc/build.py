@@ -21,6 +21,7 @@ REVIEWED = {
     "unpack_integer": None,
     "unpack_uint_or_sint": None,
     "parse_nop": None,
+    "api_parse_exit": None,
     "push_additional_data": None,
 }
 HERE = os.path.dirname(os.path.abspath(__file__))

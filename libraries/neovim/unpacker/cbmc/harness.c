@@ -87,3 +87,8 @@ void h_parse_nop(void)
 {
   parse_nop(NULL, NULL);  // empty body: nothing read or written
 }
+
+void h_api_parse_exit(void)
+{
+  api_parse_exit(NULL, NULL);  // empty body: nothing read or written
+}

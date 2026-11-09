@@ -10,7 +10,7 @@ if grep -n '__CPROVER_assume' "$W/unpacker_part.c"; then echo "assume in code un
 status=0
 for sign in signed --unsigned-char; do
 for hf in harness.c:h_unpack_string harness.c:h_unpack_array harness.c:h_unpack_integer harness.c:h_unpack_uint_or_sint \
-          harness.c:h_parse_nop harness_ad.c:h_push_additional_data; do
+          harness.c:h_parse_nop harness.c:h_api_parse_exit harness_ad.c:h_push_additional_data; do
   f=${hf%%:*}; h=${hf#*:}
   if [ -n "${ONLY:-}" ] && ! [[ $h =~ $ONLY ]]; then continue; fi
   out=$(cbmc "$HERE/$f" --function "$h" -I "$HERE" -I "$HERE/stubs" -I "$NV/src" -I "$NV/src/mpack" -DUNPACKER_C="\"$W/unpacker_part.c\"" \

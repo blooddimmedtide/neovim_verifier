@@ -64,7 +64,7 @@ src/nvim/msgpack_rpc/unpacker.c	parse_nop	candidate	unpacker/cbmc (CBMC)	empty
 src/nvim/msgpack_rpc/unpacker.c	push_additional_data	fixed-candidate	unpacker/cbmc/harness_ad.c (CBMC, upstream fails, fixed proved)	nbytes wraps at 4 GiB (findings/additional-data-over-4gib.md); fix verified_neovim 76c51e8
 src/nvim/msgpack_rpc/unpacker.c	unpack	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	api_parse_enter	open		not started (needs WP with callee contracts)
-src/nvim/msgpack_rpc/unpacker.c	api_parse_exit	open		not started (needs WP with callee contracts)
+src/nvim/msgpack_rpc/unpacker.c	api_parse_exit	candidate	unpacker/cbmc (CBMC)	empty
 src/nvim/msgpack_rpc/unpacker.c	unpacker_init	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	unpacker_teardown	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	unpacker_parse_header	open		not started (needs WP with callee contracts)

@@ -7,7 +7,7 @@ toolchain: CBMC 6.11.0 (vpipe Nix toolchain)
 strength: candidate   # becomes full-correctness after the owner signs off the spec
 tools: CBMC (bit-precise; loop-free code plus the real mpack reader, unwinding assertions on)
 platform: x86_64, char signed and unsigned (both proved)
-status: IN PROGRESS: 6 of 16 functions have proofs; 10 open (listed below). The file is not done.
+status: IN PROGRESS: 7 of 16 functions have proofs; 9 open (listed below). The file is not done.
 ---
 
 # Claim card: Neovim msgpack_rpc/unpacker.c
@@ -26,7 +26,7 @@ MessagePack specification, not the code.
 | `unpack_array(&d, &s)` | If the buffer starts with an array header (fixarray, array16/32), returns its item count and consumes exactly the header. Otherwise -1; consumption stays inside the buffer (d + s unchanged) | `h_unpack_array` |
 | `unpack_integer(&d, &s, &res)` | If the buffer starts with a complete integer (pos/neg fixint, uint8..64, int8..64), returns true, sets res to its value and consumes exactly it. Otherwise false, res untouched, consumption stays inside the buffer | `h_unpack_integer` |
 | `unpack_uint_or_sint(tok, &res)` | For every token the real reader produces: true and the integer value for UINT/SINT tokens, false and res untouched otherwise | `h_unpack_uint_or_sint` |
-| `parse_nop` | empty; reads and writes nothing | `h_parse_nop` |
+| `parse_nop`, `api_parse_exit` | empty; read and write nothing | `h_parse_nop`, `h_api_parse_exit` |
 | `push_additional_data(ad, data, size)` (fixed fork) | appends the bytes after an AdditionalData header (created zeroed on first use), nitems + 1, and keeps `nbytes == total size - header`. Upstream: wrong from 4 GiB (finding) | `harness_ad.c` |
 
 Reference decision (stated, not derived): a msgpack uint64 of 2^63 or more has no `Integer`
@@ -53,7 +53,7 @@ cast is dropped; proved for all sizes below 2^48. See `../findings/additional-da
 
 ## Not covered yet (file not done)
 
-`unpack`, `api_parse_enter`, `api_parse_exit`, `unpacker_init`, `unpacker_teardown`,
+`unpack`, `api_parse_enter`, `unpacker_init`, `unpacker_teardown`,
 `unpacker_parse_header`, `unpacker_advance`, `unpacker_parse_redraw`, `unpack_skip`,
 `unpack_keydict`. These call `mpack_parse` (object.c), the arena allocator, the UI client
 and the ShaDa key hash tables, and loop over unbounded input; they need Frama-C WP with
