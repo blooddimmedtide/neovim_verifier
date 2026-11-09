@@ -35,6 +35,8 @@ and back. The undo file is untrusted input, so these are the first layer of its 
 | `u_get_headentry(buf)` | the newest header's first entry, or NULL with one internal error | CBMC (`run_head.sh`); not yet in the independent review |
 | `u_getbot(buf)` | recomputes the pending entry's ue_bot from the line-count change, or resets it to ue_top + 1 with one internal error when out of range; clears the pending entry, sets b_u_synced | CBMC (`run_head.sh`), for line counts below MAXLNUM and ue_top + ue_size + 1 <= ue_lcount + 1; not yet in the independent review |
 | `u_update_save_nr(buf)` | increments the write counter (below INT_MAX), makes it current, and stores it in the header "u" would undo next (curhead's next, else the newest), if any; changes nothing else | CBMC (`run_save.sh`); not yet in the independent review |
+| `u_clearline(buf)` | frees the saved "U" line, sets it to NULL and its line number to 0; no saved line: no change; no leak | CBMC (`run_misc.sh`); not yet in the independent review |
+| `u_update_named_mark(buf, idx)`, 0 <= idx < 26 | sets lnum of mark idx to 0 in the current header, else the newest, if any; nothing else changes | CBMC (`run_misc.sh`); not yet in the independent review |
 | `undo_read(bi, buf, size)` | for size > 0: true and buf = the next size bytes when that many are left, else false and buf all zeros; for size 0: false (C's fread returns 0), which no caller passes | CBMC, every stream length and size below 2^40 (callers pass at most a few hundred bytes or an int length); size <= 5 also checked index by index |
 | `undo_read_string(bi, len)` | NULL (nothing leaked) when fewer than len bytes are left, else a len+1 block with those bytes and a NUL | CBMC, every stream length and len below 2^40 (callers pass a non-negative int) |
 
@@ -76,6 +78,9 @@ Upstream issue draft: project folder `neovim-verify/upstream/undo/` (not filed).
 - The WP proof adds two `assert`s inside `uhp_table_find` (proved goals, not assumptions).
 
 ## Review
+
+The seven functions marked "not yet in the independent review" (proved 08:35 to 08:40) were
+only checked with my own planted bugs (3, 0, 5, 3, 2, 2 per harness file), not a reviewer's.
 
 Independent adversarial review: `REVIEW.md` (accept with changes). Issues 1 (size-0 fread
 model) and 3 (message not checked) are fixed in the model and harnesses; 2, 4 and 6 are reflected

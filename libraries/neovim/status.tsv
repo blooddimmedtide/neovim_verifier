@@ -77,3 +77,5 @@ src/nvim/undo.c	zero_fmark_additional_data	candidate	undo/cbmc/run_small.sh (CBM
 src/nvim/undo.c	u_get_headentry	candidate	undo/cbmc/run_head.sh (CBMC)	newest entry or NULL + one internal error; no independent review yet
 src/nvim/undo.c	u_getbot	candidate	undo/cbmc/run_head.sh (CBMC)	ue_bot recomputed or reset with error; line counts below MAXLNUM (int overflow at exactly MAXLNUM lines, unconfirmed); 5 own planted bugs caught; no independent review yet
 src/nvim/undo.c	u_update_save_nr	candidate	undo/cbmc/run_save.sh (CBMC)	counter +1, stored in the header u would undo next; counter below INT_MAX; 3 own planted bugs caught; no independent review yet
+src/nvim/undo.c	u_clearline	candidate	undo/cbmc/run_misc.sh (CBMC)	frees saved U line, NULL + lnum 0; no leak; 2 own planted bugs caught; no independent review yet
+src/nvim/undo.c	u_update_named_mark	candidate	undo/cbmc/run_misc.sh (CBMC)	zeroes lnum of mark idx in current/newest header; idx 0..25 (mark.c passes c - 'a' for a lowercase c); 2 own planted bugs caught; no independent review yet

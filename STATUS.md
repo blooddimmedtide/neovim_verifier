@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/undo.c | 0 | 21 | 62 | 83 |
+| src/nvim/undo.c | 0 | 23 | 60 | 83 |
 
 ## Function details
 
@@ -96,6 +96,8 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/undo.c | `u_get_headentry` | candidate | undo/cbmc/run_head.sh (CBMC) | newest entry or NULL + one internal error; no independent review yet |
 | src/nvim/undo.c | `u_getbot` | candidate | undo/cbmc/run_head.sh (CBMC) | ue_bot recomputed or reset with error; line counts below MAXLNUM (int overflow at exactly MAXLNUM lines, unconfirmed); 5 own planted bugs caught; no independent review yet |
 | src/nvim/undo.c | `u_update_save_nr` | candidate | undo/cbmc/run_save.sh (CBMC) | counter +1, stored in the header u would undo next; counter below INT_MAX; 3 own planted bugs caught; no independent review yet |
+| src/nvim/undo.c | `u_clearline` | candidate | undo/cbmc/run_misc.sh (CBMC) | frees saved U line, NULL + lnum 0; no leak; 2 own planted bugs caught; no independent review yet |
+| src/nvim/undo.c | `u_update_named_mark` | candidate | undo/cbmc/run_misc.sh (CBMC) | zeroes lnum of mark idx in current/newest header; idx 0..25 (mark.c passes c - 'a' for a lowercase c); 2 own planted bugs caught; no independent review yet |
 
 ## All files
 
