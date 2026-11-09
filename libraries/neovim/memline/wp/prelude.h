@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <assert.h>
+#include <sys/types.h>
+#include "vp_string.h"   // ../../memory/wp/stubs: C-standard strlen contract, no axioms
 #define CHECK(c, s) do {} while (0)
 #define _(x) ((char *)(x))
 #define STACK_INCR      5
@@ -60,9 +62,16 @@ typedef struct {
   blocknr_T ip_bnum; linenr_T ip_low; linenr_T ip_high; int ip_index;
 } infoptr_T;
 _Static_assert(sizeof(infoptr_T) == 24, "infoptr_T size");
-// buf_T / memline_T reduced to the fields ml_add_stack uses.
-typedef struct { infoptr_T *ml_stack; int ml_stack_top; int ml_stack_size; } memline_T;
-typedef struct { memline_T b_ml; } buf_T;
+// buf_T / memline_T reduced to the fields these functions use.
+#define ML_LINE_DIRTY   0x02
+typedef struct { infoptr_T *ml_stack; int ml_stack_top; int ml_stack_size; int ml_flags; } memline_T;
+typedef struct {
+  memline_T b_ml;
+  bool update_need_codepoints;
+  size_t deleted_bytes; size_t deleted_bytes2; size_t deleted_codepoints; size_t deleted_codeunits;
+} buf_T;
+extern buf_T *curbuf;
+extern int inhibit_delete_count;
 
 // ---------------------------------------------------------------- trusted
 // Ghost log of frees, in order, so contracts can say exactly what is freed.
@@ -123,6 +132,21 @@ char *FullName_save(const char *fname, bool force);
     ensures mfp->mf_page_size == \old(mfp->mf_page_size);
 */
 bhdr_T *mf_new(memfile_T *mfp, bool negative, unsigned page_count);
+
+/*@ // mbyte.c mb_utflen (not verified here): adds the number of code points and
+    // UTF-16 code units of s[0 .. len-1] to the two counters. vp_cps / vp_cus are
+    // uninterpreted: this file relies only on "adds something that depends on the bytes".
+    logic integer vp_cps{L}(char *s, integer len) reads s[0 .. len - 1];
+    logic integer vp_cus{L}(char *s, integer len) reads s[0 .. len - 1];
+*/
+/*@ requires \valid_read(s + (0 .. len - 1)) && \valid(codepoints) && \valid(codeunits);
+    requires \separated(codepoints, codeunits);
+    requires *codepoints + vp_cps(s, len) <= SIZE_MAX && *codeunits + vp_cus(s, len) <= SIZE_MAX;
+    assigns *codepoints, *codeunits \from s[0 .. len - 1], len, *codepoints, *codeunits;
+    ensures *codepoints == \old(*codepoints) + vp_cps(s, len);
+    ensures *codeunits == \old(*codeunits) + vp_cus(s, len);
+*/
+void mb_utflen(const char *s, size_t len, size_t *codepoints, size_t *codeunits);
 
 // ---------------------------------------------------------------- proved
 /*@ // proved below with the functions (run label "lemmas"): a product of two
@@ -233,3 +257,73 @@ void mf_free_fnames(memfile_T *mfp);
     ensures mfp->mf_ffname == \null || \base_addr(mfp->mf_ffname) != \base_addr(fname);
 */
 void mf_set_fnames(memfile_T *mfp, char *fname);
+
+/*@ // Return the counts gathered since the last flush and reset them to zero.
+    requires \valid(buf) && \valid(codepoints) && \valid(codeunits);
+    requires \separated(buf, codepoints, codeunits);
+    assigns *codepoints, *codeunits, buf->deleted_bytes, buf->deleted_codepoints, buf->deleted_codeunits;
+    ensures \result == \old(buf->deleted_bytes);
+    ensures *codepoints == \old(buf->deleted_codepoints) && *codeunits == \old(buf->deleted_codeunits);
+    ensures buf->deleted_bytes == 0 && buf->deleted_codepoints == 0 && buf->deleted_codeunits == 0;
+*/
+size_t ml_flush_deleted_bytes(buf_T *buf, size_t *codepoints, size_t *codeunits);
+
+/*@ // Nonzero iff the cached line of curbuf was changed (and so is allocated).
+    requires \valid_read(curbuf);
+    assigns \nothing;
+    ensures (\result != 0) <==> ((curbuf->b_ml.ml_flags & ML_LINE_DIRTY) != 0);
+    ensures \result == (curbuf->b_ml.ml_flags & ML_LINE_DIRTY);
+*/
+int ml_line_alloced(void);
+
+/*@ // Count a deleted line: its length (len, or the whole string when len is -1 or
+    // too big) plus one for the NL, in bytes, and when asked in code points/units.
+    // Callers pass -1 or a length >= 0; no counter wraps.
+    requires \valid(buf) && is_str(ptr) && len >= -1;
+    requires \separated(buf, ptr + (0 ..));
+    requires \valid_read(&inhibit_delete_count) && \separated(&inhibit_delete_count, buf);
+    requires \forall integer m; str_len(ptr, m) ==> m <= PTRDIFF_MAX;   // no object is larger
+    requires \forall integer m; str_len(ptr, m) ==> buf->deleted_bytes + m + 1 <= SIZE_MAX;
+    requires \forall integer m; str_len(ptr, m) ==> buf->deleted_bytes2 + m + 1 <= SIZE_MAX;
+    requires buf->update_need_codepoints ==> \forall integer m; str_len(ptr, m) ==>
+      \forall integer n; 0 <= n <= m ==>
+        buf->deleted_codepoints + vp_cps(ptr, n) + 1 <= SIZE_MAX &&
+        buf->deleted_codeunits + vp_cus(ptr, n) + 1 <= SIZE_MAX;
+    assigns buf->deleted_bytes, buf->deleted_bytes2, buf->deleted_codepoints, buf->deleted_codeunits;
+    behavior inhibited:
+      assumes inhibit_delete_count != 0;
+      ensures buf->deleted_bytes == \old(buf->deleted_bytes) && buf->deleted_bytes2 == \old(buf->deleted_bytes2);
+      ensures buf->deleted_codepoints == \old(buf->deleted_codepoints);
+      ensures buf->deleted_codeunits == \old(buf->deleted_codeunits);
+    behavior counted:
+      assumes inhibit_delete_count == 0;
+      ensures \forall integer m; str_len{Pre}(ptr, m) ==> \let n = (len == -1 || len > m) ? m : len;
+        buf->deleted_bytes == \old(buf->deleted_bytes) + n + 1 &&
+        buf->deleted_bytes2 == \old(buf->deleted_bytes2) + n + 1 &&
+        (buf->update_need_codepoints ==>
+          buf->deleted_codepoints == \old(buf->deleted_codepoints) + vp_cps(ptr, n) + 1 &&
+          buf->deleted_codeunits == \old(buf->deleted_codeunits) + vp_cus(ptr, n) + 1) &&
+        (!buf->update_need_codepoints ==>
+          buf->deleted_codepoints == \old(buf->deleted_codepoints) &&
+          buf->deleted_codeunits == \old(buf->deleted_codeunits));
+    complete behaviors; disjoint behaviors;
+*/
+void ml_add_deleted_len_buf(buf_T *buf, char *ptr, ssize_t len);
+
+/*@ requires \valid(curbuf) && is_str(ptr) && len >= -1;
+    requires \separated(curbuf, ptr + (0 ..));
+    requires \valid_read(&inhibit_delete_count) && \separated(&inhibit_delete_count, curbuf);
+    requires \forall integer m; str_len(ptr, m) ==> m <= PTRDIFF_MAX;   // no object is larger
+    requires \forall integer m; str_len(ptr, m) ==> curbuf->deleted_bytes + m + 1 <= SIZE_MAX;
+    requires \forall integer m; str_len(ptr, m) ==> curbuf->deleted_bytes2 + m + 1 <= SIZE_MAX;
+    requires curbuf->update_need_codepoints ==> \forall integer m; str_len(ptr, m) ==>
+      \forall integer n; 0 <= n <= m ==>
+        curbuf->deleted_codepoints + vp_cps(ptr, n) + 1 <= SIZE_MAX &&
+        curbuf->deleted_codeunits + vp_cus(ptr, n) + 1 <= SIZE_MAX;
+    assigns curbuf->deleted_bytes, curbuf->deleted_bytes2, curbuf->deleted_codepoints, curbuf->deleted_codeunits;
+    ensures inhibit_delete_count == 0 ==> \forall integer m; str_len{Pre}(ptr, m) ==>
+      \let n = (len == -1 || len > m) ? m : len;
+        curbuf->deleted_bytes == \old(curbuf->deleted_bytes) + n + 1;
+    ensures inhibit_delete_count != 0 ==> curbuf->deleted_bytes == \old(curbuf->deleted_bytes);
+*/
+void ml_add_deleted_len(char *ptr, ssize_t len);

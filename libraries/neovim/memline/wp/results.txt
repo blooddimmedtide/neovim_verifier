@@ -10,4 +10,8 @@ mf_need_trans: 13 / 13
 ml_new_data: 32 / 32
 ml_new_ptr: 19 / 19
 ml_add_stack: 31 / 31
+ml_flush_deleted_bytes: 19 / 19
+ml_line_alloced: 7 / 7
+ml_add_deleted_len_buf: 55 / 55
+ml_add_deleted_len: 15 / 15
 

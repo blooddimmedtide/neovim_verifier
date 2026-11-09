@@ -4,12 +4,12 @@ Claim: neovim_verifier draft PR #9 (branch claude/project-thread-kiwgsl).
 Pinned upstream: neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Tool: Frama-C 33 WP
 (z3, cvc5), model Typed+Cast, RTE guards, unsigned-overflow warnings, smoke tests on.
 
-**Not finished.** 16 of 104 functions proved; 88 still unverified (list below).
+**Not finished.** 20 of 104 functions proved; 84 still unverified (list below).
 
 ## Status (2026-11-09, session stopped at the 09:00 UTC deadline)
 
-- Proved with WP, every goal, smoke tests pass (no dead code or vacuous contracts): mf_alloc_bhdr, mf_free_bhdr, mf_free_fnames, mf_ins_free, mf_need_trans, mf_new_page_size, mf_rem_free, mf_set_fnames, ml_add_stack, ml_new_data, ml_new_ptr.
-  Results: wp/results.txt (plus one helper lemma, proved). Planted bugs: wp/mutants.sh, 14/14 caught (wp/mutants_results.txt).
+- Proved with WP, every goal, smoke tests pass (no dead code or vacuous contracts): mf_alloc_bhdr, mf_free_bhdr, mf_free_fnames, mf_ins_free, mf_need_trans, mf_new_page_size, mf_rem_free, mf_set_fnames, ml_add_deleted_len, ml_add_deleted_len_buf, ml_add_stack, ml_flush_deleted_bytes, ml_line_alloced, ml_new_data, ml_new_ptr.
+  Results: wp/results.txt (plus one helper lemma, proved). Planted bugs: wp/mutants.sh, 21/21 caught (wp/mutants_results.txt).
 - Proved with CBMC 6.11 (bounds, pointer, overflow and shift checks, unwinding assertions, signed and
   unsigned char): b0_magic_wrong, char_to_long, long_to_char, ml_check_b0_id, ml_check_b0_strings. Specs in cbmc/harness.c and cbmc/harness_b0.c. Planted bugs:
   cbmc/mutants.sh, 8/8 caught. Trusted: a C-standard memchr in cbmc/prelude.h (CBMC has no model).
@@ -36,6 +36,8 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
   fields are valid and separate. Requires page_count >= 1 and mf_page_size >= 24
   (MIN_SWAP_PAGE_SIZE is 1048; ml_recover only accepts a page size >= the guessed one).
 - FullName_save (path.c): a new allocation or NULL.
+- strlen: C-standard contract from ../memory/wp/stubs/vp_string.h. mb_utflen (mbyte.c): adds uninterpreted
+  per-byte-range counts vp_cps / vp_cus (the spec of ml_add_deleted_len_buf is stated in terms of them).
 - Reduced types: memfile_T without its two maps, buf_T with only b_ml.ml_stack/top/size.
 
 ## Preconditions taken from callers (to list in CLAIM.md)
@@ -46,6 +48,11 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
   (pages under about 1.5 MiB). Normal page sizes are at most MAX_SWAP_PAGE_SIZE (50000).
 - ml_add_stack: 0 <= top <= size <= INT_MAX - 5, stack is its own allocation.
 - mf_rem_free: free list not empty (documented: "Caller must check").
+- ml_add_deleted_len(_buf): len >= -1 (callers pass -1 or a line length), the counters do not wrap,
+  the string is at most PTRDIFF_MAX long. A len below -1 would wrap the counters, but no caller passes one.
+- xrealloc's freshness clause has the same form the coordinator flagged in the garray stub (WP ignores
+  `allocates`). Smoke tests pass for ml_add_stack, but its proof should be redone with ghost "avoid"
+  arguments (typval/wp_blob style) before review.
 
 ## Leads for the next session
 
@@ -115,14 +122,14 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 | memline.c | ml_region_text | not started |
 | memline.c | gchar_pos | not started |
 | memline.c | ml_get_buf_impl | not started |
-| memline.c | ml_line_alloced | not started |
+| memline.c | ml_line_alloced | proved (WP, review pending) |
 | memline.c | ml_append_int | not started |
 | memline.c | ml_append_flush | not started |
 | memline.c | ml_append | not started |
 | memline.c | ml_append_flags | not started |
 | memline.c | ml_append_buf | not started |
-| memline.c | ml_add_deleted_len | not started |
-| memline.c | ml_add_deleted_len_buf | not started |
+| memline.c | ml_add_deleted_len | proved (WP, review pending) |
+| memline.c | ml_add_deleted_len_buf | proved (WP, review pending) |
 | memline.c | ml_replace | not started |
 | memline.c | ml_replace_len | not started |
 | memline.c | ml_replace_buf | not started |
@@ -134,7 +141,7 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 | memline.c | ml_setmarked | not started |
 | memline.c | ml_firstmarked | not started |
 | memline.c | ml_clearmarked | not started |
-| memline.c | ml_flush_deleted_bytes | not started |
+| memline.c | ml_flush_deleted_bytes | proved (WP, review pending) |
 | memline.c | ml_flush_line | not started |
 | memline.c | ml_new_data | proved (WP, review pending) |
 | memline.c | ml_new_ptr | proved (WP, review pending) |

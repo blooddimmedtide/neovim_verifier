@@ -19,6 +19,13 @@ M=(
  "mf_alloc_bhdr|  hp->bh_page_count = page_count;|  hp->bh_page_count = page_count - 1;"
  "mf_free_bhdr|  xfree(hp->bh_data);|  xfree(hp);"
  "mf_free_fnames|  XFREE_CLEAR(mfp->mf_ffname);|  xfree(mfp->mf_ffname);"
+ "ml_flush_deleted_bytes|  buf->deleted_codeunits = 0;|  buf->deleted_bytes2 = 0;"
+ "ml_flush_deleted_bytes|  *codeunits = buf->deleted_codeunits;|  *codeunits = buf->deleted_codepoints;"
+ "ml_add_deleted_len_buf|  if (len == -1 || len > maxlen) {|  if (len == -1) {"
+ "ml_add_deleted_len_buf|  buf->deleted_bytes2 += (size_t)len + 1;|  buf->deleted_bytes2 += (size_t)len;"
+ "ml_add_deleted_len_buf|    buf->deleted_codeunits++;|    buf->deleted_codepoints++;"
+ "ml_add_deleted_len_buf|  if (inhibit_delete_count) {|  if (!inhibit_delete_count) {"
+ "ml_line_alloced|  return curbuf->b_ml.ml_flags & ML_LINE_DIRTY;|  return curbuf->b_ml.ml_flags & 0x01;"
 )
 export PATH=$HOME/.vpipe/bin:$PATH
 for m in "${M[@]}"; do
@@ -27,7 +34,7 @@ for m in "${M[@]}"; do
 import sys; s=open(sys.argv[1]).read(); assert s.count(sys.argv[3])==1, sys.argv[3]
 open(sys.argv[2],"w").write(s.replace(sys.argv[3],sys.argv[4]))
 PY
-  (cd "$W" && frama-c -machdep x86_64 m.c -wp -wp-fct "$f" -wp-rte -warn-unsigned-overflow -wp-model Typed+Cast \
+  (cd "$W" && frama-c -machdep x86_64 -cpp-extra-args="-I $HERE/../../memory/wp/stubs" m.c -wp -wp-fct "$f" -wp-rte -warn-unsigned-overflow -wp-model Typed+Cast \
      -wp-prover z3,cvc5 -wp-timeout 10 -wp-par "$(nproc)" -wp-cache none > m.log 2>&1)
   if grep -qE "Proved goals: +([0-9]+) / \1$" "$W/m.log"; then echo "SURVIVED $f: $to"; bad=1; else echo "caught   $f: $to"; fi
 done

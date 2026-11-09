@@ -12,3 +12,10 @@ caught   mf_need_trans: mfp->mf_neg_count >= 0;
 caught   mf_alloc_bhdr:   hp->bh_page_count = page_count - 1;
 caught   mf_free_bhdr:   xfree(hp);
 caught   mf_free_fnames:   xfree(mfp->mf_ffname);
+caught   ml_flush_deleted_bytes:   buf->deleted_bytes2 = 0;
+caught   ml_flush_deleted_bytes:   *codeunits = buf->deleted_codepoints;
+caught   ml_add_deleted_len_buf: | len > maxlen) {|  if (len == -1) {
+caught   ml_add_deleted_len_buf:   buf->deleted_bytes2 += (size_t)len;
+caught   ml_add_deleted_len_buf:     buf->deleted_codepoints++;
+caught   ml_add_deleted_len_buf:   if (!inhibit_delete_count) {
+caught   ml_line_alloced:   return curbuf->b_ml.ml_flags & 0x01;
