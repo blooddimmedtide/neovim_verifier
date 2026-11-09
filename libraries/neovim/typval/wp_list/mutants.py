@@ -4,7 +4,7 @@ import os, re, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 NV, T = sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "20"
 MUTANTS = [  # (function, exact text in the built file, replacement)
-    ("tv_list_find", "      idx = l->lv_len - 1;\n    }\n  } else {", "      idx = l->lv_len - 2;\n    }\n  } else {"),
+    ("tv_list_find", "      idx = l->lv_len - 1;\n    } else {", "      idx = l->lv_len - 2;\n    } else {"),
     ("tv_list_find", "    item = item->li_next;\n    idx++;", "    item = item->li_next;\n    idx += 2;"),
     ("tv_list_find", "  l->lv_idx = idx;", "  l->lv_idx = idx + 1;"),
     ("tv_list_find", "    item = item->li_prev;\n    idx--;", "    item = item->li_next;\n    idx--;"),
