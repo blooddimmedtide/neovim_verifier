@@ -29,7 +29,7 @@ Goal counts include smoke tests (last run: `SKIP_BV=1 bash wp/run.sh 30`, 2026-1
 
 | Function | Goals | Open |
 |---|---|---|
-| mh_realloc | 56/59 | proved: frees the old index, `n_buckets` is a power of two in `[max(16, n_min), 2^31]` for `n_min <= 2^31` (`roundup_lemma`, Z3 `wp/lemmas.smt2`), counters reset, upper_bound cast in range, fresh zeroed block. Open: that the zeroes survive the header-field writes after the call (asserts after `h->n_buckets = n_buckets;` and the zero ensures time out; the assert right after xcalloc and after the n_occupied/size writes are proved). The avoid pointer is `&h->n_buckets` (typed, no cast); the open goals carry WP's "Stronger" warning, worth checking which hypotheses it drops. Larger inputs: finding below. Bit-vector lemma files: `lemmas.smt2` (seconds), `lemmas_mask.smt2` (instant), `lemmas_probe.smt2` (~10 min, 96 unsat); `SKIP_BV=1` skips them. |
+| mh_realloc (upstream) | 59/59 | fully proved **for `n_min_buckets <= 2^31` only**: frees the old index, new zeroed index, `n_buckets` a power of two in `[max(16, n_min), 2^31]`, counters reset, upper_bound cast in range. Larger inputs are the finding below; the fixed version needs no precondition. |
 | mh_rehash_int | 45/48 | proved: memory safety, termination, no tombstones remain, every key j gets a slot holding j + 1 (ghost witness array `vp_slot`). Open: the last ensures and the function's two assigns goals (time out). |
 
 Not specified yet for any function: *completeness* of lookup (a free slot returned means the
@@ -53,17 +53,15 @@ key is absent), which needs a table-wide probe-chain invariant; and "never calls
   ORs up to `>> 16` on a `size_t` (the comment in kv_concat_len says this is intended);
   both need a proof or a finding.
 
-## Fix (written, partly proved)
+## Fix (written and proved)
 
 `verified_neovim` branch `claude/project-thread-ik9odv`, commit 9821c98: `mh_realloc` calls
 `abort()` when more than 2^31 buckets are asked for, instead of wrapping to 0. Proof file
 `wp/map_realloc_fixed.c` (verbatim check: `python3 -I wp/check_strip.py <fork tree> fixed`):
-59/62 goals. The contract has **no size precondition**; the fix's goals (no wrap, `exits`
-exactly when `n_min_buckets > 2^31`, power-of-two result) are proved. Open: the same 3
-zero-fill goals as upstream mh_realloc. They are unstable under load: with `@assert` only
-and no `-wp-rte` they once proved 4/4, and full runs report `Failure`/`Timeout` (Z3 and CVC5
-on a 4-core box). Next try: `-wp-par 1`, longer timeouts, or split the post into a ghost
-lemma. Not merged anywhere; no fork PR opened yet.
+**62/62 goals, 11/11 smoke tests, no size precondition**. The zero-fill goals closed with a
+frame assertion: ghost label `VpL` before the header writes and
+`assert \forall i < n: h->hash[i] == \at(h->hash[i], VpL)` at the end (gives the SMT
+solver a trigger term). No fork PR opened yet; not reviewed.
 
 Note: `check_strip.py` without `fixed` needs a tree at the pinned upstream commit
 (the fork checkout on the fix branch differs in mh_realloc).
@@ -72,7 +70,7 @@ Note: `check_strip.py` without `fixed` needs a tree at the pinned upstream commi
 
 - `findings/map-realloc-bucket-wrap.md`: past 2^31 buckets (~1.49e9 keys) `mh_realloc`
   wraps to 0 buckets and the rehash writes out of bounds. Reproducer `repro/realloc_wrap.c`.
-  Fix: fork commit 9821c98 (59/62 proved). Draft upstream issue (not filed):
+  Fix: fork commit 9821c98 (62/62 proved). Draft upstream issue (not filed):
   /mnt/project-files/neovim-verify/upstream/issue-map-bucket-wrap.md.
 
 ## Trusted (would go in CLAIM.md)
@@ -85,10 +83,10 @@ Note: `check_strip.py` without `fixed` needs a tree at the pinned upstream commi
 
 ## Next steps
 
-1. Close mh_realloc's open goals and mh_rehash_int's 3 goals.
+1. Close mh_rehash_int's 3 goals (try the same frame-assertion trick).
 2. Spec and prove mh_put_int (needs `n_buckets < 2^31`: the finding) and mh_delete_int,
    then map_put_ref/map_del.
-3. Finish the fixed mh_realloc proof (3 goals), open a fork PR into `verified`.
+3. Open a fork PR for 9821c98 into `verified`; planted-bug run and review.
 4. Generalise to every key type (the bodies are identical; only hash_/equal_ differ).
 5. Lookup completeness and no-abort, then the 8 map.c hash/equal helpers and pmap_del2.
 6. kvec.h.

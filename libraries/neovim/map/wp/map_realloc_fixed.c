@@ -132,10 +132,11 @@ void mh_realloc(MapHash *h, uint32_t n_min_buckets)
   // sets all buckets to EMPTY
   h->hash = xcalloc(n_buckets, sizeof *h->hash) /*@ ghost (&h->n_buckets) */;
   /*@ assert \base_addr(h->hash) != \base_addr(h) && \separated(h, h->hash + (0 .. n_buckets - 1)) && \separated(&h->n_occupied, &h->size, &h->n_buckets, &h->upper_bound, h->hash + (0 .. n_buckets - 1)) && \forall integer i; 0 <= i < n_buckets ==> h->hash[i] == 0; */
+  /*@ ghost VpL: ; */
   h->n_occupied = h->size = 0;
-  /*@ assert \forall integer i; 0 <= i < n_buckets ==> h->hash[i] == 0; */
   h->n_buckets = n_buckets;
-  /*@ assert \forall integer i; 0 <= i < h->n_buckets ==> h->hash[i] == 0; */
   h->upper_bound = (uint32_t)(h->n_buckets * UPPER_FILL + 0.5);
+  /*@ assert h->hash == \at(h->hash, VpL) && h->n_buckets == n_buckets; */
+  /*@ assert \forall integer i; 0 <= i < n_buckets ==> h->hash[i] == \at(h->hash[i], VpL); */
 }
 
