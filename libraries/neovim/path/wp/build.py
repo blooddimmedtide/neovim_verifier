@@ -108,6 +108,12 @@ def main(tree, out, mode="upstream"):
             if code.count(old) != 1:
                 sys.exit(f"build: {name}: tool patch anchor not found once: {old!r}")
             code = code.replace(old, new)
+        mut = os.environ.get("VP_MUTANT")  # "function\x1fold\x1fnew", used by ../run_mutants.py only
+        if mut and mut.split("\x1f")[0] == name:
+            _, mo, mn = mut.split("\x1f")
+            if code.count(mo) != 1:
+                sys.exit(f"build: mutant anchor not found once in {name}: {mo!r}")
+            code = piece = code.replace(mo, mn)
         annotated = code
         if name in GHOST:
             assert annotated.count(SIG[name] + "\n") == 1, name

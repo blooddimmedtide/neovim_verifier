@@ -104,3 +104,11 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.path_strings]
+file = "src/nvim/path.c"
+functions = ["vim_ispathsep", "vim_ispathsep_nocolon", "vim_ispathlistsep", "path_head_length", "is_path_head", "path_skip_sep", "get_past_head", "path_tail", "path_next_component", "path_is_absolute", "path_has_drive_letter", "path_is_url", "path_with_url", "vim_isAbsName", "after_pathsep", "path_tail_with_sep", "invocation_path_tail"]
+annotate = "path/wp/build.py"   # verbatim extraction, sha256 pinned, one declared tool patch (string literals)
+prove = ["bash path/wp/run_wp.sh {src} upstream", "bash path/wp/run_wp.sh {fixed} fixed"]   # upstream fails on invocation_path_tail (finding)
+check = ["bash path/difftest/run_difftest.sh {src} upstream", "bash path/difftest/run_difftest.sh {fixed} fixed"]
+mutants = "python3 -I path/run_mutants.py {src} {fixed}"
