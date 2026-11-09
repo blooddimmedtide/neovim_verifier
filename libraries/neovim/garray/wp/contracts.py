@@ -327,6 +327,9 @@ def annotations(fixed):
     ]) + [
         ("after", "strcpy(s, strings[nelem - 1])", "ghost (Ls[nelem - 1])"),
         ("after", "xmallocz(len)", "ghost ((char **)strings, nelem, (char *)sep)"),
+        ("before", "  char *s = ret;", r"assert \forall integer k; 0 <= k < nelem ==> \base_addr(ret) != \base_addr((char *)strings[k]);"),
+        ("before", "  char *s = ret;", r"assert \base_addr(ret) != \base_addr((char *)sep) && \base_addr(ret) != \base_addr((char *)strings);"),
+        ("before", "  char *s = ret;", r"assert \forall integer k, j; 0 <= k < nelem && 0 <= j <= Ls[k] ==> \separated(ret + (0 .. len), (char *)strings[k] + j);"),
     ]
     A["ga_concat_len"] = [
         ("after", "ga_grow(gap, (int)len)", "ghost ((char *)s)"),
