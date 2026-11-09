@@ -21,6 +21,7 @@ Goal counts include smoke tests (last run: `SKIP_BV=1 bash wp/run.sh 30`, 2026-1
 | Function | Goals | What is proved |
 |---|---|---|
 | mh_find_bucket_int | 65/65 | memory safety, **termination** (quadratic probing over a power-of-two table returns to its start after 2n-1 steps: variant `2n-2-step`, ghost `probe_lemma` checked by Z3 for every n = 2^k in `wp/lemmas_probe.smt2`, 96 unsat), and: with `put` the result is a slot `< n_buckets`; a returned used slot holds `key`; without `put` the result is TOMBSTONE or a slot holding `key`. |
+| mh_realloc (upstream) | 59/59 | fully proved **for `n_min_buckets <= 2^31` only**: frees the old index, new zeroed index, `n_buckets` a power of two in `[max(16, n_min), 2^31]`, counters reset, upper_bound cast in range. Larger inputs are the finding below; the fixed version needs no precondition. |
 | mh_clear | 32/32 | all buckets 0 and size/n_occupied/n_keys 0 when allocated; nothing changed otherwise |
 | mh_get_int | 20/20 | result is TOMBSTONE or an index `< n_keys` whose key equals `key` |
 | map_ref_int_ptr_t | 20/20 | NULL, or `&values[k]` with `keys[k] == key`, and `*key_alloc` set to `&keys[k]` |
@@ -29,8 +30,7 @@ Goal counts include smoke tests (last run: `SKIP_BV=1 bash wp/run.sh 30`, 2026-1
 
 | Function | Goals | Open |
 |---|---|---|
-| mh_realloc (upstream) | 59/59 | fully proved **for `n_min_buckets <= 2^31` only**: frees the old index, new zeroed index, `n_buckets` a power of two in `[max(16, n_min), 2^31]`, counters reset, upper_bound cast in range. Larger inputs are the finding below; the fixed version needs no precondition. |
-| mh_rehash_int | 45/48 | proved: memory safety, termination, no tombstones remain, every key j gets a slot holding j + 1 (ghost witness array `vp_slot`). Open: the last ensures and the function's two assigns goals (time out). |
+| mh_rehash_int | 48/50 | proved: memory safety, termination, all ensures (no tombstones remain, every key j gets a slot holding j + 1, via ghost witness array `vp_slot`; frame assertion at the end). Open: the two `assigns` goals (time out). |
 
 Not specified yet for any function: *completeness* of lookup (a free slot returned means the
 key is absent), which needs a table-wide probe-chain invariant; and "never calls abort()"

@@ -237,7 +237,7 @@ uint32_t KEY_NAME(mh_get_)(SET_TYPE *set, KEY_TYPE key)
     // no tombstones, and every key k is indexed by some slot holding k + 1
     ensures \forall integer i; 0 <= i < set->h.n_buckets ==> set->h.hash[i] <= set->h.n_keys;
     ensures \forall integer j; 0 <= j < set->h.n_keys ==>
-              \exists integer i; 0 <= i < set->h.n_buckets && set->h.hash[i] == j + 1;
+              vp_slot[j] < set->h.n_buckets && set->h.hash[vp_slot[j]] == j + 1;
 */
 void KEY_NAME(mh_rehash_)(SET_TYPE *set)
 {
@@ -259,7 +259,10 @@ void KEY_NAME(mh_rehash_)(SET_TYPE *set)
     set->h.hash[idx] = k + 1;
     /*@ ghost vp_slot[k] = idx; */
   }
+  /*@ ghost VpR: ; */
   set->h.n_occupied = set->h.size = set->h.n_keys;
+  /*@ assert set->h.hash == \at(set->h.hash, VpR) && set->h.n_keys == \at(set->h.n_keys, VpR) && set->h.n_buckets == \at(set->h.n_buckets, VpR); */
+  /*@ assert \forall integer i; 0 <= i < set->h.n_buckets ==> set->h.hash[i] == \at(set->h.hash[i], VpR); */
 }
 
 // ---- upstream map_value_impl.c.h, VAL_NAME = ptr_t ----
