@@ -63,3 +63,13 @@ void h_checkforcmd(void) {
   __CPROVER_assert(ok == (r >= 0), "checkforcmd result matches spec");
   __CPROVER_assert(ok ? p == s + r : p == s, "checkforcmd pointer matches spec");
 }
+
+void h_skipdigits(void) {
+  char *s = mkstr(N);
+  __CPROVER_assert(skipdigits(s) == s + ref_skipdigits(s), "skipdigits matches spec");
+}
+
+void h_modifier_len(void) {
+  char *s = mkstr(N);
+  __CPROVER_assert(modifier_len(s) == ref_modifier_len(s), "modifier_len matches spec");
+}

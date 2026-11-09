@@ -10,3 +10,10 @@ colon_no_white: caught
 cmd_len_gt: caught
 cmd_no_alpha: caught
 cmd_no_skip: caught
+digits_off: caught
+mod_minlen: caught
+mod_no_count_flag: caught
+mod_no_alpha: caught
+mod_table_minlen: caught
+mod_table_count: caught
+mod_bad_break: caught

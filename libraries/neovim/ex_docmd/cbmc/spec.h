@@ -53,3 +53,45 @@ static int ref_checkforcmd(const char *p, const char *cmd, int len) {
   if (k >= len && !letter) return k + ref_skipwhite(p + k);
   return -1;
 }
+
+// skipdigits: index of the first character that is not '0'..'9'.
+static int ref_skipdigits(const char *s) {
+  int i = 0;
+  for (; s[i] >= '0' && s[i] <= '9'; i++) {}
+  return i;
+}
+
+// modifier_len: the command modifiers of Vim's ":help :command-modifiers" (written out
+// here from the help text, not copied from cmdmods[]): full name, shortest abbreviation
+// from the "[...]" brackets, and whether a count may come first (":[N]tab", ":[N]verbose").
+static const struct { const char *name; int min; bool count; } ref_mods[] = {
+  {"aboveleft", 3, 0}, {"belowright", 3, 0}, {"botright", 2, 0}, {"browse", 3, 0},
+  {"confirm", 4, 0}, {"filter", 4, 0}, {"hide", 3, 0}, {"horizontal", 3, 0},
+  {"keepalt", 5, 0}, {"keepjumps", 5, 0}, {"keepmarks", 3, 0}, {"keeppatterns", 5, 0},
+  {"leftabove", 5, 0}, {"lockmarks", 3, 0}, {"noautocmd", 3, 0}, {"noswapfile", 3, 0},
+  {"rightbelow", 6, 0}, {"sandbox", 3, 0}, {"silent", 3, 0}, {"tab", 3, 1},
+  {"topleft", 2, 0}, {"unsilent", 3, 0}, {"verbose", 4, 1}, {"vertical", 4, 0},
+};
+// A modifier word is the run of letters at the start (after "N" and blanks for a count).
+// It names modifier m when it is an abbreviation of m's name at least m.min long.
+// Result: length of count + blanks + word, or 0 when no modifier is named.
+static int ref_modifier_len(const char *s) {
+  int off = 0;
+  bool counted = false;
+  if (s[0] >= '0' && s[0] <= '9') {
+    off = ref_skipdigits(s);
+    off += ref_skipwhite(s + off);
+    counted = true;
+  }
+  const char *w = s + off;
+  int L = 0;
+  while ((w[L] >= 'a' && w[L] <= 'z') || (w[L] >= 'A' && w[L] <= 'Z')) L++;
+  for (int m = 0; m < (int)(sizeof ref_mods / sizeof ref_mods[0]); m++) {
+    if (counted && !ref_mods[m].count) continue;
+    if (L < ref_mods[m].min) continue;
+    int k = 0;
+    while (k < L && ref_mods[m].name[k] == w[k]) k++;
+    if (k == L) return off + L;  // w[0..L) is a prefix of the name (name has no NUL before L)
+  }
+  return 0;
+}

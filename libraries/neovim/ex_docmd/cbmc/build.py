@@ -8,11 +8,14 @@ import hashlib, re, sys
 
 PIECES = [  # (file, function name, sha256 of the verbatim text)
     ("src/nvim/charset.c", "skipwhite", None),
+    ("src/nvim/charset.c", "skipdigits", None),
     ("src/nvim/ex_docmd.c", "skip_colon_white", None),
     ("src/nvim/ex_docmd.c", "checkforcmd", None),
     ("src/nvim/ex_docmd.c", "ends_excmd", None),
     ("src/nvim/ex_docmd.c", "find_nextcmd", None),
     ("src/nvim/ex_docmd.c", "check_nextcmd", None),
+    ("src/nvim/ex_docmd.c", "cmdmods", None),
+    ("src/nvim/ex_docmd.c", "modifier_len", None),
 ]
 REVIEWED = {}  # filled from pins.txt
 
@@ -27,6 +30,11 @@ static inline bool ascii_iswhite(int c) { return c == ' ' || c == '\\t'; }
 #define ASCII_ISLOWER(c) ((unsigned)(c) >= 'a' && (unsigned)(c) <= 'z')
 #define ASCII_ISUPPER(c) ((unsigned)(c) >= 'A' && (unsigned)(c) <= 'Z')
 #define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))
+static inline bool ascii_isdigit(int c) { return c >= '0' && c <= '9'; }  // ascii_defs.h:117
+// src/nvim/macros_defs.h:74 (copied)
+#define ARRAY_SIZE(arr) \
+  ((sizeof(arr)/sizeof((arr)[0])) \
+   / ((size_t)(!(sizeof(arr) % sizeof((arr)[0])))))
 #define FUNC_ATTR_PURE
 #define FUNC_ATTR_CONST
 #define FUNC_ATTR_WARN_UNUSED_RESULT
@@ -36,6 +44,10 @@ static inline bool ascii_iswhite(int c) { return c == ' ' || c == '\\t'; }
 
 def cut(lines, name):
     pat = re.compile(r"^(static )?[A-Za-z_][A-Za-z_ *]*\b" + re.escape(name) + r"\(")
+    if name == "cmdmods":  # the modifier table: from "static struct cmdmod {" to "};"
+        i = lines.index("static struct cmdmod {")
+        j = lines.index("};", i)
+        return i + 1, "\n".join(lines[i:j + 1])
     for i, l in enumerate(lines):
         if pat.match(l):
             depth, j, seen = 0, i, False

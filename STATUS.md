@@ -9,7 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
-| src/nvim/ex_docmd.c | 0 | 5 | 208 | 213 |
+| src/nvim/ex_docmd.c | 0 | 6 | 207 | 213 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -75,11 +75,12 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
-| src/nvim/ex_docmd.c | `ends_excmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 12/12 planted bugs caught; no review yet; WP for unbounded length pending |
-| src/nvim/ex_docmd.c | `find_nextcmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 12/12 planted bugs caught; no review yet; WP for unbounded length pending |
-| src/nvim/ex_docmd.c | `check_nextcmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 12/12 planted bugs caught; no review yet; WP for unbounded length pending |
-| src/nvim/ex_docmd.c | `skip_colon_white` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 12/12 planted bugs caught; no review yet; WP for unbounded length pending |
-| src/nvim/ex_docmd.c | `checkforcmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 12/12 planted bugs caught; no review yet; WP for unbounded length pending |
+| src/nvim/ex_docmd.c | `ends_excmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 19/19 planted bugs caught; no review yet; WP for unbounded length pending |
+| src/nvim/ex_docmd.c | `find_nextcmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 19/19 planted bugs caught; no review yet; WP for unbounded length pending |
+| src/nvim/ex_docmd.c | `check_nextcmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 19/19 planted bugs caught; no review yet; WP for unbounded length pending |
+| src/nvim/ex_docmd.c | `skip_colon_white` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 19/19 planted bugs caught; no review yet; WP for unbounded length pending |
+| src/nvim/ex_docmd.c | `checkforcmd` | candidate | ex_docmd/cbmc (CBMC, strings up to 7 chars, both char signs) | bounded proof against spec.h; see ex_docmd/CLAIM.md. 19/19 planted bugs caught; no review yet; WP for unbounded length pending |
+| src/nvim/ex_docmd.c | `modifier_len` | candidate | ex_docmd/cbmc (CBMC, strings up to 13 chars, both char signs) | bounded proof against the :help command-modifiers list; see ex_docmd/CLAIM.md. 19/19 planted bugs caught; no review yet; WP for unbounded length pending |
 
 ## All files
 
