@@ -1,0 +1,235 @@
+# Mutation testing of the marktree.c leaf-function proofs (fixed mode, WP timeout 20 s).
+# Each mutant edits one function's text in a scratch copy of the Neovim tree; the copy of
+# wp/build.py gets the mutant's sha256 so the build accepts it. caught = the proof fails.
+# Mutant 11 is equivalent under the sortedness precondition and is expected to survive.
+
+[[mutant]]
+id = 1
+function = "pos_leq"
+description = "strict col compare"
+original = "a.col <= b.col"
+mutated = "a.col < b.col"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed pos_leq: 7 / 8; [wp] [Timeout] typed_cast_pos_leq_ensures (Qed 29ms) (Z3)"
+
+[[mutant]]
+id = 2
+function = "pos_less"
+description = "arguments swapped"
+original = "return !pos_leq(b, a);"
+mutated = "return !pos_leq(a, b);"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed pos_less: 8 / 10; [wp] [Timeout] typed_cast_pos_less_ensures (Qed 12ms) (Z3); [wp] [Timeout] typed_cast_pos_less_ensures_2 (Qed 13ms) (Z3)"
+
+[[mutant]]
+id = 3
+function = "relative"
+description = "subtract base.row from col"
+original = "val->col -= base.col;"
+mutated = "val->col -= base.row;"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed relative: 26 / 28; [wp] [Timeout] typed_cast_relative_ensures_2 (Qed 19ms) (Z3); [wp] [Timeout] typed_cast_relative_ensures_3 (Qed 17ms) (Z3)"
+
+[[mutant]]
+id = 4
+function = "unrelative"
+description = "same-row case keeps row 0"
+original = "val->row = base.row;"
+mutated = "val->row = 0;"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed unrelative: 16 / 17; [wp] [Timeout] typed_cast_unrelative_ensures (Qed 26ms) (Z3)"
+
+[[mutant]]
+id = 5
+function = "compose"
+description = "new-row case adds col instead of replacing"
+original = "base->col = val.col;"
+mutated = "base->col += val.col;"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed compose: 17 / 19; [wp] [Timeout] typed_cast_compose_ensures_2 (Qed 27ms) (Z3); [wp] [Timeout] typed_cast_compose_assert_rte_signed_overflow_6 (Qed 7ms) (Z3)"
+
+[[mutant]]
+id = 6
+function = "key_cmp"
+description = "col compare only returns when a > b"
+original = "  cmp = mt_generic_cmp(a.pos.col, b.pos.col);\n  if (cmp != 0) {"
+mutated = "  cmp = mt_generic_cmp(a.pos.col, b.pos.col);\n  if (cmp > 0) {"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed key_cmp: 12 / 13; [wp] [Timeout] typed_cast_key_cmp_ensures (Qed 35ms) (Z3)"
+
+[[mutant]]
+id = 7
+function = "marktree_getp_aux"
+description = "binary search uses <= (upper bound)"
+original = "if (key_cmp(x->key[mid], k) < 0) {"
+mutated = "if (key_cmp(x->key[mid], k) <= 0) {"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed marktree_getp_aux: 51 / 52; [wp] [Timeout] typed_cast_marktree_getp_aux_loop_invariant_2_preserved (Qed 99ms) (Z3)"
+
+[[mutant]]
+id = 8
+function = "marktree_getp_aux"
+description = "all-smaller case returns x->n"
+original = "return x->n - 1;"
+mutated = "return x->n;"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed marktree_getp_aux: 48 / 51; [wp] [Timeout] typed_cast_marktree_getp_aux_ensures (Qed 330ms) (Z3); [wp] [Timeout] typed_cast_marktree_getp_aux_ensures_2 (Qed 415ms) (Z3)"
+
+[[mutant]]
+id = 9
+function = "marktree_getp_aux"
+description = "no decrement on mismatch"
+original = "    begin--;"
+mutated = "    begin -= 0;"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed marktree_getp_aux: 50 / 51; [wp] [Timeout] typed_cast_marktree_getp_aux_ensures_2 (Qed 239ms) (Z3)"
+
+[[mutant]]
+id = 10
+function = "intersection_has"
+description = "early exit test reversed"
+original = "} else if (kv_A(*x, i) >= id) {"
+mutated = "} else if (kv_A(*x, i) <= id) {"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed intersection_has: 17 / 19; [wp] [Timeout] typed_cast_intersection_has_ensures (Qed 28ms) (Z3); [wp] [Timeout] typed_cast_intersection_has_loop_invariant_2_preserved (Qed 14ms) (Z3)"
+
+[[mutant]]
+id = 11
+function = "intersection_has"
+description = "EQUIVALENT under sortedness: >= to >"
+original = "} else if (kv_A(*x, i) >= id) {"
+mutated = "} else if (kv_A(*x, i) > id) {"
+caught = false
+tool = "frama-c-wp"
+equivalent = true
+evidence = "fixed intersection_has: 19 / 19"
+
+[[mutant]]
+id = 12
+function = "intersect_item_pos"
+description = "upper bound instead of lower bound"
+original = "if (kv_A(x->intersect, mid) < id) {"
+mutated = "if (kv_A(x->intersect, mid) <= id) {"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed intersect_item_pos: 17 / 18; [wp] [Timeout] typed_cast_intersect_item_pos_loop_invariant_2_preserved (Qed 31ms) (CVC5)"
+
+[[mutant]]
+id = 13
+function = "intersect_item_pos"
+description = "off-by-one return"
+original = "  return lo;"
+mutated = "  return lo > 0 ? lo - 1 : 0;"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed intersect_item_pos: 19 / 20; [wp] [Timeout] typed_cast_intersect_item_pos_ensures_3 (Qed 37ms) (CVC5)"
+
+[[mutant]]
+id = 14
+function = "marktree_itr_node_done"
+description = "compares with n instead of n - 1"
+original = "itr->i == itr->x->n - 1"
+mutated = "itr->i == itr->x->n"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed marktree_itr_node_done: 10 / 11; [wp] [Timeout] typed_cast_marktree_itr_node_done_ensures (Qed 19ms) (Z3)"
+
+[[mutant]]
+id = 15
+function = "marktree_itr_pos"
+description = "returns node-relative pos (no unrelative)"
+original = "  unrelative(itr->pos, &pos);"
+mutated = "  (void)0;"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed marktree_itr_pos: 8 / 9; [wp] [Timeout] typed_cast_marktree_itr_pos_ensures (Qed 9ms) (Z3)"
+
+[[mutant]]
+id = 16
+function = "itr_eq"
+description = "compares key ids instead of addresses"
+original = "return (&rawkey(itr1) == &rawkey(itr2));"
+mutated = "return (rawkey(itr1).id == rawkey(itr2).id);"
+caught = true
+tool = "frama-c-wp"
+equivalent = false
+evidence = "fixed itr_eq: 13 / 15; [wp] [Timeout] typed_cast_itr_eq_ensures_2 (Qed 11ms) (Z3); [wp] [Timeout] typed_cast_itr_eq_ensures (Qed 11ms) (Z3)"
+
+[[mutant]]
+id = 17
+function = "meta_describe_key_inc"
+description = "SignHL/SignText flags swapped"
+original = "meta_inc[kMTMetaSignHL] += (k->flags & MT_FLAG_DECOR_SIGNHL)"
+mutated = "meta_inc[kMTMetaSignHL] += (k->flags & MT_FLAG_DECOR_SIGNTEXT)"
+caught = true
+tool = "cbmc"
+equivalent = false
+evidence = "[check_meta_describe_key_inc.assertion.1] line 29 inc: count + flag bit (mod 2^32): FAILURE; [check_meta_describe_key_inc.assertion.1] line 29 inc: count + flag bit (mod 2^32): FAILURE; [check_meta_describe_key.assertion.1] line 39 describe: exactly the key's own counts: FAILURE"
+
+[[mutant]]
+id = 18
+function = "meta_describe_key_inc"
+description = "counts end keys"
+original = "if (!mt_end(*k) && !mt_invalid(*k)) {"
+mutated = "if (!mt_invalid(*k)) {"
+caught = true
+tool = "cbmc"
+equivalent = false
+evidence = "[check_meta_describe_key_inc.assertion.1] line 29 inc: count + flag bit (mod 2^32): FAILURE; [check_meta_describe_key_inc.assertion.1] line 29 inc: count + flag bit (mod 2^32): FAILURE; [check_meta_describe_key.assertion.1] line 39 describe: exactly the key's own counts: FAILURE"
+
+[[mutant]]
+id = 19
+function = "meta_describe_key"
+description = "memset clears only 4 counters"
+original = "memset(meta_inc, 0, kMTMetaCount * sizeof(*meta_inc));"
+mutated = "memset(meta_inc, 0, (kMTMetaCount - 1) * sizeof(*meta_inc));"
+caught = true
+tool = "cbmc"
+equivalent = false
+evidence = "[check_meta_describe_key.assertion.1] line 39 describe: exactly the key's own counts: FAILURE; [check_meta_describe_key.assertion.1] line 39 describe: exactly the key's own counts: FAILURE"
+
+[[mutant]]
+id = 20
+function = "meta_has"
+description = "loop skips last kind"
+original = "for (int m = 0; m < kMTMetaCount; m++) {"
+mutated = "for (int m = 0; m < kMTMetaCount - 1; m++) {"
+caught = true
+tool = "cbmc"
+equivalent = false
+evidence = "[check_meta_has.assertion.1] line 53 has: some selected kind has a nonzero count: FAILURE; [check_meta_has.assertion.1] line 53 has: some selected kind has a nonzero count: FAILURE; [check_meta_has.assertion.1] line 53 has: some selected kind has a nonzero count: FAILURE"
+
+[[mutant]]
+id = 21
+function = "meta_has"
+description = "| instead of &"
+original = "if (meta_count[m] & meta_filter[m]) {"
+mutated = "if (meta_count[m] | meta_filter[m]) {"
+caught = true
+tool = "cbmc"
+equivalent = false
+evidence = "[check_meta_has.assertion.1] line 53 has: some selected kind has a nonzero count: FAILURE; [check_meta_has.assertion.1] line 53 has: some selected kind has a nonzero count: FAILURE; [check_meta_has.assertion.1] line 53 has: some selected kind has a nonzero count: FAILURE"

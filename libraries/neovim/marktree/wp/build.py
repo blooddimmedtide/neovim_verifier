@@ -38,6 +38,14 @@ EXEMPT = ("#include", "/*@", "void vp_assert", "#define assert", "typedef struct
           "typedef struct mtnode_s", "typedef struct { size_t size", "  MTKey key[", "// ")
 
 
+def no_comment_tokens(where, text):
+    """ACSL must not contain comment tokens: an annotation holding `*/ code /*@` would smuggle
+    code past the strip check (review finding 1)."""
+    body = text
+    if "/*" in body or "*/" in body:
+        sys.exit(f"build: {where}: annotation text contains a comment token")
+
+
 def strip(s):
     s = re.sub(r"^[ \t]*/\*@.*?\*/\n", "", s, flags=re.S | re.M)
     s = re.sub(r" /\*@.*?\*/", "", s, flags=re.S)
@@ -73,6 +81,7 @@ def main(tree, out, mode="upstream"):
     fixed = mode == "fixed"
     check_prelude(tree)
     C, A = contracts(fixed), annotations(fixed)
+    no_comment_tokens("LOGIC", LOGIC.strip()[3:-2])  # inside its own /*@ ... */
     parts = ['#include "vp_marktree.h"', LOGIC]
     cache = {}
     for path, name, want in PIECES:
@@ -85,10 +94,12 @@ def main(tree, out, mode="upstream"):
             want = FIXED_SHA[name]
         if h != want:
             sys.exit(f"build: {name} ({path}:{s + 1}) differs from the pinned {mode} text: sha256 {h}")
+        no_comment_tokens(name + " contract", C[name])
         ann = piece
         for kind, anchor, annot in A.get(name, []):
             if ann.count(anchor) != 1:
                 sys.exit(f"build: {name}: anchor not found once: {anchor!r}")
+            no_comment_tokens(name + " annotation", annot)
             indent = re.match(r"\s*", anchor).group(0)
             ann = ann.replace(anchor, f"{indent}/*@ {annot} */\n{anchor}")
         if strip(ann) != piece:
