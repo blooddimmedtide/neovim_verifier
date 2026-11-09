@@ -104,3 +104,10 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.shada_read]
+file = "src/nvim/shada.c"
+functions = ["vim_be64toh", "fread_len", "sd_reader_skip", "msgpack_read_uint64"]
+annotate = "shada/cbmc/build.py"   # verbatim extraction, sha256 pinned per function
+prove = ["bash shada/cbmc/run_cbmc.sh {src}"]
+mutants = "bash shada/cbmc/run_mutants.sh {src}"

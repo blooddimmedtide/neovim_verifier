@@ -1,0 +1,23 @@
+# Planted bugs that every harness run must catch (self-check that the proofs are
+# not vacuous). Each is a one-line change to the verbatim extraction; the listed
+# harness must turn from "proved" to "FAILED". Run: bash run_mutants.sh.
+[[mutant]]
+name = "uint32-reads-3-bytes"
+desc = "msgpack_read_uint64: uint32 payload length 4 -> 3"
+find = "case 0xCE:    // uint32\n      length = 4;"
+repl = "case 0xCE:    // uint32\n      length = 3;"
+caught_by = "h_read_uint64"
+
+[[mutant]]
+name = "be64toh-shift-off-by-one"
+desc = "vim_be64toh: byte shift (8 - i) -> (7 - i)"
+find = "ret |= ((uint64_t)buf[i - 1]) << ((8 - i) * 8);"
+repl = "ret |= ((uint64_t)buf[i - 1]) << ((7 - i) * 8);"
+caught_by = "h_be64toh, h_read_uint64"
+
+[[mutant]]
+name = "fread_len-accepts-short"
+desc = "fread_len: length mismatch test != -> > (accepts a short read as success)"
+find = "if (read_bytes != (ptrdiff_t)length) {"
+repl = "if (read_bytes > (ptrdiff_t)length) {"
+caught_by = "h_fread_len, h_read_uint64"

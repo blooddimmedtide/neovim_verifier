@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/shada.c | 0 | 4 | 53 | 57 |
 
 ## Function details
 
@@ -74,6 +75,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/shada.c | `vim_be64toh` | candidate | shada/cbmc (CBMC, no loops but 8-iter fully unwound, all inputs) | equals big-endian reading of the 8 bytes of x; portable branch Neovim uses when be64toh is absent. See shada/CLAIM.md |
+| src/nvim/shada.c | `fread_len` | candidate | shada/cbmc (CBMC, all inputs, exact-size file model) | Success iff exactly length bytes available, then buffer holds them; NotShaDa on short read, ReadError on failure; no OOB write |
+| src/nvim/shada.c | `sd_reader_skip` | candidate | shada/cbmc (CBMC, all inputs) | Success iff offset bytes available and cursor advances exactly offset; NotShaDa on short skip, ReadError on failure |
+| src/nvim/shada.c | `msgpack_read_uint64` | candidate | shada/cbmc (CBMC, all inputs, MessagePack-spec reference) | decodes one unsigned msgpack int to its exact value; Finished/NotShaDa/ReadError per contract; *result untouched unless Success. Sizes every shada entry |
 
 ## All files
 
