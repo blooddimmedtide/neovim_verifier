@@ -104,3 +104,11 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.ex_cmds_substitute]
+file = "src/nvim/ex_cmds.c"
+functions = ["sub_parse_flags", "check_regexp_delim"]
+annotate = "ex_cmds/cbmc/build.py"   # verbatim extraction, sha256 pinned (build_delim.py for the second)
+prove = ["bash ex_cmds/cbmc/run_cbmc.sh {src}", "bash ex_cmds/cbmc/run_delim.sh {fixed}"]
+check = ["bash ex_cmds/cbmc/run_difftest.sh {src}"]
+mutants = "bash ex_cmds/cbmc/run_mutants.sh {src}"

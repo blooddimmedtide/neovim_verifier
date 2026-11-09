@@ -1,0 +1,5 @@
+isupper_only|isalpha(c)|isupper(c)
+isalnum|isalpha(c)|isalnum(c)
+letter_ok|letters"));\n    return FAIL;|letters"));\n    return OK;
+nonletter_fail|  return OK;\n}\n\n/// Perform a substitution|  return FAIL;\n}\n\n/// Perform a substitution
+skip_msg_z|    emsg(_("E146|    if (c != 0x7a) emsg(_("E146
