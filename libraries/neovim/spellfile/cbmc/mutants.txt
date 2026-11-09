@@ -1,0 +1,9 @@
+magic_short_compare|memcmp(buf, VIMSPELLMAGIC, VIMSPELLMAGICL)|memcmp(buf, VIMSPELLMAGIC, VIMSPELLMAGICL - 1)
+magic_wrong_trunc|return feof(fd__SPRB) ? SP_TRUNCERROR : SP_OTHERERROR;|return SP_OTHERERROR;
+cnt_shift7|cnt = (int)(((unsigned)cnt << 8) + (unsigned)c);|cnt = (int)(((unsigned)cnt << 7) + (unsigned)c);
+cnt_zero_no_null|    return NULL;            // nothing to read, return NULL|    return xmallocz(0);
+cnt_err_code|    *cntp = SP_OTHERERROR;|    *cntp = SP_TRUNCERROR;
+readstr_no_nul_end|  char *str = xmallocz(cnt);|  char *str = malloc(cnt);
+region_off_by_one|  if (len > MAXREGIONS * 2) {|  if (len > MAXREGIONS * 2 + 1) {
+region_no_nul_check|    if (memchr(buf__SPRNB, NUL, (size_t)n__SPRNB)) { \|    if (0) { \
+region_no_term|  lp->sl_regions[len] = NUL;|  lp->sl_regions[0] = NUL;

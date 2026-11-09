@@ -104,3 +104,10 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.spellfile_read]
+file = "src/nvim/spellfile.c"
+functions = ["spell_check_magic_string", "read_region_section", "read_cnt_string", "read_string"]
+annotate = "spellfile/cbmc/build.py"   # verbatim extraction, sha256 pinned in reviewed.sha256
+prove = ["bash spellfile/wp/run_wp.sh {src}", "bash spellfile/cbmc/run_cbmc.sh {src}"]
+mutants = "bash spellfile/cbmc/run_mutants.sh {src} && bash spellfile/wp/run_mutants.sh {src}"

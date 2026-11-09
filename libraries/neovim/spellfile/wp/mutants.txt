@@ -1,0 +1,4 @@
+wrong_byte|    str[i] = (char)c;|    str[i] = (char)(c + 1);
+one_short|  for (size_t i = 0; i < cnt; i++) {|  for (size_t i = 0; i + 1 < cnt; i++) {
+no_eof_check|    if (c == EOF) {|    if (0) {
+skip_byte|    int c = getc(fd);|    int c = getc(fd); if (i == 0) c = getc(fd);
