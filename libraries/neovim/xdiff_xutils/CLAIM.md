@@ -36,7 +36,7 @@ for bytes 128..255 depends on the locale (modelled as an unknown but fixed set).
 | `xdl_guess_lines` | proved | WP | size / (mean length of the first `sample` lines) + 1 |
 | `xdl_blankline` | proved | WP | with a whitespace flag: only whitespace; without: `""` or `"\n"` (upstream: any line of 1 byte, a bug) |
 | `len_without_eol` (new, fix) | proved | WP | the line length without `"\n"` / `"\r\n"` |
-| `xdl_recmatch` | OPEN (WP: every goal proved in some run except `sk_bd`, a case step of `-b`; one full run with all hints still to do) | WP | 1 iff the lines match in the mode of the flags, else 0 |
+| `xdl_recmatch` | proved (WP 232/232: one full run proves 231 at `-wp-timeout 100`; `w_both` needs `-wp-prop w_both -wp-timeout 240`) | WP | 1 iff the lines match in the mode of the flags, else 0 |
 | `xdl_hash_record` | proved (no whitespace flag: WP 69/69; with a flag it calls `xdl_hash_record_with_whitespace`, which is OPEN) | WP | the hash of the record's counted bytes; `*data` moves past the record |
 | `xdl_hash_record_with_whitespace` | OPEN (not run yet) | WP | as `xdl_hash_record` |
 | `xdl_hashbits` | proved | CBMC | the least `b >= 1` with `2^b >= size` |
