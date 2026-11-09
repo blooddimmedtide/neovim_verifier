@@ -9,7 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
-| src/nvim/grid.c | 0 | 13 | 35 | 48 |
+| src/nvim/grid.c | 0 | 14 | 34 | 48 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -88,6 +88,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/grid.c | `grid_getchar` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | cell + attr or NUL; under undocumented row,col >= 0 (callers check; latent OOB without it); 17/17 planted bugs; see grid/CLAIM.md. No review yet |
 | src/nvim/grid.c | `grid_line_getchar` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | on-screen cell or space; under undocumented col >= 0; 17/17 planted bugs; see grid/CLAIM.md. No review yet |
 | src/nvim/grid.c | `grid_line_put_schar` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | writes only cell col, updates first/last; under undocumented col >= 0; 17/17 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `grid_line_cursor_goto` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | passes handle/row/col to ui_grid_cursor_goto (callee unproved, recorded); 18/18 planted bugs; see grid/CLAIM.md. No review yet |
 
 ## All files
 

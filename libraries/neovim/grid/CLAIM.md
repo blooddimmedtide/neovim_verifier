@@ -1,9 +1,9 @@
 # grid.c schar and cell helpers: claim (candidate)
 
-Upstream `src/nvim/grid.c` at 7b87ce8. **Not finished: 13 of 48 functions proved.** Tool: CBMC 6.4.1,
+Upstream `src/nvim/grid.c` at 7b87ce8. **Not finished: 14 of 48 functions proved.** Tool: CBMC 6.4.1,
 x86_64 (little-endian), signed and unsigned `char`, `--bounds-check --pointer-check
 --signed-overflow-check --undefined-shift-check --unwinding-assertions`, no malloc failure.
-Run: `bash grid/cbmc/run_cbmc.sh <neovim checkout>` (26/26 proved).
+Run: `bash grid/cbmc/run_cbmc.sh <neovim checkout>` (28/28 proved).
 
 ## What is proved (every 32-bit input)
 
@@ -27,6 +27,7 @@ glyph's UTF-8 text, NUL padded.
 | grid_getchar | NUL (and `*attrp` untouched) when chars is NULL or row/col too large; else the cell at `line_offset[row] + col` and its attribute (precondition 7) |
 | grid_line_getchar | space when `col >= maxcol` ("space if out of bounds"); else the on-screen cell at `col + coloff` of the current line and its attribute |
 | grid_line_put_schar | if `col < maxcol`: writes the char, attr and vcol -1 at `col`, widens first/last to include it; writes nothing else |
+| grid_line_cursor_goto | calls ui_grid_cursor_goto once with the current grid's handle, the current line's row and `col` (ui_grid_cursor_goto itself not proved; the harness only records the call) |
 
 `schar_from_char` runs the real `utf_char2bytes` (mbyte.c, sha pinned), not a stub.
 
@@ -60,8 +61,8 @@ glyph's UTF-8 text, NUL padded.
 
 | Check | Result |
 |---|---|
-| `run_cbmc.sh` upstream 7b87ce8 | 13 harnesses x 2 char signednesses: 26/26 proved |
-| `mutants.sh` planted bugs | 17/17 caught (checked one by hand: fails on the assertion, not the pin) |
+| `run_cbmc.sh` upstream 7b87ce8 | 13 harnesses x 2 char signednesses: 28/28 proved |
+| `mutants.sh` planted bugs | 18/18 caught (checked one by hand: fails on the assertion, not the pin) |
 | Differential test, independent review, big-endian | not done |
 
 No bug found in these functions.

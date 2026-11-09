@@ -149,3 +149,8 @@ void h_grid_line_put_schar(void) {
   }
   assert(linebuf_char[k] == ck && linebuf_attr[k] == ak && linebuf_vcol[k] == vk);  // nothing else written
 }
+void h_grid_line_cursor_goto(void) {
+  ScreenGrid g; setup_line(&g); g.handle = nondet_int(); int col = nondet_int();
+  grid_line_cursor_goto(col);
+  assert(rec_calls == 1 && rec_grid == g.handle && rec_row == grid_line_row && rec_col == col);
+}

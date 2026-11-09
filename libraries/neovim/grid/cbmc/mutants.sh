@@ -26,4 +26,5 @@ run lgetchar-le h_grid_line_getchar 's/  if (col < grid_line_maxcol) {/  if (col
 run lgetchar-nooff h_grid_line_getchar 's/    col += grid_line_coloff;/    col += 0;/' grid_line_getchar
 run put-last h_grid_line_put_schar 's/grid_line_last = MAX(grid_line_last, col + 1);/grid_line_last = MAX(grid_line_last, col);/' grid_line_put_schar
 run put-novcol h_grid_line_put_schar 's/  linebuf_vcol\[col\] = -1;/  linebuf_vcol[col] = 0;/' grid_line_put_schar
+run goto-col h_grid_line_cursor_goto 's/ui_grid_cursor_goto(grid_line_grid->handle, grid_line_row, col);/ui_grid_cursor_goto(grid_line_grid->handle, col, grid_line_row);/' grid_line_cursor_goto
 echo "caught $caught/$total"

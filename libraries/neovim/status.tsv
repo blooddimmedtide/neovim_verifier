@@ -69,3 +69,4 @@ src/nvim/grid.c	grid_invalid_row	candidate	grid/cbmc (CBMC, all inputs, both cha
 src/nvim/grid.c	grid_getchar	candidate	grid/cbmc (CBMC, all inputs, both char signednesses)	cell + attr or NUL; under undocumented row,col >= 0 (callers check; latent OOB without it); 17/17 planted bugs; see grid/CLAIM.md. No review yet
 src/nvim/grid.c	grid_line_getchar	candidate	grid/cbmc (CBMC, all inputs, both char signednesses)	on-screen cell or space; under undocumented col >= 0; 17/17 planted bugs; see grid/CLAIM.md. No review yet
 src/nvim/grid.c	grid_line_put_schar	candidate	grid/cbmc (CBMC, all inputs, both char signednesses)	writes only cell col, updates first/last; under undocumented col >= 0; 17/17 planted bugs; see grid/CLAIM.md. No review yet
+src/nvim/grid.c	grid_line_cursor_goto	candidate	grid/cbmc (CBMC, all inputs, both char signednesses)	passes handle/row/col to ui_grid_cursor_goto (callee unproved, recorded); 18/18 planted bugs; see grid/CLAIM.md. No review yet

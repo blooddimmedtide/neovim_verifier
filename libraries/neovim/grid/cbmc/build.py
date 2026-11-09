@@ -19,6 +19,7 @@ FUNCS = [
     ("grid_getchar", "src/nvim/grid.c"),
     ("grid_line_getchar", "src/nvim/grid.c"),
     ("grid_line_put_schar", "src/nvim/grid.c"),
+    ("grid_line_cursor_goto", "src/nvim/grid.c"),
 ]
 PINS = {}
 try:
