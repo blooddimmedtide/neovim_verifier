@@ -74,6 +74,14 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/option.c | `find_key_item` | open | option/wp (Frama-C WP, 54/54) | first comma-list item with the key; proved locally, mutants/review/CI pending; see option/CLAIM.md |
+| src/nvim/option.c | `remove_comma_item` | open | option/wp (Frama-C WP, 37/37) | removes item and one comma; proved locally, mutants/review/CI pending |
+| src/nvim/option.c | `append_item` | open | option/wp (Frama-C WP, 31/31) | proved locally, mutants/review/CI pending |
+| src/nvim/option.c | `prepend_item` | open | option/wp (Frama-C WP, 26/26) | proved locally, mutants/review/CI pending |
+| src/nvim/option.c | `stropt_concat_with_comma` | open | option/wp (Frama-C WP, fixed 45/45) | upstream wrong from 2 GiB (findings/option-concat-over-2gib.md); fix on verified_neovim claude/project-thread-33fn39 36f4ea6 proved locally |
+| src/nvim/option.c | `valid_name` | open | option/wp (Frama-C WP, 34/34) | proved locally, mutants/review/CI pending |
+| src/nvim/optionstr.c | `check_option_listflag` | open | option/wp (Frama-C WP, 33/33) | proved locally, mutants/review/CI pending |
+| src/nvim/option.c | `find_key_len` | open | option/repro (ASan) | reads past "<t_x" (findings/option-string-to-key-t-x.md); fix 61856f2 not proved |
 
 ## All files
 

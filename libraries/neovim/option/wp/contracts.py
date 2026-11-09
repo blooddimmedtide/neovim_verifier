@@ -87,7 +87,8 @@ REMOVE_COMMA_ITEM = r"""
     assigns ((char *)str)[0 .. n];
     behavior inner:   // a ',' follows: drop the item and that comma
       assumes item[itemlen] == ',';
-      ensures str_at((char *)str, n - itemlen - 1);
+      ensures item[n - (item - str) - itemlen - 1] == 0
+              && \forall integer i; 0 <= i < n - (item - str) - itemlen - 1 ==> item[i] != 0;
       ensures \forall integer j; 0 <= j < item - str ==> str[j] == \old(str[j]);
       ensures \forall integer i; 0 <= i <= n - (item - str) - itemlen - 1 ==> item[i] == \old(item[i + itemlen + 1]);
     behavior last:    // the last of several items: drop the comma before it and the item
@@ -159,8 +160,8 @@ CONTRACTS = {
         ("    STRMOVE(item, item + itemlen + 1);",
          "\n    /*@ assert \\forall integer i; 0 <= i <= n - (item - str) - itemlen - 1 ==> item[i] == \\at(item[i + itemlen + 1], Pre); */"
          "\n    /*@ assert \\forall integer j; 0 <= j < item - str ==> str[j] != 0; */"
-         "\n    /*@ assert \\forall integer j; item - str <= j < n - itemlen - 1 ==> \\at(str[j + itemlen + 1], Pre) != 0; */"
-         "\n    /*@ assert \\forall integer j; item - str <= j < n - itemlen - 1 ==> str[j] != 0; */", "after"),
+         "\n    /*@ assert \\forall integer i; 0 <= i < n - (item - str) - itemlen - 1 ==> \\at(item[i + itemlen + 1], Pre) != 0; */"
+         "\n    /*@ assert \\forall integer i; 0 <= i < n - (item - str) - itemlen - 1 ==> item[i] != 0; */", "after"),
         ("    // Last item: remove leading comma and item",
          "    /*@ assert str_len(item + itemlen, n - (item - str) - itemlen); */\n", "before")]),
     "append_item": (APPEND_ITEM, [("ptrdiff_t item_len)", GHOST_N, "after")]),
@@ -234,7 +235,7 @@ LISTFLAG = r"""
     requires str_len(flags, m) && ascii_str(flags);
     requires errbuf == \null || (\valid_read(errbuf) && \valid(errbuf->data + (0 .. errbuf->size - 1)));
     assigns errbuf->data[0 .. errbuf->size - 1];
-    ensures \result == \null <==> \forall integer j; 0 <= j < n ==> in_str2(flags, m, \at(val[j], Pre));
+    ensures \result == \null <==> \forall integer j; 0 <= j < n ==> \at(in_str2(flags, m, val[j]), Pre);
 */
 """
 LISTFLAG_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && val <= s <= val + n;
@@ -250,4 +251,5 @@ CONTRACTS["valid_name"] = (VALID_NAME, [
 CONTRACTS["check_option_listflag"] = (LISTFLAG, [
     ("const CharBuf *errbuf)", " /*@ ghost (size_t n, size_t m) */", "after"),
     ("  for (char *s = val; *s; s++) {", LISTFLAG_LOOP, "before"),
+    ("  return NULL;\n}", "  /*@ assert \\forall integer j; 0 <= j < n ==> in_str2(flags, m, val[j]); */\n", "before"),
     ("      return illegal_char(errbuf, (uint8_t)(*s));", "      /*@ assert s - val < n && !in_str2(flags, m, val[s - val]); */\n", "before")])

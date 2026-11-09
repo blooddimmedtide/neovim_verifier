@@ -21,10 +21,15 @@ Status per function is in `PLAN.md`. This card says what the proofs that pass ac
 | `append_item(str, item, len)` | `str` becomes old `str`, then `,` if `str` was not empty, then the item, then NUL |
 | `prepend_item(str, item, len)` | `str` becomes the item, then `,` and old `str` if it was not empty |
 | `stropt_concat_with_comma` (fixed fork) | `+=`: origval (minus a trailing unescaped `,` for one-comma options), `,` when both are non-empty comma-list values, then newval; `^=`: newval, `,`, origval. Any length |
+| `valid_name(val, allowed)` | true iff every byte of `val` is an ASCII letter or digit or a byte of `allowed` (allowed all ASCII) |
+| `check_option_listflag(val, flags, errbuf)` | NULL iff every byte of `val` is one of `flags` (flags all ASCII); else a non-NULL error message |
 | `stropt_concat_with_comma` (upstream) | wrong from 2 GiB (finding below). The proof with lengths <= INT_MAX has one open goal (OP_ADDING ensures, timeout) |
 
 The references are written from the doc comments (quoted in `wp/contracts.py`), as comma-list
 predicates (`item_start`, `key_at`, `item_end`), not from the code.
+
+Each run also passes `-wp-smoke-tests` (93/93: no stub or precondition set was found
+contradictory). The stubs here are new; the garray allocation stubs are not used.
 
 ## What the proofs rely on (trusted, all in wp/stubs)
 
