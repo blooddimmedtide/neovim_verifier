@@ -9,7 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
-| src/nvim/ex_cmds.c | 0 | 2 | 57 | 59 |
+| src/nvim/ex_cmds.c | 0 | 4 | 55 | 59 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -75,8 +75,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
-| src/nvim/ex_cmds.c | `sub_parse_flags` | candidate | ex_cmds/cbmc (CBMC, strings up to 8 bytes, both signednesses) | flags/end pointer equal :help s_flags reference; difftest 308M cases; 12/12 planted bugs; no independent review yet |
+| src/nvim/ex_cmds.c | `sub_parse_flags` | candidate | ex_cmds/cbmc (CBMC, strings up to 8 bytes, both signednesses) | flags/end pointer equal :help s_flags reference; difftest 308M cases; 12/12 planted bugs (22/22 for the file); no independent review yet |
 | src/nvim/ex_cmds.c | `check_regexp_delim` | fixed-candidate | ex_cmds/cbmc (CBMC, all inputs, C locale) | FAIL+E146 exactly for letters; upstream callers pass negative char to isalpha (findings/check-regexp-delim-signed-char.md), fix proved; no independent review yet |
+| src/nvim/ex_cmds.c | `sub_get_replacement` | candidate | ex_cmds/cbmc (CBMC, two rounds) | returns exactly the stored value; no independent review yet |
+| src/nvim/ex_cmds.c | `sub_set_replacement` | candidate | ex_cmds/cbmc (CBMC, two rounds, leak check) | stores without copy, frees previous string and data exactly once, no leak; precondition fresh allocation (@warning); no independent review yet |
 
 ## All files
 

@@ -1,0 +1,5 @@
+no_free_sub|  xfree(old_sub.sub);\n  if (sub.additional_data|  if (sub.additional_data
+always_free_ad|  if (sub.additional_data != old_sub.additional_data) {|  if (1) {
+never_free_ad|  if (sub.additional_data != old_sub.additional_data) {|  if (0) {
+no_store|  old_sub = sub;\n}|  old_sub.sub = sub.sub;\n}
+get_stale|  *ret_sub = old_sub;|  ret_sub->sub = old_sub.sub;
