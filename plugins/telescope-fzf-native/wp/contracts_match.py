@@ -223,7 +223,7 @@ CONTRACTS["fzf_suffix_match"] = MATCHPRE + r"""
     assigns """ + PA("pos->size", "pos->size + pattern->size") + r""";
     behavior empty:
       assumes pattern->size == 0;
-      ensures \exists integer w; trail_w(""" + TD + r""", text->size, w) && \result.start == text->size - w && \result.end == \result.start;
+      ensures trail_w(""" + TD + r""", text->size, text->size - \result.start) && \result.end == \result.start;
       ensures \result.score == 0;""" + NOPOS + r"""
     behavior match:
       assumes pattern->size > 0;
@@ -231,7 +231,7 @@ CONTRACTS["fzf_suffix_match"] = MATCHPRE + r"""
                                   : \exists integer w; trail_w(""" + TD + r""", text->size, w) && e == text->size - w)
                 && pattern->size <= e && eq_at(""" + TD + ", " + PD + r""", case_sensitive, e - pattern->size, pattern->size);
       ensures white(pattern->data[pattern->size - 1]) ? \result.end == text->size
-              : \exists integer w; trail_w(""" + TD + r""", text->size, w) && \result.end == text->size - w;
+              : trail_w(""" + TD + r""", text->size, text->size - \result.end);
       ensures \result.start == \result.end - pattern->size;
       ensures \result.score == cs_score(""" + TD + ", " + PD + r""", case_sensitive, \result.start, \result.end);""" + POSRANGE + r"""
     behavior nomatch:
@@ -277,6 +277,8 @@ LOOPS["fzf_suffix_match"] = [("  for (size_t idx = 0; idx < M; idx++) {",
       loop invariant cs_pidx(""" + TD + ", " + PD + r""", case_sensitive, diff, diff + idx) == idx;
       loop invariant \forall integer x; diff <= x <= diff + idx ==> cs_pidx(""" + TD + ", " + PD + r""", case_sensitive, diff, x) == x - diff;
       loop assigns idx; loop variant M - idx;"""),
+    ("  insert_range(pos, start, end);",
+    r"""assert start == diff && end == start + M && end <= text->size && end <= 2147483647;"""),
     ("  size_t start = trimmed_len - M;",
     r"""assert \forall integer x; diff <= x < diff + M ==>
                cs_pidx(""" + TD + ", " + PD + r""", case_sensitive, diff, x) == x - diff;""")]
