@@ -3,8 +3,8 @@ entry: neovim/src/nvim/spellfile.c (writer side: .sug <sugnr> encoder)
 upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: none yet
-toolchain: gcc -O2 with UBSan, exhaustive enumeration (CBMC/Frama-C not installed in this session)
-strength: exhaustive test over the whole int domain (not a CBMC/WP proof yet)
+toolchain: CBMC 6.11.0 (nixpkgs) + gcc -O2 UBSan exhaustive enumeration
+strength: candidate (1 function, in-range inputs); not reviewed, no mutants yet
 platform: x86_64, char signed and unsigned
 ---
 
@@ -17,7 +17,7 @@ Run: `bash spellfile_writer/exhaustive/run.sh <neovim checkout>`. Code is extrac
 
 | Function | Property | Strength |
 |---|---|---|
-| `offset2bytes(nr, buf)` | For 0 <= nr < 15*255^3 (= 248,720,625): writes the minimal 1..4 bytes from the spec in `check.c` (base-255 digits + 1, so no NUL; UTF-8-like lead tags), writes nothing past them, and `bytes2offset` (spellsuggest.c, the reader) returns nr and advances by exactly that length | exhaustive: every one of the 2^32 int inputs run, both signednesses, UBSan clean |
+| `offset2bytes(nr, buf)` | For 0 <= nr < 15*255^3 (= 248,720,625): writes the minimal 1..4 bytes from the spec in `check.c` (base-255 digits + 1, so no NUL; UTF-8-like lead tags), writes nothing past them, and `bytes2offset` (spellsuggest.c, the reader) returns nr and advances by exactly that length | CBMC proved (cbmc/harness.c, nondet nr in range, exact 4-byte object, bounds/pointer/overflow/shift/leak checks, unwinding assertions), signed and unsigned char; plus exhaustive run of all 2^32 ints with UBSan |
 
 The spec is written from the format comment at spellfile.c:215-224 (`<sugnr>` "stored as an offset
 to the previous number in as few bytes as possible", `<sugline>` ends at NUL) and the reader
@@ -40,4 +40,4 @@ nr >= 0.
 Everything else, including rep_compare, write_vim_spell, put_node, sug_filltree, sug_maketable,
 sug_filltable, sug_write, mkspell, wordtree_compress, node_compress, node_equal, write_spell_prefcond,
 spell_add_word, init_spellfile, set_spell_charflags, set_spell_finish, set_map_str, and all .aff/.dic
-readers. offset2bytes itself still needs a CBMC proof to reach candidate.
+readers. offset2bytes: no independent review or planted-bug run yet; bytes2offset (spellsuggest.c) is used as the reader in the spec, so a shared bug in both would not be caught by the round-trip alone (the length and no-NUL checks are independent).
