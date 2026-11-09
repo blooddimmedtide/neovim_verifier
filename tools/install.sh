@@ -9,14 +9,14 @@ SUDO=$([ "$(id -u)" -eq 0 ] || echo sudo)
 CBMC_VER=6.4.1
 if ! command -v cbmc >/dev/null || ! cbmc --version | grep -q "$CBMC_VER"; then
   tmp=$(mktemp -d)
-  curl -fsSL -o "$tmp/cbmc.deb" \
+  curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o "$tmp/cbmc.deb" \
     "https://github.com/diffblue/cbmc/releases/download/cbmc-$CBMC_VER/ubuntu-24.04-cbmc-$CBMC_VER-Linux.deb"
   # apt resolves the .deb's dependencies itself (dpkg -i alone fails in a bare container).
   $SUDO env DEBIAN_FRONTEND=noninteractive apt-get update -qq
   $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "$tmp/cbmc.deb"
 fi
 if ! command -v nix >/dev/null && [ ! -x /nix/var/nix/profiles/default/bin/nix ]; then
-  curl -fsSL -o /tmp/nix-install.sh https://nixos.org/nix/install
+  curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o /tmp/nix-install.sh https://nixos.org/nix/install
   # The installer wants sudo to create /nix; do it ourselves (root in a container).
   [ -d /nix ] || $SUDO sh -c 'mkdir -m 0755 /nix && chown "$(id -un)" /nix' 2>/dev/null || \
     { [ -z "$SUDO" ] && mkdir -m 0755 /nix; }
