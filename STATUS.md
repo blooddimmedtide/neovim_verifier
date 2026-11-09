@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/undo.c | 0 | 18 | 65 | 83 |
+| src/nvim/undo.c | 0 | 20 | 63 | 83 |
 
 ## Function details
 
@@ -93,6 +93,8 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/undo.c | `uhp_table_find` | candidate | undo/wp (Frama-C WP, any size, 33/33) | binary search on sorted table; CBMC n<=4 cross-check; review + 22/22 planted bugs done; waiting on owner sign-off |
 | src/nvim/undo.c | `get_undolevel` | candidate | undo/cbmc/run_small.sh (CBMC) | buffer 'undolevels' or global when unset; 3 own planted bugs caught, no independent review yet |
 | src/nvim/undo.c | `zero_fmark_additional_data` | candidate | undo/cbmc/run_small.sh (CBMC) | frees and NULLs all 26 marks' data, nothing else touched, no leak; no independent review yet |
+| src/nvim/undo.c | `u_get_headentry` | candidate | undo/cbmc/run_head.sh (CBMC) | newest entry or NULL + one internal error; no independent review yet |
+| src/nvim/undo.c | `u_getbot` | candidate | undo/cbmc/run_head.sh (CBMC) | ue_bot recomputed or reset with error; line counts below MAXLNUM (int overflow at exactly MAXLNUM lines, unconfirmed); 5 own planted bugs caught; no independent review yet |
 
 ## All files
 
