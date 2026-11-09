@@ -17,4 +17,11 @@ n	function	mode	result	change
 16	after_pathsep	upstream	caught	p > b && -> p >= b &&
 17	path_tail_with_sep	upstream	caught	tail > past_head && -> tail >= past_head &&
 18	invocation_path_tail	fixed	caught	tail_end = p + l; -> tail_end = p + l + 1;
-19	invocation_path_tail	fixed	caught	      l = utfc_ptr2len(p); ->       l = 1;
+19	invocation_path_tail	fixed	caught	      l = utfc_ptr2len(p); ->       l = utfc_ptr2len(p) * 0 + 1;
+20	add_pathsep	upstream	caught	if (plen > MAXPATHL - pathsep_len) { -> if (plen > MAXPATHL - pathsep_len + 1) {
+21	add_pathsep	upstream	caught	if (!after_pathsep(p, p + plen)) { -> if (!after_pathsep(p, p + plen - 1)) {
+22	path_to_slash	upstream	caught	if (p != NULL && !path_with_url(p)) { -> if (p != NULL && !path_with_url(p) && *p != 'a') {
+23	path_to_backslash	upstream	caught	if (p != NULL) { -> if (p != NULL && *p != '/') {
+24	path_has_wildcard	upstream	caught	if (p[0] == '\\' && p[1] != NUL) { -> if (p[0] == '\\') {
+25	path_has_wildcard	upstream	caught	(all && p[0] == '~' && p[1] != NUL) -> (all && p[0] == '~')
+26	vim_backtick	upstream	caught	*(p + 1) != NUL && -> 
