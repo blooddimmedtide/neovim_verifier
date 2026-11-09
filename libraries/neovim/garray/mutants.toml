@@ -1,0 +1,237 @@
+# Planted bugs for the garray.c proof, chosen by the independent adversarial reviewer
+# (see REVIEW.md). Each `original` is an exact substring that occurs exactly once inside the
+# named function's definition (from its definition line to its closing brace) in the BUILT
+# file: `python3 -I wp/build.py <tree> out.c upstream|fixed` (macros expanded, tool patch
+# applied, ACSL comments inserted).
+#
+# NOTE for the runner: run_mutants.py's function_span() currently matches the PRELUDE
+# prototypes of ga_clear, ga_grow, ga_set_growsize and ga_concat_len (lines ending in ";"),
+# so for those four functions it looks at the wrong text (see REVIEW.md R1). Fix it to match
+# only the definition line (no trailing ";") before running these.
+#
+# expect = "caught": a correct proof must fail (some goal not proved).
+# expect = "equivalent": the reviewer argues the mutant does not change any behaviour the
+#          contract (including `exits`) talks about; it may survive.
+
+# ======================= upstream tree =======================
+
+[[mutant]]
+id = "clear-leak-nulls-first"
+tree = "upstream"
+function = "ga_clear"
+original = 'xfree(gap->ga_data);'
+mutated = 'gap->ga_data = NULL; xfree(gap->ga_data);'
+expect = "caught"
+why = "Any array with ga_data != NULL: the block is leaked (xfree(NULL)). Caught by ensures vp_freelog[old vp_nfree] == old ga_data and the vp_live decrement."
+
+[[mutant]]
+id = "clear-strings-skip-last"
+tree = "upstream"
+function = "ga_clear_strings"
+original = 'i < _gap->ga_len; i++'
+mutated = 'i < _gap->ga_len - 1; i++'
+expect = "caught"
+why = "ga_len >= 1 with ga_data != NULL: the last string is never freed (leak) and only ga_len frees are logged. Caught by behavior items: vp_nfree == old + ga_len + 1 and the per-k freelog clause (and the vp_live count)."
+
+[[mutant]]
+id = "init-no-clamp"
+tree = "upstream"
+function = "ga_init"
+original = 'ga_set_growsize(gap, growsize);'
+mutated = 'gap->ga_growsize = growsize;'
+expect = "caught"
+why = "growsize <= 0 (e.g. ga_init(gap, 1, 0)): ga_growsize stays 0 instead of 1. Caught by ensures ga_growsize == (growsize < 1 ? 1 : growsize)."
+
+[[mutant]]
+id = "set-growsize-zero-allowed"
+tree = "upstream"
+function = "ga_set_growsize"
+original = 'if (growsize < 1) {'
+mutated = 'if (growsize < 0) {'
+expect = "caught"
+why = "growsize == 0 is stored as 0 (later ga_grow would then grow by n only). Caught by ensures ga_growsize == (growsize < 1 ? 1 : growsize)."
+
+[[mutant]]
+id = "grow-exact-fit-regrows"
+tree = "upstream"
+function = "ga_grow"
+original = 'if (gap->ga_maxlen - gap->ga_len >= n) {'
+mutated = 'if (gap->ga_maxlen - gap->ga_len > n) {'
+expect = "caught"
+why = "Exactly n items of room (e.g. maxlen 10, len 6, n 4): the array is reallocated although it has room. Caught by behavior room: ga_maxlen and ga_data unchanged, vp_live unchanged (and the n = 0, full-array case can overflow: RTE)."
+
+[[mutant]]
+id = "grow-last-byte-not-zeroed"
+tree = "upstream"
+function = "ga_grow"
+original = 'memset(pp + old_size, 0, new_size - old_size);'
+mutated = 'memset(pp + old_size, 0, new_size - old_size - 1);'
+expect = "caught"
+why = "Any growth: the last new byte keeps whatever realloc left there. Caught by the assert before ga_maxlen = new_maxlen and by behavior grow: every byte in [old bytes, new bytes) is 0."
+
+[[mutant]]
+id = "grow-oldsize-from-len"
+tree = "upstream"
+function = "ga_grow"
+original = 'size_t old_size = (size_t)gap->ga_itemsize * (size_t)gap->ga_maxlen;'
+mutated = 'size_t old_size = (size_t)gap->ga_itemsize * (size_t)gap->ga_len;'
+expect = "caught"
+why = "ga_len < ga_maxlen and growth needed (maxlen 10, len 8, n 5): memset zeroes the old bytes [len, maxlen) and xrealloc is told to keep only len items. Caught by the old-bytes-kept ensures (and the assert old_size == itemsize * maxlen)."
+
+[[mutant]]
+id = "dedup-frees-kept-neighbour"
+tree = "upstream"
+function = "ga_remove_duplicate_strings"
+original = 'xfree(fnames[i]);'
+mutated = 'xfree(fnames[i - 1]);'
+expect = "caught"
+why = "Two path_equal neighbours: the kept string (still stored at i - 1) is freed and the removed one leaks; dangerous because the strings are equal so a content check would not see it. Caught by the freelog clause vp_freelog[...] == vp_sorted(k) for the dropped k."
+
+[[mutant]]
+id = "dedup-shift-misses-last"
+tree = "upstream"
+function = "ga_remove_duplicate_strings"
+original = 'j < gap->ga_len; j++'
+mutated = 'j < gap->ga_len - 1; j++'
+expect = "caught"
+why = "A duplicate not at the end, e.g. sorted [a, a, b]: after freeing slot 1 the last pointer is not moved down, so the result is [a, a(freed)] instead of [a, b]. Caught by the kept-order ensures (and the inner loop invariant)."
+
+[[mutant]]
+id = "concat-strings-one-sep-too-many"
+tree = "upstream"
+function = "ga_concat_strings"
+original = 'len += (nelem - 1) * strlen(sep);'
+mutated = 'len += nelem * strlen(sep);'
+expect = "caught"
+why = "Over-allocates by strlen(sep): the result string is unchanged for ordinary inputs, but for total in (SIZE_MAX - m, SIZE_MAX) the size wraps (xmallocz gets a small size: xstpcpy precondition / RTE fails) and for total == SIZE_MAX - m xmallocz exits although total < SIZE_MAX (exits clause fails). Tests whether the proof really covers the wrap boundary the finding is about."
+
+[[mutant]]
+id = "concat-copies-nul"
+tree = "upstream"
+function = "ga_concat"
+original = 'ga_concat_len(gap, s, strlen(s));'
+mutated = 'ga_concat_len(gap, s, strlen(s) + 1);'
+expect = "caught"
+why = "Any non-NULL s: the NUL is appended too (the doc comment says it is NOT copied). Caught by behavior append: ga_len == old + n; also behavior nothing for s == empty string (len 1 is appended)."
+
+[[mutant]]
+id = "concat-len-rejects-exact-fit"
+tree = "upstream"
+function = "ga_concat_len"
+original = 'if (len > (size_t)(INT_MAX - gap->ga_len)) {'
+mutated = 'if (len >= (size_t)(INT_MAX - gap->ga_len)) {'
+expect = "caught"
+why = "len == INT_MAX - ga_len (e.g. ga_len 0, len INT_MAX, room available or growth to exactly INT_MAX): E1240 instead of appending. Caught by behavior append (ga_len == old + len)."
+
+[[mutant]]
+id = "append-no-grow"
+tree = "upstream"
+function = "ga_append"
+original = 'ga_grow(gap, 1);'
+mutated = 'ga_grow(gap, 0);'
+expect = "caught"
+why = "Full array (ga_len == ga_maxlen, including the empty NULL array): the byte is stored one past the block. Caught by -wp-rte (invalid memory write) and the ga_maxlen ensures."
+
+[[mutant]]
+id = "via-ptr-preincrement"
+tree = "upstream"
+function = "ga_append_via_ptr"
+original = '(size_t)gap->ga_len++'
+mutated = '(size_t)++gap->ga_len'
+expect = "caught"
+why = "Any call: returns the address of the slot after the new item (out of the block when the array is then full). Caught by ensures \\result == ga_data + item_size * old ga_len and \\valid(\\result + (0 .. item_size - 1))."
+
+# ======================= fixed tree =======================
+
+[[mutant]]
+id = "fix-grow-exit-off-by-one"
+tree = "fixed"
+function = "ga_grow"
+original = 'if (n > INT_MAX - gap->ga_len) {'
+mutated = 'if (n >= INT_MAX - gap->ga_len) {'
+expect = "caught"
+why = "Growth to exactly INT_MAX items (len 10, maxlen 10, n INT_MAX - 10) exits instead of growing. The normal-return ensures are vacuous on that path (preserve_exit ensures false), so ONLY the exits clause (exits ... && n > INT_MAX - ga_len) can catch it; tests that WP really checks exits."
+
+[[mutant]]
+id = "fix-grow-half-uncapped"
+tree = "fixed"
+function = "ga_grow"
+original = 'n = MAX(n, MIN(gap->ga_len / 2, room));'
+mutated = 'n = MAX(n, gap->ga_len / 2);'
+expect = "caught"
+why = "The fix half-undone: len 1.5e9 full, n 1 gives len + len/2 > INT_MAX again. Caught by -wp-rte (signed overflow in ga_len + n) and the grown_fix ensures."
+
+[[mutant]]
+id = "fix-grow-room-from-maxlen"
+tree = "fixed"
+function = "ga_grow"
+original = 'const int room = INT_MAX - gap->ga_len;'
+mutated = 'const int room = INT_MAX - gap->ga_maxlen;'
+expect = "caught"
+why = "ga_maxlen > ga_len and the cap applies (len 2e9 - 10, maxlen 2e9, n 20: the half-length term is capped): room becomes 147483647 instead of 147483657, so ga_maxlen ends at INT_MAX - 10 instead of INT_MAX. Caught by ensures ga_maxlen == grown_fix(...)."
+
+[[mutant]]
+id = "fix-concat-strings-exit-at-boundary"
+tree = "fixed"
+function = "ga_concat_strings"
+original = 'if (slen > SIZE_MAX - len) {'
+mutated = 'if (slen >= SIZE_MAX - len) {'
+expect = "equivalent"
+why = "Differs only when the partial sum is exactly SIZE_MAX; then total >= SIZE_MAX, so the original also exits (later in xmallocz or a further check) and the exits clause (total >= SIZE_MAX) allows it. No normal-return behaviour changes. Expected to SURVIVE; if it is caught, the exits clause is stronger than the reviewer thinks."
+
+[[mutant]]
+id = "fix-concat-strings-sep-check-one-more"
+tree = "fixed"
+function = "ga_concat_strings"
+original = 'nelem - 1 > (SIZE_MAX - len) / seplen'
+mutated = 'nelem > (SIZE_MAX - len) / seplen'
+expect = "caught"
+why = "Spurious exit when (nelem-1)*seplen <= SIZE_MAX - len < nelem*seplen with total < SIZE_MAX (e.g. sum 0, seplen 2^62, nelem 3 gives total 2^63). Only the exits clause (exits total >= SIZE_MAX) can catch it."
+
+[[mutant]]
+id = "fix-concat-strings-sep-check-ignores-len"
+tree = "fixed"
+function = "ga_concat_strings"
+original = '(SIZE_MAX - len) / seplen'
+mutated = 'SIZE_MAX / seplen'
+expect = "caught"
+why = "The separator product alone fits but the sum wraps (len = 2^63, seplen = 2^62, nelem = 3): len wraps to 0, xmallocz(0) and the copies run past the block. Caught by the xstpcpy precondition / RTE and behavior too_big (ensures false)."
+
+[[mutant]]
+id = "fix-concat-strings-sum-unchecked-last"
+tree = "fixed"
+function = "ga_concat_strings"
+original = 'for (size_t i = 0; i < nelem; i++) {'
+mutated = 'for (size_t i = 0; i < nelem; i++) { if (i + 1 == nelem) { len += strlen(strings[i]); break; }'
+expect = "caught"
+why = "The overflow check is skipped for the last string (a plausible 'optimisation'): huge last string wraps len. Caught by behavior too_big / the xstpcpy and strcpy preconditions (RTE)."
+
+[[mutant]]
+id = "fix-via-ptr-grows-by-growsize"
+tree = "fixed"
+function = "ga_append_via_ptr"
+original = 'ga_grow(gap, 1);'
+mutated = 'ga_grow(gap, gap->ga_growsize);'
+expect = "caught"
+why = "Not full but fewer than growsize free slots (maxlen 10, len 9, growsize 4): it reallocates although one item fits; near INT_MAX with growsize > room it exits. Caught by the ga_maxlen ensures (old maxlen kept when maxlen > len) and the exits clause."
+
+[[mutant]]
+id = "fix-concat-len-grow-one-short"
+tree = "fixed"
+function = "ga_concat_len"
+original = 'ga_grow(gap, (int)len);'
+mutated = 'ga_grow(gap, (int)len - 1);'
+expect = "caught"
+why = "Exactly len - 1 free bytes (maxlen 10, len 7, appending 4 bytes): no growth and memcpy writes one byte past the block. Caught by -wp-rte / memcpy's \\valid precondition."
+
+# ======================= gap probe (spec strength) =======================
+
+[[mutant]]
+id = "G-concat-len-dirty-tail"
+tree = "upstream"
+function = "ga_concat_len"
+original = 'memcpy(data + gap->ga_len, s, len);'
+mutated = 'memcpy(data + gap->ga_len, s, len); if ((size_t)(gap->ga_maxlen - gap->ga_len) > len) { data[gap->ga_len + (int)len] = 1; }'
+expect = "caught"
+predicted = "SURVIVES today (REVIEW.md S1)"
+why = "Spare room after the copy (maxlen 100, len 0, append 3 bytes): the byte after the new end, which ga_grow zeroed, becomes 1. No contract clause of ga_concat_len says what bytes [new ga_len, ga_maxlen) hold, so the current proof should pass. Callers that rely on ga_grow's zeroing (a NUL right after the text) would break. Fix: state that the tail keeps its old bytes, or is zero where the array grew, as ga_grow and ga_append_via_ptr already do."
