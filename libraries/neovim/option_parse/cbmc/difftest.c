@@ -6,7 +6,7 @@
 #define main harness_main
 #include "harness.c"
 #undef main
-char nondet_char(void){return 0;} size_t nondet_size(void){return 1;}
+char nondet_char(void){return 0;} size_t nondet_size(void){return 1;} int nondet_int(void){return 0;}
 static const char A[] = "<>t_nomvreyp=+^-";
 int main(void){
   char s[8]; long bad = 0, cnt = 0; size_t K = sizeof A - 1;

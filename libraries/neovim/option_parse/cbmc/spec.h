@@ -37,3 +37,11 @@ static long ref_tty_end(const char *s, size_t n)
   if (L >= 4 && s[0] == 't' && s[1] == '_') return 4;
   return -1;
 }
+
+// Length of the leading run of ASCII letters A-Z / a-z (option names).
+static size_t ref_alpha_run(const char *s, size_t n)
+{
+  size_t i = 0;
+  while (i < n && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z'))) i++;
+  return i;
+}

@@ -64,3 +64,26 @@ bool is_tty_option(const char *name)
 {
   return find_tty_option_end(name) != NULL;
 }
+const char *find_option_end(const char *arg, OptIndex *opt_idxp)
+{
+  const char *p;
+
+  // Handle TTY and keycode options separately.
+  if ((p = find_tty_option_end(arg)) != NULL) {
+    *opt_idxp = kOptInvalid;
+    return p;
+  } else {
+    p = arg;
+  }
+
+  if (!ASCII_ISALPHA(*p)) {
+    *opt_idxp = kOptInvalid;
+    return NULL;
+  }
+  while (ASCII_ISALPHA(*p)) {
+    p++;
+  }
+
+  *opt_idxp = find_option_len(arg, (size_t)(p - arg));
+  return p;
+}

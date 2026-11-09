@@ -16,4 +16,8 @@ m tty-p4       's/p += 4;/p += 3;/'
 m tty-gt       "s/\*p != '>') {/*p == '<') {/"
 m tty-eqnull   's/arg == p ? NULL : p/p/'
 m tty-isnot     's/!= NULL;/== NULL;/'
+m foe-notalpha  's/if (!ASCII_ISALPHA(\*p)) {/if (!ASCII_ISLOWER(*p)) {/'
+m foe-loop      's/while (ASCII_ISALPHA(\*p)) {/while (*p \&\& *p != 0x20) {/'
+m foe-len       's/(size_t)(p - arg))/(size_t)(p - arg) - 1)/'
+m foe-ttyidx    '0,/\*opt_idxp = kOptInvalid;/s//*opt_idxp = 0;/'
 cp extracted.orig extracted.c; rm extracted.orig

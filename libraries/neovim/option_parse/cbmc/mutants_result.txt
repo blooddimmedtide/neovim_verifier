@@ -11,3 +11,7 @@ caught: tty-p4
 caught: tty-gt
 caught: tty-eqnull
 caught: tty-isnot
+caught: foe-notalpha
+caught: foe-loop
+caught: foe-len
+caught: foe-ttyidx
