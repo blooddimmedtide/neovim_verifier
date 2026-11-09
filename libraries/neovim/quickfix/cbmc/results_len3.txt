@@ -1,0 +1,27 @@
+== check_part_len LEN=0 
+VERIFICATION SUCCESSFUL
+== check_analyze_prefix LEN=0 
+VERIFICATION SUCCESSFUL
+== check_to_regpat LEN=0 
+VERIFICATION SUCCESSFUL
+== check_part_len LEN=1 
+VERIFICATION SUCCESSFUL
+== check_analyze_prefix LEN=1 
+VERIFICATION FAILED
+== check_to_regpat LEN=1 
+Running propositional reduction
+run_cbmc.sh: line 7: 27552 Killed                  cbmc "$d/harness.c" -I "$d" -DLEN=$L --function $f $sign --arch x86_64 --bounds-check --pointer-check --signed-overflow-check --unsigned-overflow-check --conversion-check --pointer-overflow-check --undefined-shift-check --unwind $U --unwinding-assertions --object-bits 12 --slice-formula
+     27553 Done                    | tail -1
+== check_part_len LEN=2 
+VERIFICATION SUCCESSFUL
+== check_analyze_prefix LEN=2 
+VERIFICATION FAILED
+== check_to_regpat LEN=2 
+Running propositional reduction
+run_cbmc.sh: line 7: 27621 Killed                  cbmc "$d/harness.c" -I "$d" -DLEN=$L --function $f $sign --arch x86_64 --bounds-check --pointer-check --signed-overflow-check --unsigned-overflow-check --conversion-check --pointer-overflow-check --undefined-shift-check --unwind $U --unwinding-assertions --object-bits 12 --slice-formula
+     27622 Done                    | tail -1
+== check_part_len LEN=3 
+VERIFICATION SUCCESSFUL
+== check_analyze_prefix LEN=3 
+VERIFICATION FAILED
+== check_to_regpat LEN=3 
