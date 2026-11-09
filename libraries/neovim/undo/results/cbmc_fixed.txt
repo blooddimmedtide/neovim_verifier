@@ -12,6 +12,8 @@ h_serialize_visualinfo (signed): proved
 h_unserialize_pos (signed): proved
 h_unserialize_visualinfo (signed): proved
 h_seq_cmp (signed): proved
+h_read_any (signed): proved
+h_read_string_any (signed): proved
 h_write_bytes (--unsigned-char): proved
 h_put_header_ptr (--unsigned-char): proved
 h_read_4c (--unsigned-char): proved
@@ -26,3 +28,5 @@ h_serialize_visualinfo (--unsigned-char): proved
 h_unserialize_pos (--unsigned-char): proved
 h_unserialize_visualinfo (--unsigned-char): proved
 h_seq_cmp (--unsigned-char): proved
+h_read_any (--unsigned-char): proved
+h_read_string_any (--unsigned-char): proved

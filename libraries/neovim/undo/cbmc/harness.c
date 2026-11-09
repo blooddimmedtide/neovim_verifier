@@ -200,3 +200,41 @@ void h_table_find(void) {
   if (present) { assert(0 <= r && r < n); assert(hs[r].uh_seq == seq); }
   else assert(r == -1);
 }
+
+// Unbounded versions: any stream length and any size (below 2^40, more than any undo file
+// field; undo_read_len limits lengths to int). No loop: one nondeterministic index k stands for
+// every index, so the property holds for all of them.
+void h_read_any(void) {
+  size_t len = nondet_size(), size = nondet_size();
+  if (len >= ((size_t)1 << 40) || size >= ((size_t)1 << 40)) return;
+  uint8_t *in = malloc(len);
+  static FILE f; f.in = in; f.in_len = len; f.in_pos = 0; f.eof = false; f.out_len = 0;
+  bufinfo_T bi = bi_for(&f);
+  uint8_t *buf = malloc(size);
+  size_t k = nondet_size();
+  uint8_t ink = k < len ? in[k] : 0;
+  bool ok = undo_read(&bi, buf, size);
+  assert(ok == (len >= size));
+  if (k < size) assert(buf[k] == (ok ? ink : 0));
+  free(buf); free(in);
+}
+
+void h_read_string_any(void) {
+  size_t len = nondet_size(), have = nondet_size();
+  if (len >= ((size_t)1 << 40) || have >= ((size_t)1 << 40)) return;
+  uint8_t *in = malloc(have);
+  static FILE f; f.in = in; f.in_len = have; f.in_pos = 0; f.eof = false; f.out_len = 0;
+  bufinfo_T bi = bi_for(&f);
+  size_t k = nondet_size();
+  uint8_t ink = k < have ? in[k] : 0;
+  char *p = undo_read_string(&bi, len);
+  if (have >= len) {
+    assert(p != NULL);
+    if (k < len) assert((uint8_t)p[k] == ink);
+    assert(p[len] == 0);
+    free(p);
+  } else {
+    assert(p == NULL);
+  }
+  free(in);
+}

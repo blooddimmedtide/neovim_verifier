@@ -30,13 +30,15 @@ and back. The undo file is untrusted input, so these are the first layer of its 
 | `unserialize_visualinfo` | two such positions, then vi_mode and vi_curswant as read | CBMC, every 0..33 byte stream |
 | `uhp_seq_cmp` | -1 / 0 / 1 as the first header's uh_seq is below / equal to / above the second's | CBMC, every pair |
 | `uhp_table_find(t, n, seq)` | on a table sorted on uh_seq: an index i < n with `t[i]->uh_seq == seq` when one exists, else -1; reads nothing outside `t[0..n-1]` and the headers; terminates | Frama-C WP, any n (33/33 goals); CBMC n <= 4 as a cross-check |
-| `undo_read(bi, buf, size)` | true and buf = the next size bytes when that many are left; else false and buf all zeros | CBMC, size <= 5 only (bounded) |
-| `undo_read_string(bi, len)` | NULL (nothing leaked) when fewer than len bytes are left, else a len+1 block with those bytes and a NUL | CBMC, len <= 4 only (bounded) |
+| `undo_read(bi, buf, size)` | true and buf = the next size bytes when that many are left; else false and buf all zeros | CBMC, every stream length and size below 2^40 (callers pass at most a few hundred bytes or an int length); size <= 5 also checked index by index |
+| `undo_read_string(bi, len)` | NULL (nothing leaked) when fewer than len bytes are left, else a len+1 block with those bytes and a NUL | CBMC, every stream length and len below 2^40 (callers pass a non-negative int) |
 
 Every CBMC run also checks bounds, pointers, signed overflow, undefined shifts and memory leaks,
-with every loop fully unwound (`--unwinding-assertions`). The streams are bounded, but every
-function above except `undo_read`/`undo_read_string` reads a fixed number of bytes, so a longer
-stream behaves like the longest one checked.
+with every loop fully unwound (`--unwinding-assertions`). The fixed-field readers are checked on
+streams up to a few bytes past the field, and they read a fixed number of bytes, so a longer
+stream behaves like the longest one checked. `undo_read`/`undo_read_string` are checked for any
+length below 2^40 with one nondeterministic index standing for every index (`h_read_any`,
+`h_read_string_any`; a planted wrong expectation and a shortened memset both fail).
 
 The reference (`cbmc/spec.h`) is written from the documented format ("MSB first", "-1 when
 encountering EOF") with integer arithmetic on 128-bit values, not from the code's shifts.
@@ -68,8 +70,8 @@ Upstream issue draft: project folder `neovim-verify/upstream/undo/` (not filed).
 
 ## Not covered yet
 
-All other undo.c functions (see PLAN.md), and `undo_read`/`undo_read_string` for sizes above
-the bound. No independent review or planted bugs yet.
+All other undo.c functions (see PLAN.md). Sizes of 2^40 and more for `undo_read` /
+`undo_read_string` (no caller can pass them).
 
 ## Evidence
 

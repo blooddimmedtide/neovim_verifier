@@ -11,7 +11,7 @@ status=0
 for sign in signed --unsigned-char; do
 for h in h_write_bytes h_put_header_ptr h_read_4c h_read_2c h_read_byte h_read_time h_read_len \
          h_read h_read_string h_serialize_pos h_serialize_visualinfo h_unserialize_pos \
-         h_unserialize_visualinfo h_seq_cmp; do   # uhp_table_find: ../wp (any size); h_table_find is a bounded cross-check, run with ONLY=h_table_find
+         h_unserialize_visualinfo h_seq_cmp h_read_any h_read_string_any; do   # uhp_table_find: ../wp (any size); h_table_find is a bounded cross-check, run with ONLY=h_table_find
   if [ -n "${ONLY:-}" ] && ! [[ $h =~ $ONLY ]]; then continue; fi
   out=$(timeout 600 cbmc "$HERE/harness.c" --function "$h" -I "$HERE" -DUNDO_IO_C="\"$W/undo_io.c\"" \
         --arch x86_64 ${sign#signed} --no-malloc-may-fail --bounds-check --pointer-check \
