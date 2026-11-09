@@ -7,8 +7,7 @@
 #endif
 int nondet_int(void);
 void h_foldFind(void) {
-  int n = nondet_int();
-  if (n < 0 || n > N) return;              // harness size bound, not a precondition
+  const int n = N;                         // one run per array length 0..N (run_cbmc.sh)
   fold_T *f = n ? malloc(sizeof(fold_T) * n) : NULL;  // exact size: reading past the end fails
   for (int k = 0; k < n; k++) { f[k].fd_top = nondet_int(); f[k].fd_len = nondet_int(); }
   if (!spec_valid(f, n)) return;           // documented fold-array invariant (CLAIM.md)
