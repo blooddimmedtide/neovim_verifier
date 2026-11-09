@@ -19,7 +19,10 @@ BLOCKS = [
     ("src/nvim/api/private/defs.h", "#define ERROR_INIT ((Error) { .type = kErrorTypeNone, .msg = NULL })\n"),
     ("src/nvim/api/private/defs.h", "typedef enum {\n  kErrorTypeNone = -1,\n  kErrorTypeException,\n  kErrorTypeValidation,\n} ErrorType;\n"),
     ("src/nvim/api/private/defs.h", "typedef struct {\n  ErrorType type;\n  char *msg;\n} Error;\n"),
+    ("src/nvim/api/private/defs.h", "typedef enum {\n  kMessageTypeUnknown = -1,\n  // Per msgpack-rpc spec.\n  kMessageTypeRequest = 0,\n  kMessageTypeResponse = 1,\n  kMessageTypeNotification = 2,\n  kMessageTypeRedrawEvent = 3,\n} MessageType;\n"),
+    ("src/nvim/api/private/defs.h", "#define ERROR_SET(e) ((e)->type != kErrorTypeNone)\n"),
 ]
+PIECES = ["unpacker_init", "unpacker_parse_header"]
 
 
 def unpacker_struct(tree):
@@ -36,11 +39,18 @@ PRELUDE = r'''#include <stdbool.h>
 #include "mpack_core.c"
 #include "object.c"
 // Opaque placeholders for field types unpacker_init does not touch.
-typedef enum { kMessageTypeUnknown = -1 } MessageType;
 typedef struct { char opaque[24]; } Object;
 typedef struct { void *fn; bool fast; bool ret_alloc; } MsgpackRpcRequestHandler;
 typedef struct { void *fn; } UIClientHandler;
 typedef struct { char opaque[64]; } GridLineEvent;
+'''
+
+
+STUBS = r'''
+// Callees of unpacker_parse_header outside this file, as harness models (harness_hdr.c
+// defines them and checks how they are called).
+MsgpackRpcRequestHandler msgpack_rpc_get_handler_for(const char *name, size_t name_len, Error *error);
+void api_set_error(Error *err, ErrorType errType, const char *format, ...);
 '''
 
 
@@ -55,9 +65,12 @@ def main(tree, out):
     st = unpacker_struct(tree)
     got["struct Unpacker"] = hashlib.sha256(st.encode()).hexdigest()
     lines = open(f"{tree}/{F}").read().split("\n")
-    s, e = find(lines, "unpacker_init")
-    piece = "\n".join(lines[s:e + 1])
-    got["unpacker_init"] = hashlib.sha256(piece.encode()).hexdigest()
+    code = []
+    for name in PIECES:
+        s, e = find(lines, name)
+        piece = "\n".join(lines[s:e + 1])
+        got[name] = hashlib.sha256(piece.encode()).hexdigest()
+        code.append(f"// {F}:{s + 1} (verbatim)\n{piece}\n")
     if "--pin" in sys.argv:
         with open(os.path.join(HERE, "pins_init.txt"), "a") as f:
             for k, v in got.items():
@@ -67,8 +80,8 @@ def main(tree, out):
         for k, v in got.items():
             if pins.get(k.replace(" ", "_")) != v:
                 sys.exit(f"build_init: {k} differs from the reviewed text: sha256 {v}")
-    parts = [PRELUDE] + [b for _, b in BLOCKS[::-1] if "enum" in b] + [b for _, b in BLOCKS if "enum" not in b]
-    parts += ["typedef struct Unpacker Unpacker;", st, f"// {F}:{s + 1} (verbatim)\n{piece}\n"]
+    parts = [PRELUDE] + [b for _, b in BLOCKS if "enum" in b] + [b for _, b in BLOCKS if "enum" not in b]
+    parts += [STUBS, "typedef struct Unpacker Unpacker;", st] + code
     open(out, "w").write("\n".join(parts))
 
 
