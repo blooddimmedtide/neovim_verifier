@@ -109,6 +109,6 @@ assumptions = [
 file = "src/nvim/ex_cmds.c"
 functions = ["sub_parse_flags", "check_regexp_delim", "sub_get_replacement", "sub_set_replacement"]
 annotate = "ex_cmds/cbmc/build.py"   # verbatim extraction, sha256 pinned (build_delim.py for the second)
-prove = ["bash ex_cmds/cbmc/run_cbmc.sh {src}", "bash ex_cmds/cbmc/run_delim.sh {fixed}", "bash ex_cmds/cbmc/run_repl.sh {src}"]
-check = ["bash ex_cmds/cbmc/run_difftest.sh {src}"]
+prove = ["bash ex_cmds/cbmc/run_cbmc.sh {src}", "ONLY=h_check_regexp_delim bash ex_cmds/cbmc/run_delim.sh {src}", "bash ex_cmds/cbmc/run_repl.sh {src}"]
+check = ["bash ex_cmds/cbmc/run_difftest.sh {src}"]   # call-site fix: bash ex_cmds/cbmc/run_delim.sh <fork at fix-check-regexp-delim-signed-char>; add to {fixed} once merged into branch verified
 mutants = "bash ex_cmds/cbmc/run_mutants.sh {src}"

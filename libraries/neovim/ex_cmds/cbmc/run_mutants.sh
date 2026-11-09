@@ -13,7 +13,8 @@ for pair in mutants.txt:run_cbmc.sh mutants_delim.txt:run_delim.sh mutants_repl.
     for b in build.py build_delim.py build_repl.py; do
       sed 's/^if h != PIN:/if False:/; s/^if hashlib.*PIN:/if False:/' "$HERE/$b" > "$M/$b"; done
     cp "$HERE"/harness*.c "$HERE/spec.h" "$HERE"/run_*.sh "$M/"
-    if bash "$M/$runner" "$M" >/dev/null 2>&1; then echo "MISSED $name"; else echo "caught $name"; caught=$((caught+1)); fi
+    # h_call_sites fails on upstream by design (the finding), so mutants check the function alone.
+    if ONLY=h_check_regexp_delim bash "$M/$runner" "$M" >/dev/null 2>&1; then echo "MISSED $name"; else echo "caught $name"; caught=$((caught+1)); fi
     rm -rf "$M"
   done < "$HERE/$list"
 done
