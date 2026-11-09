@@ -73,3 +73,29 @@ void h_modifier_len(void) {
   char *s = mkstr(N);
   __CPROVER_assert(modifier_len(s) == ref_modifier_len(s), "modifier_len matches spec");
 }
+
+void h_parse_bang(void) {
+  char *s = mkstr(N);
+  exarg_T ea;
+  ea.cmdidx = nondet_int();
+  char *p = s;
+  bool got = parse_bang(&ea, &p);
+  int r = ref_parse_bang(ea.cmdidx, s[0]);
+  __CPROVER_assert(got == (r != 0), "parse_bang result matches spec");
+  __CPROVER_assert(p == s + (r != 0), "parse_bang cursor matches spec");
+}
+
+// Memory safety for every input; the result is checked wherever the doc comment decides it.
+void h_one_letter_cmd(void) {
+  char *s = mkstr(N);
+  cmdidx_T idx = nondet_int(), before = idx;
+  int got = one_letter_cmd(s, &idx);
+  int r = ref_one_letter_cmd(s);
+  if (r >= 0) {
+    __CPROVER_assert(got == (r != 0), "one_letter_cmd result matches spec");
+    __CPROVER_assert(r == 1 ? idx == CMD_k : r == 2 ? idx == CMD_substitute : idx == before,
+                     "one_letter_cmd index matches spec");
+  } else {
+    __CPROVER_assert(got ? idx == CMD_substitute : idx == before, "one_letter_cmd sets :s or nothing");
+  }
+}

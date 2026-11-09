@@ -18,6 +18,8 @@ strings; a Frama-C WP proof for unbounded length is the next step.
 | `skip_colon_white` | 1213 | skips the leading colons and blanks after each (and leading blanks when asked) |
 | `checkforcmd` | 2991 | match iff at least `len` chars of `cmd` match and the next char is no letter; `*pp` moved past blanks on a match, unchanged otherwise; for every `int len` |
 | `modifier_len` | 3217 | length of the leading command modifier (optional count + blanks + abbreviation) or 0, against the modifier list written out from Vim's `:help :command-modifiers`, including the sorted-table early exit |
+| `parse_bang` | 1451 | consumes a `!` and returns true, except for `:s`, `:sm`, `:sno` where `!` can be the pattern delimiter (`:help :s`); every `int` command index |
+| `one_letter_cmd` | 3045 | **partial.** Memory safe for every input. Result matches its doc comment wherever the comment decides it; not decided by the comment: `sc` followed by two or more characters other than `scs`/`scr` (the code also tests `p[3] != 'i'` and `p[4] != 'p'`, which the comment does not explain), so there it is only checked that it sets `:s` or nothing |
 
 `skipwhite` and `skipdigits` (charset.c, claimed by PR #3) are extracted verbatim and checked against their own
 spec here, but their status rows belong to that PR.
@@ -36,15 +38,15 @@ behavior in C; signed overflow is still checked.
   `cmd` of length at least `len`".
 
 ## Assumptions
+- `cmdidx_T` is modeled as `int` with distinct values for the four commands used, and `exarg_T` is cut down to its `cmdidx` field (the only one `parse_bang` reads).
 - Inputs are NUL-terminated strings (documented as C strings by every caller).
 - Harness allocations succeed (`malloc != NULL` assumed in the harness only).
 
 ## Evidence
-- `cbmc/run.sh <pinned tree>`: 50/50 runs succeed (`cbmc/results.txt`).
-- `cbmc/mutants.sh`: 19/19 planted bugs caught (`cbmc/mutants.txt`).
+- `cbmc/run.sh <pinned tree>`: 62/62 runs succeed (`cbmc/results.txt`).
+- `cbmc/mutants.sh`: 26/26 planted bugs caught (`cbmc/mutants.txt`).
 - Not done yet: compiled differential test, independent review, WP for unbounded lengths.
 
 ## Still unverified in ex_docmd.c
-Everything else in the file (208 of 214 inventory functions), including
-`parse_command_modifiers`, `parse_cmd_address`, `parse_count`, `skip_range`, `cmd_exists`,
-`one_letter_cmd`, `parse_bang`, `skip_cmd_arg`, `find_ex_command`.
+Everything else in the file (206 of 214 inventory functions; `one_letter_cmd` is also open until its `sc..` rule is specified), including
+`parse_command_modifiers`, `parse_cmd_address`, `parse_count`, `skip_range`, `cmd_exists`, `skip_cmd_arg`, `find_ex_command`.

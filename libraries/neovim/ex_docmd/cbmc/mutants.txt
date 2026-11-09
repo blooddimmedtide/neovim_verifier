@@ -17,3 +17,11 @@ mod_no_alpha: caught
 mod_table_minlen: caught
 mod_table_count: caught
 mod_bad_break: caught
+bang_no_smagic: caught
+bang_no_advance: caught
+olc_k_always: caught
+olc_k_kee: caught
+olc_si_sim: caught
+olc_sr_sre: caught
+olc_no_sg: caught
+mut_rc=0

@@ -16,6 +16,8 @@ PIECES = [  # (file, function name, sha256 of the verbatim text)
     ("src/nvim/ex_docmd.c", "check_nextcmd", None),
     ("src/nvim/ex_docmd.c", "cmdmods", None),
     ("src/nvim/ex_docmd.c", "modifier_len", None),
+    ("src/nvim/ex_docmd.c", "one_letter_cmd", None),
+    ("src/nvim/ex_docmd.c", "parse_bang", None),
 ]
 REVIEWED = {}  # filled from pins.txt
 
@@ -35,6 +37,12 @@ static inline bool ascii_isdigit(int c) { return c >= '0' && c <= '9'; }  // asc
 #define ARRAY_SIZE(arr) \
   ((sizeof(arr)/sizeof((arr)[0])) \
    / ((size_t)(!(sizeof(arr) % sizeof((arr)[0])))))
+// Model of the generated command index (ex_cmds_enum.generated.h): only distinct values
+// matter to these functions; the harness lets cmdidx be any int.
+typedef int cmdidx_T;
+enum { CMD_k = 1000, CMD_substitute, CMD_smagic, CMD_snomagic };
+// exarg_T (ex_cmds_defs.h) cut down to the one field parse_bang reads.
+typedef struct { cmdidx_T cmdidx; } exarg_T;
 #define FUNC_ATTR_PURE
 #define FUNC_ATTR_CONST
 #define FUNC_ATTR_WARN_UNUSED_RESULT

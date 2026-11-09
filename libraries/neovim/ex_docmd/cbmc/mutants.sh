@@ -30,5 +30,12 @@ m mod_no_alpha       modifier_len     's/        \&\& !ASCII_ISALPHA(p\[j\])//'
 m mod_table_minlen   modifier_len     's/{ "verbose", 4, true }/{ "verbose", 3, true }/'
 m mod_table_count    modifier_len     's/{ "tab", 3, true }/{ "tab", 3, false }/'
 m mod_bad_break      modifier_len     's/if (cmdmods\[i\].name\[0\] > \*p) {/if (cmdmods[i].name[0] >= *p) {/'
+m bang_no_smagic     parse_bang       's/      \&\& eap->cmdidx != CMD_smagic//'
+m bang_no_advance    parse_bang       's/    (\*p)++;/    ;/'
+m olc_k_always       one_letter_cmd   "s/  if (p\[0\] == 'k'/  if (p[0] == 'k' || p[0] == 'K'/"
+m olc_k_kee          one_letter_cmd   "s/(p\[1\] == 'e' \&\& p\[2\] != 'e')/(p[1] == 'e')/"
+m olc_si_sim         one_letter_cmd   "s/p\[2\] != 'm' \&\& //"
+m olc_sr_sre         one_letter_cmd   "s/(p\[1\] == 'r' \&\& p\[2\] != 'e')/p[1] == 'r'/"
+m olc_no_sg          one_letter_cmd   "s/          || p\[1\] == 'g'//"
 rm -f mut.c mut_h.c
 exit $fail

@@ -95,3 +95,30 @@ static int ref_modifier_len(const char *s) {
   }
   return 0;
 }
+
+// parse_bang: a '!' right after the command name is the "force" flag, except for
+// :s[ubstitute], :sm[agic] and :sno[magic], where '!' may be the pattern delimiter
+// (:help :s, :help pattern-delimiter). Result: 1 and the cursor moved past '!', else 0.
+static int ref_parse_bang(int cmdidx, char c) {
+  return c == '!' && cmdidx != CMD_substitute && cmdidx != CMD_smagic && cmdidx != CMD_snomagic;
+}
+
+// one_letter_cmd, from its doc comment: "k" is :k unless the text is "kee..." (:keepalt,
+// :keepjumps, :keepmarks, :keeppatterns). "s" directly followed by c, g, i, I or r is :s
+// with flags, except :sre[wind], :scr[iptnames], :scs[cope], :sim[alt], :sig[ns], :sil[ent].
+// Returns 1 (:k), 2 (:s), 0 (neither), or -1 where the comment does not decide:
+// "sc" followed by two or more further characters, other than "scs"/"scr".
+static int ref_one_letter_cmd(const char *p) {
+  if (p[0] == 'k') return (p[1] == 'e' && p[2] == 'e') ? 0 : 1;
+  if (p[0] != 's') return 0;
+  switch (p[1]) {
+  case 'g': case 'I': return 2;
+  case 'r': return p[2] == 'e' ? 0 : 2;
+  case 'i': return (p[2] == 'm' || p[2] == 'g' || p[2] == 'l') ? 0 : 2;
+  case 'c':
+    if (p[2] == 's' || p[2] == 'r') return 0;
+    if (p[2] == 0 || p[3] == 0) return 2;
+    return -1;
+  default: return 0;
+  }
+}
