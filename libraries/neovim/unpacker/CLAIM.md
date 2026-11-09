@@ -31,8 +31,10 @@ MessagePack specification, not the code.
 
 Reference decision (stated, not derived): a msgpack uint64 of 2^63 or more has no `Integer`
 value. The code returns its two's complement reinterpretation (value - 2^64) and the proof
-pins exactly that; callers see e.g. 18446744073709551615 as -1. Recorded as a note, not
-fixed: it is the documented `Integer` conversion used throughout the API.
+pins exactly that; callers see e.g. 18446744073709551615 as -1. This is a decision taken from
+the code (the same cast `api_parse_enter` uses), not documented in api.txt. The cast is
+implementation-defined in C (C11 6.3.1.3p3); the proof holds for gcc/clang (modular).
+Recorded as a note, not fixed.
 
 Harness preconditions (listed per AGENT_PROMPT): buffer lengths below 2^48 (more than the
 x86_64 address space); `xrealloc` never returns NULL (Neovim exits instead); for
@@ -49,7 +51,10 @@ kept from one ShaDa entry reach 4 GiB, nbytes wraps and `dump_additional_data`
 every item: the rewritten ShaDa entry is malformed. CBMC counterexample: empty builder,
 size = 2^39. Reachable only with a ShaDa item of 4 GiB or more read with the `s` limit of
 'shada' disabled or raised. Fix (verified_neovim 76c51e8): `nbytes` becomes `size_t` and the
-cast is dropped; proved for all sizes below 2^48. See `../findings/additional-data-over-4gib.md`.
+cast is dropped; proved for all sizes below 2^48, including empty pushes, with old bytes kept.
+The fix covers bytes only: `nitems` stays `uint32_t`, and shada.c adds it into a `uint32_t`
+entry count, so near 2^32 extra items (8 GiB or more in one entry) the count can still wrap.
+That part is in shada.c (claimed by PR #10) and is not fixed here. See `../findings/additional-data-over-4gib.md`.
 
 ## Not covered yet (file not done)
 
@@ -62,7 +67,10 @@ is defined only while generated key sets have at most 64 fields (to check).
 
 ## Mutants
 
-7 planted bugs, 7 caught (`cbmc/mutants_result.tsv`). No independent review yet.
+Author: 7 planted bugs, 7 caught (`cbmc/mutants_result.tsv`). Independent review (`REVIEW.md`,
+accept with changes): 22 more mutants (`cbmc/mutants.toml`); 20 non-equivalent ones in scope,
+18 caught by the first harness, 20/20 after its issues 1-3 were applied. Issue 7 (prelude
+checked line by line, not per struct) is still open; the reviewer checked the structs by hand.
 
 ## Reproduce
 

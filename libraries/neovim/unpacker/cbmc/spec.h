@@ -42,7 +42,7 @@ static int ref_arrhdr(const unsigned char *b, size_t n, size_t *hdr, uint64_t *l
 // integer: positive fixint 0xxxxxxx, negative fixint 111xxxxx, uint8..64 cc..cf, int8..64 d0..d3.
 // Value as a 64-bit two's complement word. Reference decision: a uint64 of 2^63 or more has no
 // Integer (int64_t) value; the reference gives its two's complement reinterpretation (value - 2^64)
-// and *wrapped is set, so the claim can say exactly what callers see (see CLAIM.md, finding).
+// and *wrapped is set, so the claim can say exactly what callers see (see CLAIM.md, reference decision).
 static int ref_int(const unsigned char *b, size_t n, size_t *hdr, int64_t *val, int *wrapped)
 {
   *wrapped = 0;

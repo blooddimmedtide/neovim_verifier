@@ -6,7 +6,7 @@
 size_t nondet_size(void);
 uint32_t nondet_u32(void);
 #ifndef MAXLEN
-#define MAXLEN ((size_t)1 << 40)
+#define MAXLEN ((size_t)1 << 48)
 #endif
 
 void h_push_additional_data(void)
@@ -30,14 +30,19 @@ void h_push_additional_data(void)
   __CPROVER_assume(size < MAXLEN);
   char *data = malloc(size);
   size_t k = nondet_size();
-  __CPROVER_assume(k < size);
-  char dk = data[k];
+  __CPROVER_assume(k < size || (size == 0 && k == 0));
+  char dk = size ? data[k] : 0;
+  size_t j = nondet_size();  // a byte already in the builder must stay as it was
+  int have_old = old > sizeof(AdditionalData);
+  __CPROVER_assume(!have_old || (j < old && j >= sizeof(AdditionalData)));
+  char oj = have_old ? ad.items[j] : 0;
   push_additional_data(&ad, data, size);
   AdditionalData *a = (AdditionalData *)ad.items;
   size_t base = old ? old : sizeof(AdditionalData);
   assert(ad.size == base + size);
   assert(a->nitems == n0 + 1);
-  assert(ad.items[base + k] == dk);
+  if (size) assert(ad.items[base + k] == dk);
+  if (have_old) assert(ad.items[j] == oj);
   // invariant after the call: nbytes counts every byte after the header
   assert((size_t)a->nbytes == ad.size - sizeof(AdditionalData));
 }
