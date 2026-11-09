@@ -9,7 +9,8 @@ unverified functions are kept here.
 - WP (`wp/run_wp.sh`): get_extra_op_char, get_op_char, get_op_type, get_vts, get_y_previous, get_y_register, op_is_change, op_on_lines, op_redoable, op_reg_amount, op_reg_get, op_reg_set_previous.
 - CBMC (`cbmc/run_cbmc.sh`): get_unname_register, op_global_reg_iter, op_reg_iter, valid_yank_reg.
 - Fixed and proved: get_vts_sum (finding `findings/vts-sum-overflow.md`, fix verified_neovim 09421b0).
-- Not yet: independent review, planted bugs, CI run.
+- Planted bugs (`run_mutants.py`, chosen by this session): 22/22 caught for the WP functions. None yet for the CBMC harnesses.
+- Not yet: independent review (and reviewer-chosen mutants), CI run.
 
 ## Unverified (84)
 - ops.c:op_shift

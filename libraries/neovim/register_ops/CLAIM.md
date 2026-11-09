@@ -4,7 +4,7 @@ upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: https://github.com/blooddimmedtide/verified_neovim (branch claude/project-thread-dvm5iw, commit 09421b0: get_vts_sum)
 toolchain: Frama-C 33 WP + Z3 + CVC5 (Nix, tools/install.sh), CBMC 6.4.1
-strength: candidate   # no independent review or planted-bug run yet; owner sign-off needed
+strength: candidate   # no independent review yet; owner sign-off needed
 platform: x86_64, char signed and unsigned (WP: machdep_x86_64_uchar.yaml differs only in char_is_unsigned; CBMC: --unsigned-char)
 ---
 
@@ -53,4 +53,4 @@ Also proved (header helpers used above): `ascii_isdigit`, `op_reg_index`, `get_r
 `findings/vts-sum-overflow.md`: signed int overflow in `get_vts_sum` on `V999999999>` with sw=0 and 'vartabstop'. Fixed in the fork (int64_t), fix proved.
 
 ## Not done
-84 functions are unverified; list in PLAN.md. No independent review, no planted bugs, CI not run.
+84 functions are unverified; list in PLAN.md. Planted bugs chosen by the proving session: 22/22 caught (`run_mutants.py`, WP functions only). No independent review, CI not run.
