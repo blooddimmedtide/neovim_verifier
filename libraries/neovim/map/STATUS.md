@@ -29,8 +29,7 @@ Goal counts include smoke tests (last run: `NVIM_TREE=<upstream tree> SKIP_BV=1 
 
 ## Partly proved
 
-| Function | Goals | Open |
-|---|---|---|
+None right now.
 
 Not specified yet for any function: *completeness* of lookup (a free slot returned means the
 key is absent), which needs a table-wide probe-chain invariant; and "never calls abort()"
