@@ -12,6 +12,8 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/ops.c | 0 | 9 | 39 | 48 |
+| src/nvim/register.c | 0 | 9 | 44 | 53 |
 
 ## Function details
 
@@ -74,6 +76,24 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/ops.c | `get_op_type` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `op_on_lines` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `op_is_change` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `op_redoable` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `get_op_char` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `get_extra_op_char` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `get_vts` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `get_vts_sum` | fixed-candidate | register_ops/wp (Frama-C WP, upstream under int bound, fixed every index) | int overflow (findings/vts-sum-overflow.md); fix verified_neovim 09421b0 proved |
+| src/nvim/register.c | `get_unname_register` | candidate | register_ops/cbmc (CBMC, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `get_y_register` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `get_y_previous` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `op_reg_iter` | candidate | register_ops/cbmc (CBMC, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `op_global_reg_iter` | candidate | register_ops/cbmc (CBMC, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `op_reg_amount` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `op_reg_get` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `op_reg_set_previous` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/register.c | `valid_yank_reg` | candidate | register_ops/cbmc (CBMC, signed+unsigned char; vim_strchr and utf_char2bytes verbatim, strstr modeled) | see register_ops/CLAIM.md; self-chosen planted bugs caught (WP 23/23, CBMC 9/9); no independent review yet |
+| src/nvim/ops.c | `op_self_select` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; planted bug caught; no independent review yet |
 
 ## All files
 
