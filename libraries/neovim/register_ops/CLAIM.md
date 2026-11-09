@@ -54,4 +54,4 @@ Also proved (header helpers used above): `ascii_isdigit`, `op_reg_index`, `get_r
 `findings/vts-sum-overflow.md`: signed int overflow in `get_vts_sum` on `V999999999>` with sw=0 and 'vartabstop'. Fixed in the fork (int64_t), fix proved.
 
 ## Not done
-83 functions are unverified; list in PLAN.md. Planted bugs chosen by the proving session: 23/23 caught (`run_mutants.py`, WP functions) and 7/7 for the get_unname_register / valid_yank_reg harnesses (`cbmc/run_mutants.py`). No independent review, CI not run.
+83 functions are unverified; list in PLAN.md. Planted bugs chosen by the proving session: 23/23 caught (`run_mutants.py`, WP functions) and 9/9 for the CBMC harnesses (`cbmc/run_mutants.py`). No independent review, CI not run.
