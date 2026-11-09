@@ -79,8 +79,9 @@ Upstream issue draft: project folder `neovim-verify/upstream/undo/` (not filed).
 
 ## Review
 
-The seven functions marked "not yet in the independent review" (proved 08:35 to 08:40) were
-only checked with my own planted bugs (3, 0, 5, 3, 2, 2 per harness file), not a reviewer's.
+The seven functions marked "not yet in the independent review" (proved 08:34 to 08:38) were
+only checked with my own planted bugs (run_small.sh 3, run_head.sh 5, run_save.sh 3,
+run_misc.sh 4, all caught), not a reviewer's.
 
 Independent adversarial review: `REVIEW.md` (accept with changes). Issues 1 (size-0 fread
 model) and 3 (message not checked) are fixed in the model and harnesses; 2, 4 and 6 are reflected
