@@ -73,6 +73,10 @@ static int last_idx = 0;        // index in spats[] for RE_LAST
 static Direction lastcdir = FORWARD;      // last direction of character search
 static bool last_t_cmd = true;            // last search t_cmd
 static char *mr_pattern = NULL;
+typedef int64_t varnumber_T;
+typedef enum { VV_SEARCHFORWARD = 1 } VimVarIndex;   // only this member is used; its value is opaque here
+void xfree(void *ptr);                                // memory.c; stub in the harness
+void set_vim_var_nr(const VimVarIndex idx, const varnumber_T val);   // eval/vars.c; stub in the harness
 """
 CHECKS = [
     ("src/nvim/types_defs.h", "#define MAX_SCHAR_SIZE 32"),
@@ -112,6 +116,11 @@ CHECKS = [
     ("src/nvim/search.c", "static Direction lastcdir = FORWARD;      // last direction of character search"),
     ("src/nvim/search.c", "static bool last_t_cmd = true;            // last search t_cmd"),
     ("src/nvim/search.c", "static char *mr_pattern = NULL;"),
+    ("src/nvim/eval/typval_defs.h", "typedef int64_t varnumber_T;"),
+    ("src/nvim/eval_defs.h", "  VV_SEARCHFORWARD,"),
+    ("src/nvim/eval_defs.h", "} VimVarIndex;"),
+    ("src/nvim/memory.c", "void xfree(void *ptr)"),
+    ("src/nvim/eval/vars.c", "void set_vim_var_nr(const VimVarIndex idx, const varnumber_T val)"),
 ]
 S = "src/nvim/search.c"
 ACCESSORS = [
@@ -128,6 +137,14 @@ ACCESSORS = [
     (S, "search_pattern_cleared", "6df7e69917da301e89e5a255d7fe6381bae804b34ef549b1cb1e2634c07b77d6"),
     (S, "set_last_used_pattern", "d78093a997578111400a0236d014dd76e0c96ea12952254698929f727caa457c"),
     (S, "search_was_last_used", "ffceafaea125bcdab372e7def5d472bccb3dc41da3dc1a457d94e3b52218d381"),
+    (S, "free_spat", "bcb7d78341166d50329908c8a01410241d6aae970ee8aba391c9c5a42b5a3bb8"),
+    (S, "set_vv_searchforward", "23598e85d5cb6a6afa0e121d0ef055b048f658d6dc65c8fe758e38cdcdc2ee39"),
+    (S, "last_search_pat", "0babfdf2a0177121308140bbc0892d48596c44fd7f5ad7df11f03d4889e2a541"),
+    (S, "get_search_pattern", "b514cad28c219a9ab321910cf51cd38ba7940cfbc2cbb1bd77215dcba6a3c95b"),
+    (S, "get_substitute_pattern", "4367f59cb8d4e974cfea785c3ebd3f6ab802d2800c7841e498e3ae963d783894"),
+    (S, "get_search_pattern_timestamp", "61aff6ebf6661e390da6939651309a11e4509176586fac91c78939a5974c0c4c"),
+    (S, "set_search_pattern", "ca9093ebd352e972d5aa9f7177cad62057fca38a433f7791f43fcb72e8168490"),
+    (S, "set_substitute_pattern", "b6736a5f24132617008fa7b43a638d20c6b8ec0c1757677c791cd56da8509097"),
 ]
 TRAIL = ("src/nvim/mbyte.h", "utf_is_trail_byte", "321508ca96f615cc650d1f834d7dd45c0ba2f789e2bf1d8c06d0bc2b21f4c561")
 UPSTREAM = "0c27c12c39090e7bcfd30c7e5670174952d8ff815da05202e31f49ec15ff6e28"

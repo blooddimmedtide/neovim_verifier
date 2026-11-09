@@ -13,7 +13,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
 | src/nvim/regexp.c | 0 | 11 | 165 | 176 |
-| src/nvim/search.c | 0 | 14 | 43 | 57 |
+| src/nvim/search.c | 0 | 22 | 35 | 57 |
 
 ## Function details
 
@@ -101,6 +101,14 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/search.c | `search_pattern_cleared` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | pattern of the chosen kind is NULL; every other search.c global unchanged; see search/CLAIM.md. Review pending |
 | src/nvim/search.c | `set_last_used_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | last_idx = RE_SUBST or RE_SEARCH; every other search.c global unchanged; see search/CLAIM.md. Review pending |
 | src/nvim/search.c | `search_was_last_used` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses) | last_idx == RE_SEARCH; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `free_spat` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | frees pat then additional_data, nothing else; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `set_vv_searchforward` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | v:searchforward = (direction == '/'); every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `last_search_pat` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | pattern last used (last_idx in {search, substitute}); every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `get_search_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | copies the search pattern; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `get_substitute_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | copies the substitute pattern, offset cleared; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `get_search_pattern_timestamp` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | timestamp of the chosen pattern; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `set_search_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | frees the old one, stores the new one, then sets v:searchforward from it; every other search.c global unchanged; see search/CLAIM.md. Review pending |
+| src/nvim/search.c | `set_substitute_pattern` | candidate | search/cbmc (CBMC, every state and argument, both char signednesses; xfree and set_vim_var_nr recorded by stubs) | frees the old one, stores the new one with offset cleared; every other search.c global unchanged; see search/CLAIM.md. Review pending |
 
 ## All files
 

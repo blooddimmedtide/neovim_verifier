@@ -19,6 +19,35 @@ char *nondet_ptr(void);
 AdditionalData *nondet_ad(void);
 
 static SearchPattern s_spats[2];
+
+// Stubs for the two functions outside search.c. They record every call, so
+// the harnesses can state exactly which calls happen, with which arguments,
+// in which order. xfree's own contract (memory.c: it calls free) is trusted.
+static void *freed[4];
+static int n_freed;
+void xfree(void *ptr) { __CPROVER_assert(n_freed < 4, "few frees"); freed[n_freed++] = ptr; }
+static int vv_idx[2];
+static varnumber_T vv_val[2];
+static int n_vv;
+void set_vim_var_nr(const VimVarIndex idx, const varnumber_T val)
+{
+  __CPROVER_assert(n_vv < 2, "few vim var writes");
+  vv_idx[n_vv] = idx; vv_val[n_vv] = val; n_vv++;
+}
+
+static void any_pattern(SearchPattern *p)
+{
+  p->pat = nondet_ptr(); p->patlen = nondet_size(); p->magic = nondet_bool(); p->no_scs = nondet_bool();
+  p->timestamp = nondet_u64(); p->off.dir = nondet_char(); p->off.line = nondet_bool();
+  p->off.end = nondet_bool(); p->off.off = nondet_i64(); p->additional_data = nondet_ad();
+}
+static bool sp_eq(SearchPattern a, SearchPattern b, bool zero_off)
+{
+  bool off = zero_off ? (a.off.dir == 0 && !a.off.line && !a.off.end && a.off.off == 0)
+                      : (a.off.dir == b.off.dir && a.off.line == b.off.line && a.off.end == b.off.end && a.off.off == b.off.off);
+  return a.pat == b.pat && a.patlen == b.patlen && a.magic == b.magic && a.no_scs == b.no_scs
+         && a.timestamp == b.timestamp && a.additional_data == b.additional_data && off;
+}
 static int s_last_idx, s_lastc_bytelen;
 static Direction s_lastcdir;
 static bool s_last_t_cmd;
@@ -72,10 +101,11 @@ static bool sp_same(int i, bool except_dir)
 }
 
 // Frame: which globals may change.
-enum { F_SPATS0_DIR = 1, F_LAST_IDX = 2, F_LASTCDIR = 4, F_LAST_T_CMD = 8 };
+enum { F_SPATS0_DIR = 1, F_LAST_IDX = 2, F_LASTCDIR = 4, F_LAST_T_CMD = 8, F_SPATS0 = 16, F_SPATS1 = 32 };
 static void frame(int may)
 {
-  __CPROVER_assert(sp_same(0, may & F_SPATS0_DIR) && sp_same(1, false), "frame: spats");
+  __CPROVER_assert(((may & F_SPATS0) || sp_same(0, may & F_SPATS0_DIR))
+                   && ((may & F_SPATS1) || sp_same(1, false)), "frame: spats");
   __CPROVER_assert((may & F_LAST_IDX) || last_idx == s_last_idx, "frame: last_idx");
   __CPROVER_assert((may & F_LASTCDIR) || lastcdir == s_lastcdir, "frame: lastcdir");
   __CPROVER_assert((may & F_LAST_T_CMD) || last_t_cmd == s_last_t_cmd, "frame: last_t_cmd");
@@ -178,3 +208,97 @@ void h_set_last_used_pattern(void)
 }
 
 void h_search_was_last_used(void) { havoc(); bool r = search_was_last_used(); __CPROVER_assert(r == (s_last_idx == RE_SEARCH), "result"); frame(0); }
+
+// free_spat(sp): frees sp->pat then sp->additional_data, nothing else; *sp unchanged.
+void h_free_spat(void)
+{
+  havoc();
+  SearchPattern sp; any_pattern(&sp);
+  SearchPattern old = sp;
+  free_spat(&sp);
+  __CPROVER_assert(n_freed == 2 && freed[0] == old.pat && freed[1] == old.additional_data, "frees pat, then additional_data");
+  __CPROVER_assert(n_vv == 0, "no vim var write");
+  __CPROVER_assert(sp_eq(sp, old, false), "*sp unchanged");
+  frame(0);
+}
+
+// set_vv_searchforward(): v:searchforward = 1 if the search direction is '/', else 0.
+void h_set_vv_searchforward(void)
+{
+  havoc();
+  set_vv_searchforward();
+  __CPROVER_assert(n_vv == 1 && vv_idx[0] == VV_SEARCHFORWARD
+                   && vv_val[0] == (s_spats[0].off.dir == '/' ? 1 : 0), "v:searchforward");
+  __CPROVER_assert(n_freed == 0, "no free");
+  frame(0);
+}
+
+// last_search_pat(): the pattern last used (search or substitute). last_idx is
+// always RE_SEARCH or RE_SUBST (every writer stores one of them).
+void h_last_search_pat(void)
+{
+  havoc();
+  __CPROVER_assume(last_idx == RE_SEARCH || last_idx == RE_SUBST);
+  s_last_idx = last_idx;
+  char *r = last_search_pat();
+  __CPROVER_assert(r == s_spats[s_last_idx].pat, "result");
+  frame(0);
+}
+
+// get_search_pattern(p): *p becomes a copy of the search pattern.
+void h_get_search_pattern(void)
+{
+  havoc();
+  SearchPattern p; any_pattern(&p);
+  get_search_pattern(&p);
+  __CPROVER_assert(sp_eq(p, s_spats[RE_SEARCH], false), "copy");
+  __CPROVER_assert(n_freed == 0 && n_vv == 0, "no calls");
+  frame(0);
+}
+
+// get_substitute_pattern(p): *p becomes a copy of the substitute pattern with
+// the offset cleared (offsets are kept only for the search pattern).
+void h_get_substitute_pattern(void)
+{
+  havoc();
+  SearchPattern p; any_pattern(&p);
+  get_substitute_pattern(&p);
+  __CPROVER_assert(sp_eq(p, s_spats[RE_SUBST], true), "copy, offset cleared");
+  __CPROVER_assert(n_freed == 0 && n_vv == 0, "no calls");
+  frame(0);
+}
+
+// get_search_pattern_timestamp(sub): timestamp of the substitute (sub) or search pattern.
+void h_get_search_pattern_timestamp(void)
+{
+  havoc();
+  bool sub = nondet_bool();
+  __CPROVER_assert(get_search_pattern_timestamp(sub) == s_spats[sub ? RE_SUBST : RE_SEARCH].timestamp, "result");
+  frame(0);
+}
+
+// set_search_pattern(p): frees the old search pattern's pat and
+// additional_data, stores p, then sets v:searchforward from p's direction.
+void h_set_search_pattern(void)
+{
+  havoc();
+  SearchPattern p; any_pattern(&p);
+  set_search_pattern(p);
+  __CPROVER_assert(n_freed == 2 && freed[0] == s_spats[0].pat && freed[1] == s_spats[0].additional_data, "frees the old pattern");
+  __CPROVER_assert(sp_eq(spats[0], p, false), "stored");
+  __CPROVER_assert(n_vv == 1 && vv_idx[0] == VV_SEARCHFORWARD && vv_val[0] == (p.off.dir == '/' ? 1 : 0), "v:searchforward from the new pattern");
+  frame(F_SPATS0);
+}
+
+// set_substitute_pattern(p): frees the old substitute pattern's pat and
+// additional_data and stores p with the offset cleared; no v: variable changes.
+void h_set_substitute_pattern(void)
+{
+  havoc();
+  SearchPattern p; any_pattern(&p);
+  set_substitute_pattern(p);
+  __CPROVER_assert(n_freed == 2 && freed[0] == s_spats[1].pat && freed[1] == s_spats[1].additional_data, "frees the old pattern");
+  __CPROVER_assert(sp_eq(spats[1], p, true), "stored, offset cleared");
+  __CPROVER_assert(n_vv == 0, "no vim var write");
+  frame(F_SPATS1);
+}

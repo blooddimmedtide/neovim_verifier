@@ -45,6 +45,19 @@ accessors.c|h_first_submatch|s/  for (submatch = 1;; submatch++) {/  for (submat
 accessors.c|h_search_pattern_cleared|s/substitute ? RE_SUBST : RE_SEARCH/substitute ? RE_SEARCH : RE_SUBST/
 accessors.c|h_set_last_used_pattern|s/is_substitute_pattern ? 1 : 0/is_substitute_pattern ? 2 : 0/
 accessors.c|h_search_was_last_used|s/  return last_idx == 0;/  return last_idx != 1;/
+accessors.c|h_free_spat|s/  xfree(spat->additional_data);/  ;/
+accessors.c|h_free_spat|/^static inline void free_spat/,/^}/s/  xfree(spat->pat);/  xfree(spat);/
+accessors.c|h_set_vv_searchforward|s/spats\[0\].off.dir == '\/');/spats[0].off.dir != '?');/
+accessors.c|h_last_search_pat|s/  return spats\[last_idx\].pat;/  return spats[0].pat;/
+accessors.c|h_get_search_pattern|s/  memcpy(pat, \&(spats\[0\]), sizeof(spats\[0\]));/  memcpy(pat, \&(spats[0]), sizeof(char *));/
+accessors.c|h_get_substitute_pattern|s/  CLEAR_FIELD(pat->off);/  ;/
+accessors.c|h_get_substitute_pattern|s/  memcpy(pat, \&(spats\[1\]), sizeof(spats\[1\]));/  memcpy(pat, \&(spats[0]), sizeof(spats[1]));/
+accessors.c|h_get_search_pattern_timestamp|s/substitute ? RE_SUBST : RE_SEARCH\].timestamp/substitute ? RE_SEARCH : RE_SUBST].timestamp/
+accessors.c|h_set_search_pattern|/^void set_search_pattern/,/^}/s/  free_spat(\&spats\[0\]);/  ;/
+accessors.c|h_set_search_pattern|/^void set_search_pattern/,/^}/s/  set_vv_searchforward();/  ;/
+accessors.c|h_set_search_pattern|/^void set_search_pattern/,/^}/s/  free_spat(\&spats\[0\]);/  free_spat(\&spats[1]);/
+accessors.c|h_set_substitute_pattern|s/  CLEAR_FIELD(spats\[1\].off);/  ;/
+accessors.c|h_set_substitute_pattern|s/  memcpy(\&(spats\[1\]), \&pat, sizeof(spats\[1\]));/  memcpy(\&(spats[0]), \&pat, sizeof(spats[1]));/
 MUTANTS
 echo "$k/$n killed"
 [ $skipped -gt 0 ] && echo "NOT RUN: $skipped set_last_csearch mutants (this checkout has the upstream set_last_csearch; they need the fixed fork)"

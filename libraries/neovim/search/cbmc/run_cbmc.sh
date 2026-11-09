@@ -3,7 +3,7 @@
 # Full-correctness proofs with CBMC (x86_64, both char signednesses):
 # set_last_csearch (harness.c): on the fixed fork the proof must succeed; on
 # upstream it must fail with an out-of-bounds write and the stale-bytes
-# violation (the finding). The 13 accessors (accessors.c): proved on both.
+# violation (the finding). The 21 accessors (accessors.c): proved on both.
 # Exit 0 = every outcome as expected for the version found.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd)
@@ -32,7 +32,9 @@ for sign in signed --unsigned-char; do
 done
 ACC="h_get_search_pat h_last_search_pattern h_last_search_pattern_len h_last_csearch h_last_csearch_forward
      h_last_csearch_until h_set_csearch_direction h_set_csearch_until h_set_search_direction h_first_submatch
-     h_search_pattern_cleared h_set_last_used_pattern h_search_was_last_used"
+     h_search_pattern_cleared h_set_last_used_pattern h_search_was_last_used
+     h_free_spat h_set_vv_searchforward h_last_search_pat h_get_search_pattern h_get_substitute_pattern
+     h_get_search_pattern_timestamp h_set_search_pattern h_set_substitute_pattern"
 for sign in signed --unsigned-char; do
   for h in $ACC; do
     out=$(cbmc "$HERE/accessors.c" --function "$h" -I "$HERE" -DSEARCH_C="\"$W/search_cs.c\"" \
