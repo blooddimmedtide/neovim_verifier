@@ -1,3 +1,4 @@
-# ex_docmd.c parsing helpers (in progress)
+# ex_docmd.c
 
-Claimed by draft PR. Work in progress.
+CBMC proofs of the command-separator and command-name helpers; see CLAIM.md.
+Run: `bash cbmc/run.sh <neovim checkout at the pinned commit>` then `bash cbmc/mutants.sh`.

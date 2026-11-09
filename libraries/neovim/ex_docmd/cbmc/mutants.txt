@@ -1,0 +1,12 @@
+tab_not_white: caught
+ends_no_comment: caught
+ends_no_newline: caught
+find_no_newline: caught
+find_off_by_one: caught
+check_no_skip: caught
+check_newline: caught
+colon_no_lead: caught
+colon_no_white: caught
+cmd_len_gt: caught
+cmd_no_alpha: caught
+cmd_no_skip: caught
