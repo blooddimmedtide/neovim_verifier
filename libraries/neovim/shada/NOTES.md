@@ -21,7 +21,14 @@ checked by hand for overflow:
   by `length`. The product can only overflow `size_t` for an item buffer of ~2^60 bytes,
   which `length_u64 > PTRDIFF_MAX` already forbids.
 
-None of these is an exploitable small-input overflow, so no fix is proposed here.
+The one real wrap found is the additional-data **item count**: `AdditionalData.nitems`
+(uint32) is incremented once per trailing additional-data item with no clamp, so an entry
+larger than ~4 GiB wraps it, and the write side rebuilds the msgpack array header from the
+wrapped count while `dump_additional_data` emits all the bytes -> a corrupted/desynchronised
+ShaDa file on write-back. It is a data-integrity/DoS wrap, not a memory-safety bug (writes stay
+in bounds). Documented, fix not yet verified, in
+findings/shada-additional-data-nitems-wrap.md. It is the item-count sibling of the `nbytes`
+wrap reported for push_additional_data in verified_neovim#9.
 
 ## Not verified (completion rule — shada.c is NOT finished)
 `shada_read_next_item` and its callees `unpack_keydict`/`unpack_array`/`unpack_string`/
