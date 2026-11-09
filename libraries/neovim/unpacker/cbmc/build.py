@@ -1,6 +1,6 @@
 """Write a standalone C file holding exact upstream text from src/nvim/msgpack_rpc/unpacker.c.
 
-Usage: python3 -I build.py <neovim checkout> <out.c>
+Usage: python3 -I build.py <neovim checkout> <out.c> [upstream|fixed] [--pin]
 The token reader is not stubbed: src/mpack/mpack_core.c and src/mpack/conv.c are
 included whole (their sha256 is pinned here too), so the proof covers the real
 mpack_rtoken / mpack_unpack_uint / mpack_unpack_sint. Each unpacker.c function is
@@ -13,7 +13,7 @@ from extract_c import find
 F = "src/nvim/msgpack_rpc/unpacker.c"
 FILES = {  # whole files included as they are (upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd)
     "src/mpack/mpack_core.c": None, "src/mpack/mpack_core.h": None,
-    "src/mpack/conv.c": None, "src/mpack/conv.h": None,
+    "src/mpack/conv.c": None, "src/mpack/conv.h": None, "src/klib/kvec.h": None,
 }
 REVIEWED = {
     "unpack_string": None,
@@ -21,8 +21,10 @@ REVIEWED = {
     "unpack_integer": None,
     "unpack_uint_or_sint": None,
     "parse_nop": None,
+    "push_additional_data": None,
 }
-PIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pins.txt")
+HERE = os.path.dirname(os.path.abspath(__file__))
+PIN = os.path.join(HERE, "pins.txt")
 
 PRELUDE = r'''// Prelude: the Neovim types these functions use, as defined in
 // src/nvim/api/private/defs.h (Integer, String, STRING_INIT) and
@@ -40,10 +42,21 @@ typedef struct {
 } String;
 #define STRING_INIT { .data = NULL, .size = 0 }
 #define cbuf_as_string(d, s) ((String) { .data = d, .size = s })
+#include "klib/kvec.h"
+typedef struct {
+  uint32_t nitems;
+  uint32_t nbytes;
+  char data[];
+} AdditionalData;
+typedef kvec_t(char) AdditionalDataBuilder;
 typedef struct mpack_parser_s mpack_parser_t;
+bool unpack_uint_or_sint(mpack_token_t tok, Integer *res);
 typedef struct mpack_node_s mpack_node_t;
 '''
 CHECKS = [("src/nvim/api/private/defs.h", "typedef int64_t Integer;"),
+          ("src/nvim/types_defs.h", "  uint32_t nitems;"), ("src/nvim/types_defs.h", "  uint32_t nbytes;"),
+          ("src/nvim/types_defs.h", "  char data[];"), ("src/nvim/types_defs.h", "} AdditionalData;"),
+          ("src/nvim/msgpack_rpc/unpacker.h", "typedef kvec_t(char) AdditionalDataBuilder;"),
           ("src/nvim/api/private/defs.h", "#define STRING_INIT { .data = NULL, .size = 0 }"),
           ("src/nvim/api/private/defs.h", "  char *data;"),
           ("src/nvim/api/private/defs.h", "  size_t size;"),
@@ -51,16 +64,23 @@ CHECKS = [("src/nvim/api/private/defs.h", "typedef int64_t Integer;"),
           ("src/nvim/api/private/helpers.h", "#define cbuf_as_string(d, s) ((String) { .data = d, .size = s })")]
 
 
-def pins():
+def pins(path=None):
     d = {}
-    if os.path.exists(PIN):
-        for l in open(PIN):
+    path = path or PIN
+    if os.path.exists(path):
+        for l in open(path):
             k, v = l.split()
             d[k] = v
     return d
 
 
-def main(tree, out, pin=False):
+def main(tree, out, mode="upstream", pin=False):
+    fixed = mode == "fixed"
+    global PIN, PRELUDE
+    if fixed:  # verified_neovim fix: AdditionalData.nbytes is size_t
+        PIN = os.path.join(HERE, "pins_fixed.txt")
+        PRELUDE = PRELUDE.replace("  uint32_t nbytes;", "  size_t nbytes;")
+        CHECKS[CHECKS.index(("src/nvim/types_defs.h", "  uint32_t nbytes;"))] = ("src/nvim/types_defs.h", "  size_t nbytes;")
     for path, text in CHECKS:
         if text not in open(f"{tree}/{path}").read().split("\n"):
             sys.exit(f"build: {path} no longer contains: {text}")
@@ -84,4 +104,5 @@ def main(tree, out, pin=False):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], len(sys.argv) > 3 and sys.argv[3] == "--pin")
+    a = sys.argv[1:]
+    main(a[0], a[1], a[2] if len(a) > 2 and a[2] != "--pin" else "upstream", "--pin" in a)

@@ -104,3 +104,11 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.unpacker]   # IN PROGRESS: 6 of 16 functions; see unpacker/CLAIM.md for the open list
+file = "src/nvim/msgpack_rpc/unpacker.c"
+functions = ["unpack_string", "unpack_array", "unpack_integer", "unpack_uint_or_sint", "parse_nop", "push_additional_data"]
+open = ["unpack", "api_parse_enter", "api_parse_exit", "unpacker_init", "unpacker_teardown", "unpacker_parse_header", "unpacker_advance", "unpacker_parse_redraw", "unpack_skip", "unpack_keydict"]
+annotate = "unpacker/cbmc/build.py"   # verbatim extraction, sha256 pinned (pins.txt, pins_fixed.txt)
+prove = ["MODE=fixed bash unpacker/cbmc/run_cbmc.sh {fixed}"]   # upstream run fails on push_additional_data by design (finding)
+check = ["ONLY='h_unpack_|h_parse_nop' bash unpacker/cbmc/run_cbmc.sh {src}"]
