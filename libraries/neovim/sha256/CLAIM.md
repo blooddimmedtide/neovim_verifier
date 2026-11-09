@@ -135,7 +135,7 @@ proof covers every `size_t` length.
 | Compression pieces | `bash cbmc/run_cbmc.sh <nvim>` | h_forms, h_start, h_prims, h_round, h_sched, h_endian proved (43 s) |
 | Compression structure | `python3 -I cbmc/check_structure.py <nvim>` | 98 statements match FIPS 180-4; 13 macros each defined once, no other directives; 12 Neovim headers clean |
 | update, upstream (each call < 4 GiB) | `bash cbmc/run_stream.sh <nvim>` | proved, with the state shadow (rerun 2026-11-09, CBMC 6.4.1) |
-| update, fixed fork (every len) | `bash cbmc/run_stream.sh <fork> fixed` | proved |
+| update, fixed fork (every len) | `bash cbmc/run_stream.sh <fork> fixed` | proved, with the state shadow (rerun 2026-11-09, CBMC 6.4.1) |
 | finish | `bash cbmc/run_finish.sh <nvim>` | proved (3 min with the state shadow) |
 | bytes | `bash cbmc/run_bytes.sh <nvim>` | proved |
 | Differential test (gcc -O2, ASan/UBSan, vs Python hashlib) | `python3 -I difftest/difftest.py <nvim> 20000` | self-test passed; 40,000 digests, 0 mismatches (sha256_bytes checked against the exact salted or unsalted hash) |
