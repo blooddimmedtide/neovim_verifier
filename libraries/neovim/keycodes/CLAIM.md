@@ -49,9 +49,10 @@ No independent review yet.
 
 | Function | State |
 |---|---|
-| `get_special_key_code` | CBMC harness written (all names up to 17 bytes); run did not finish before the deadline |
+| `get_special_key_code` | CBMC harness written (all names up to 17 bytes, `table/run_cbmc.sh <tree> 17`); a 25-minute run timed out |
 | `vim_unescape_ks` | full functional WP contract written (recursive `outlen`/`outbyte`); WP times out on the `char *` / `uint8_t *` casts. Try CBMC on bounded strings plus a WP length argument |
-| `find_special_key`, `trans_special`, `replace_termcodes`, `get_special_key`, `get_special_key_name`, `vim_strsave_escape_ks` | not started (depend on `vim_str2nr`, `utfc_ptr2len*`, `utf_ptr2char`, `transchar`, `get_var_value`, `xmalloc`, `vim_isprintc`) |
+| `find_special_key` | INT_MIN property only (never hands INT_MIN to simplify_key, never returns it), upstream vs fix: `fsk/run_cbmc.sh`, callees stubbed by over-approximation; runs still going at the deadline. Full functional spec not written |
+| `trans_special`, `replace_termcodes`, `get_special_key`, `get_special_key_name`, `vim_strsave_escape_ks` | not started (depend on `vim_str2nr`, `utfc_ptr2len*`, `utf_ptr2char`, `transchar`, `get_var_value`, `xmalloc`, `vim_isprintc`) |
 
 ## Finding
 
