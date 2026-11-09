@@ -1,0 +1,28 @@
+caught   ml_new_data: dp->db_free = dp->db_txt_start;
+caught   ml_new_data: dp->db_line_count = 1;
+caught   ml_new_data: dp->db_id = PTR_ID;
+caught   ml_new_ptr: pp->pb_count = 1;
+caught   ml_new_ptr: pp->pb_count_max = PB_COUNT_MAX(mfp) + 1;
+caught   ml_add_stack: buf->b_ml.ml_stack_size += 0;
+caught   ml_add_stack:   return top + 1;
+caught   ml_add_stack:   if (top > buf->b_ml.ml_stack_size) {
+caught   mf_rem_free:   mfp->mf_free_first = hp;
+caught   mf_ins_free:   hp->bh_data = NULL;
+caught   mf_need_trans: mfp->mf_neg_count >= 0;
+caught   mf_alloc_bhdr:   hp->bh_page_count = page_count - 1;
+caught   mf_free_bhdr:   xfree(hp);
+caught   mf_free_fnames:   xfree(mfp->mf_ffname);
+caught   ml_flush_deleted_bytes:   buf->deleted_bytes2 = 0;
+caught   ml_flush_deleted_bytes:   *codeunits = buf->deleted_codepoints;
+caught   ml_add_deleted_len_buf: | len > maxlen) {|  if (len == -1) {
+caught   ml_add_deleted_len_buf:   buf->deleted_bytes2 += (size_t)len;
+caught   ml_add_deleted_len_buf:     buf->deleted_codepoints++;
+caught   ml_add_deleted_len_buf:   if (!inhibit_delete_count) {
+caught   ml_get_buf_mut:   return ml_get_buf_impl(buf, lnum, false);
+caught   ml_get_pos:   return ml_get_buf(curbuf, pos->lnum + 1) + pos->col;
+caught   ml_get_pos_len:   return ml_get_buf_len(curbuf, pos->lnum) - pos->col - 1;
+caught   ml_append:   return ml_append_flags(lnum, line, len, newfile ? 0 : ML_APPEND_NEW);
+caught   ml_replace:   return ml_replace_buf(curbuf, lnum, line, copy, true);
+caught   ml_timestamp:   ml_upd_block0(buf, UB_SAME_DIR);
+caught   ml_delete:   return ml_delete_flags(lnum - 1, 0);
+caught   ml_line_alloced:   return curbuf->b_ml.ml_flags & 0x01;
