@@ -10,6 +10,7 @@ PRELUDE = r'''
 #define FUNC_ATTR_WARN_UNUSED_RESULT
 #define FUNC_ATTR_ALWAYS_INLINE
 #define FUNC_ATTR_NONNULL_ALL
+#define FUNC_ATTR_NONNULL_RET
 #define _(x) ((char *)(x))
 typedef int64_t varnumber_T;
 // garray_T, blobvar_S, listitem_S (value field elided: never read here), listvar_S
@@ -598,9 +599,70 @@ bool value_check_lock(VarLockStatus lock, const char *name, size_t name_len);
     ensures \result == 1 <==> (tv->v_lock != VAR_UNLOCKED || inner_lock((typval_T *)tv) != VAR_UNLOCKED);
     ensures vp_msgs == \old(vp_msgs) + (\result == 1 ? 1 : 0); */
 bool tv_check_lock(const typval_T *tv, const char *name, size_t name_len);
+
+// ---- string getters
+extern const char *const encode_bool_var_names[2];   // {"false", "true"} in encode.c
+extern const char *const encode_special_var_names[1]; // {"null"}
+/*@ predicate short_str(char *s) = \exists integer n; str_len(s, n) && n < NUMBUFLEN; */
+// snprintf / vim_snprintf of a number into buf: libc contract (writes a string within the bound)
+/*@ requires \valid(buf + (0 .. len - 1)) && len == NUMBUFLEN;
+    assigns buf[0 .. len - 1];
+    ensures is_str(buf); */
+int vp_numstr(char *buf, size_t len);
+#define snprintf(buf, len, fmt, v) ((void)(v), vp_numstr(buf, len))
+#undef vim_snprintf
+#define vim_snprintf(buf, len, fmt, ...) ((void)(__VA_ARGS__), vp_numstr(buf, len))
+// strcpy of a short string into a NUMBUFLEN buffer
+/*@ requires short_str((char *)s) && \valid(d + (0 .. NUMBUFLEN - 1));
+    requires \separated(d + (0 .. NUMBUFLEN - 1), (char *)s + (0 .. NUMBUFLEN - 1));
+    assigns d[0 .. NUMBUFLEN - 1];
+    ensures is_str(d); */
+char *vp_strcpy(char *d, const char *s);
+#define STRCPY(d, s) vp_strcpy((char *)(d), (char *)(s))
+#define PRIdVARNUMBER PRId64
+
+/*@ predicate names_ok = short_str((char *)encode_bool_var_names[0]) && short_str((char *)encode_bool_var_names[1])
+      && short_str((char *)encode_special_var_names[0]); */
+/*@ requires valid_tv((typval_T *)tv) && \valid(buf + (0 .. NUMBUFLEN - 1)) && names_ok;
+    requires tv->v_type == VAR_BOOL ==> 0 <= tv->vval.v_bool <= 1;
+    requires tv->v_type == VAR_SPECIAL ==> tv->vval.v_special == kSpecialVarNull;
+    requires \separated(buf + (0 .. NUMBUFLEN - 1), (char *)encode_bool_var_names[0] + (0 .. NUMBUFLEN - 1));
+    requires \separated(buf + (0 .. NUMBUFLEN - 1), (char *)encode_bool_var_names[1] + (0 .. NUMBUFLEN - 1));
+    requires \separated(buf + (0 .. NUMBUFLEN - 1), (char *)encode_special_var_names[0] + (0 .. NUMBUFLEN - 1));
+    assigns vp_msgs, vp_last, buf[0 .. NUMBUFLEN - 1];
+    behavior str: assumes tv->v_type == VAR_STRING && tv->vval.v_string != \null;
+      ensures \result == tv->vval.v_string && vp_msgs == \old(vp_msgs);
+    behavior empty: assumes tv->v_type == VAR_STRING && tv->vval.v_string == \null;
+      ensures \result != \null && \result != buf && vp_msgs == \old(vp_msgs);
+    behavior conv: assumes tv->v_type \in {VAR_NUMBER, VAR_FLOAT, VAR_BOOL, VAR_SPECIAL};
+      ensures \result == buf && is_str(buf) && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes tv->v_type \in {VAR_PARTIAL, VAR_FUNC, VAR_LIST, VAR_DICT, VAR_BLOB, VAR_UNKNOWN};
+      ensures \result == \null && vp_msgs == \old(vp_msgs) + 1 && vp_last == str_errors[tv->v_type];
+    complete behaviors; disjoint behaviors; */
+const char *tv_get_string_buf_chk(const typval_T *const tv, char *const buf);
+
+/*@ requires valid_tv((typval_T *)tv) && \valid(buf + (0 .. NUMBUFLEN - 1)) && names_ok;
+    requires tv->v_type == VAR_BOOL ==> 0 <= tv->vval.v_bool <= 1;
+    requires tv->v_type == VAR_SPECIAL ==> tv->vval.v_special == kSpecialVarNull;
+    requires \separated(buf + (0 .. NUMBUFLEN - 1), (char *)encode_bool_var_names[0] + (0 .. NUMBUFLEN - 1));
+    requires \separated(buf + (0 .. NUMBUFLEN - 1), (char *)encode_bool_var_names[1] + (0 .. NUMBUFLEN - 1));
+    requires \separated(buf + (0 .. NUMBUFLEN - 1), (char *)encode_special_var_names[0] + (0 .. NUMBUFLEN - 1));
+    assigns vp_msgs, vp_last, buf[0 .. NUMBUFLEN - 1];
+    behavior str: assumes tv->v_type == VAR_STRING && tv->vval.v_string != \null;
+      ensures \result == tv->vval.v_string && vp_msgs == \old(vp_msgs);
+    behavior empty: assumes tv->v_type == VAR_STRING && tv->vval.v_string == \null;
+      ensures \result != \null && \result != buf && vp_msgs == \old(vp_msgs);
+    behavior conv: assumes tv->v_type \in {VAR_NUMBER, VAR_FLOAT, VAR_BOOL, VAR_SPECIAL};
+      ensures \result == buf && is_str(buf) && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes tv->v_type \in {VAR_PARTIAL, VAR_FUNC, VAR_LIST, VAR_DICT, VAR_BLOB, VAR_UNKNOWN};
+      ensures \result != \null && \result != buf && vp_msgs == \old(vp_msgs) + 1 && vp_last == str_errors[tv->v_type];
+    complete behaviors; disjoint behaviors; */
+const char *tv_get_string_buf(const typval_T *const tv, char *const buf);
 '''
 
 CHECKS = [
+    ("src/nvim/memory.h", "#define STRCPY(d, s)        strcpy((char *)(d), (char *)(s))  // NOLINT(runtime/printf)"),
+    ("src/nvim/eval/typval_defs.h", "#define PRIdVARNUMBER PRId64"),
     ("src/nvim/eval/typval.h", "#define TV_TRANSLATE (SIZE_MAX)"),
     ("src/nvim/eval/typval.h", "#define TV_CSTRING (SIZE_MAX - 1)"),
     ("src/nvim/charset.h", "  STR2NR_ALL = STR2NR_BIN | STR2NR_OCT | STR2NR_HEX | STR2NR_OOCT,"),

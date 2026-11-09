@@ -59,3 +59,5 @@ tv_list_check_range_index_two	wp_list (Frama-C WP, linked-list model)
 tv_list_reverse	wp_list (Frama-C WP), needs lv_len - lv_idx within int (stale lv_idx, see wp_list/RESULTS.md)
 tv_blob_set	wp_blob (Frama-C WP), typval.h inline
 tv_blob_set_ret	wp_blob (Frama-C WP), typval.h inline
+tv_get_string_buf_chk	wp (Frama-C WP), snprintf/strcpy by bounded libc contracts; number text not specified
+tv_get_string_buf	wp (Frama-C WP), via tv_get_string_buf_chk

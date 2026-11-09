@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/eval/typval.c | 0 | 54 | 134 | 188 |
+| src/nvim/eval/typval.c | 0 | 56 | 132 | 188 |
 
 ## Function details
 
@@ -136,6 +136,8 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/eval/typval.c | `tv_list_reverse` | candidate | typval/wp_list (Frama-C WP), needs lv_len - lv_idx within int (stale lv_idx, see wp_list/RESULTS.md) | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
 | src/nvim/eval/typval.h | `tv_blob_set` | candidate | typval/wp_blob (Frama-C WP), typval.h inline | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
 | src/nvim/eval/typval.h | `tv_blob_set_ret` | candidate | typval/wp_blob (Frama-C WP), typval.h inline | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
+| src/nvim/eval/typval.c | `tv_get_string_buf_chk` | candidate | typval/wp (Frama-C WP), snprintf/strcpy by bounded libc contracts; number text not specified | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
+| src/nvim/eval/typval.c | `tv_get_string_buf` | candidate | typval/wp (Frama-C WP), via tv_get_string_buf_chk | see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off |
 
 ## All files
 
