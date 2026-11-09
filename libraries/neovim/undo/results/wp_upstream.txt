@@ -1,0 +1,1 @@
+uhp_table_find: Proved goals 33 / 33 (Frama-C 33.0, Z3+CVC5, timeout 30)

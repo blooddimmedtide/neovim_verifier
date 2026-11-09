@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/undo.c | 0 | 14 | 69 | 83 |
 
 ## Function details
 
@@ -74,6 +75,22 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/undo.c | `undo_write` | candidate | undo/cbmc (CBMC) | fwrite result; inside every write harness; no review yet |
+| src/nvim/undo.c | `undo_write_bytes` | candidate | undo/cbmc (CBMC, every nr, len 1..8) | big-endian nr mod 256^len; see undo/CLAIM.md; no review yet |
+| src/nvim/undo.c | `put_header_ptr` | candidate | undo/cbmc (CBMC) | 4-byte uh_seq or 0; no review yet |
+| src/nvim/undo.c | `serialize_pos` | candidate | undo/cbmc (CBMC) | 3 big-endian 4-byte fields; no review yet |
+| src/nvim/undo.c | `serialize_visualinfo` | candidate | undo/cbmc (CBMC) | 8 big-endian 4-byte fields; no review yet |
+| src/nvim/undo.c | `undo_read_4c` | candidate | undo/cbmc (CBMC, every 0..6 byte stream) | get4c: 32-bit two's complement or -1; no review yet |
+| src/nvim/undo.c | `undo_read_2c` | candidate | undo/cbmc (CBMC) | get2c: 0..65535 or -1; no review yet |
+| src/nvim/undo.c | `undo_read_byte` | candidate | undo/cbmc (CBMC) | next byte or EOF; no review yet |
+| src/nvim/undo.c | `undo_read_time` | fixed-candidate | undo/cbmc (CBMC, fixed fork) | upstream get8ctime signed shift overflow (findings/get8ctime-shift-overflow.md); fix verified_neovim PR #8 proved; no review yet |
+| src/nvim/undo.c | `undo_read_len` | candidate | undo/cbmc (CBMC, every file size) | valid length or -1 + one corruption report; no review yet |
+| src/nvim/undo.c | `undo_read` | open | undo/cbmc (CBMC, size <= 5 only) | bounded proof only; no review yet |
+| src/nvim/undo.c | `undo_read_string` | open | undo/cbmc (CBMC, len <= 4 only) | bounded proof only; no review yet |
+| src/nvim/undo.c | `unserialize_pos` | candidate | undo/cbmc (CBMC, every 0..13 byte stream) | fields clamped at 0; no review yet |
+| src/nvim/undo.c | `unserialize_visualinfo` | candidate | undo/cbmc (CBMC, every 0..33 byte stream) | no review yet |
+| src/nvim/undo.c | `uhp_seq_cmp` | candidate | undo/cbmc (CBMC) | sign of uh_seq comparison; no review yet |
+| src/nvim/undo.c | `uhp_table_find` | candidate | undo/wp (Frama-C WP, any size, 33/33) | binary search on sorted table; CBMC n<=4 cross-check; no review yet |
 
 ## All files
 
