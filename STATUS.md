@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/undo.c | 0 | 23 | 60 | 83 |
+| src/nvim/undo.c | 0 | 25 | 58 | 83 |
 
 ## Function details
 
@@ -98,6 +98,8 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/undo.c | `u_update_save_nr` | candidate | undo/cbmc/run_save.sh (CBMC) | counter +1, stored in the header u would undo next; counter below INT_MAX; 3 own planted bugs caught; no independent review yet |
 | src/nvim/undo.c | `u_clearline` | candidate | undo/cbmc/run_misc.sh (CBMC) | frees saved U line, NULL + lnum 0; no leak; 2 own planted bugs caught; no independent review yet |
 | src/nvim/undo.c | `u_update_named_mark` | candidate | undo/cbmc/run_misc.sh (CBMC) | zeroes lnum of mark idx in current/newest header; idx 0..25 (mark.c passes c - 'a' for a lowercase c); 2 own planted bugs caught; no independent review yet |
+| src/nvim/undo.c | `serialize_extmark` | candidate | undo/cbmc/run_ext.sh (CBMC) | magic, type, raw struct bytes; 7 own planted bugs caught (with unserialize); no independent review yet |
+| src/nvim/undo.c | `unserialize_extmark` | candidate | undo/cbmc/run_ext.sh (CBMC) | splice/move object with the file's bytes, else NULL + error; no leak; no independent review yet |
 
 ## All files
 

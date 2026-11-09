@@ -26,7 +26,9 @@ typedef struct buf_T buf_T;
 
 // FILE model. Reads come from in[0..in_len), position in_pos. Writes go to out[0..out_len),
 // and each fwrite may fail (nondeterministic), as a full disk can.
+#ifndef OUT_CAP
 #define OUT_CAP 32
+#endif
 typedef struct {
   const uint8_t *in; size_t in_len; size_t in_pos; bool eof;
   uint8_t out[OUT_CAP]; size_t out_len; bool tell_fails;
