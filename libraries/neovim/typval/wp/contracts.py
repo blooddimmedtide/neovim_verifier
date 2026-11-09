@@ -105,6 +105,23 @@ struct dictvar_S {
   hashtab_T dv_hashtab;   ///< Hashtab containing all items.
 };
 typedef struct partial_S partial_T;
+typedef enum {
+  kCallbackNone = 0,
+  kCallbackFuncref,
+  kCallbackPartial,
+  kCallbackLua,
+  kCallbackExpr,   ///< Vimscript expression, for "expr" options.
+} CallbackType;
+
+typedef struct {
+  union {
+    char *funcref;
+    partial_T *partial;
+    LuaRef luaref;
+    char *expr;    ///< kCallbackExpr: Vimscript, for "expr" options.
+  } data;
+  CallbackType type;
+} Callback;
 typedef double float_T;
 typedef enum {
   kBoolVarFalse,         ///< v:false
@@ -437,9 +454,108 @@ float_T tv_get_float(const typval_T *const tv);
     || (tv->v_type == VAR_SPECIAL && tv->vval.v_special != kSpecialVarNull)
     || (tv->v_type == VAR_BLOB && tv->vval.v_blob != \null && tv->vval.v_blob->bv_ga.ga_len > 0)); */
 bool tv2bool(const typval_T *const tv);
+
+// ---- strings: predicates and strequal's contract copied from memory/wp (proved there)
+/*@ predicate str_len{L}(char *s, integer n) =
+      0 <= n && \valid_read(s + (0 .. n)) && s[n] == 0
+      && \forall char *q; \base_addr(q) == \base_addr(s) && s <= q < s + n ==> *q != 0;
+    predicate is_str{L}(char *s) = \exists integer n; str_len(s, n);
+    predicate str_eq{L}(char *a, char *b) = (a == \null && b == \null)
+            || (a != \null && b != \null && \exists integer n; str_len((char *)a, n) && str_len((char *)b, n)
+                && \forall integer i; 0 <= i < n ==> a[i] == b[i]);
+*/
+/*@ requires a == \null || is_str((char *)a);
+    requires b == \null || is_str((char *)b);
+    assigns \nothing;
+    ensures \result <==> (a == \null && b == \null)
+            || (a != \null && b != \null && \exists integer n; str_len((char *)a, n) && str_len((char *)b, n)
+                && \forall integer i; 0 <= i < n ==> a[i] == b[i]); */
+bool strequal(const char *a, const char *b);
+
+typedef uint64_t uvarnumber_T;
+enum {
+  STR2NR_DEC = 0,
+  STR2NR_BIN = (1 << 0),  ///< Allow binary numbers.
+  STR2NR_OCT = (1 << 1),  ///< Allow octal numbers.
+  STR2NR_HEX = (1 << 2),  ///< Allow hexadecimal numbers.
+  STR2NR_OOCT = (1 << 3),  ///< Octal with prefix "0o": 0o777
+  STR2NR_ALL = STR2NR_BIN | STR2NR_OCT | STR2NR_HEX | STR2NR_OOCT,
+};
+// vim_str2nr (charset.c, not proved here): the value it leaves in *nptr depends only on
+// the string and the old *nptr (uninterpreted). Only this call shape is used.
+/*@ logic varnumber_T str2nr_all{L}(char *s, varnumber_T old) reads s[0 ..]; */
+/*@ requires is_str((char *)start) && \valid(nptr) && what == STR2NR_ALL && maxlen == 0 && !strict;
+    requires prep == \null && len == \null && unptr == \null && overflow == \null;
+    assigns *nptr \from ((char *)start)[0 ..], *nptr;
+    ensures *nptr == str2nr_all((char *)start, \old(*nptr)); */
+void vim_str2nr(const char *const start, int *const prep, int *const len, const int what,
+                varnumber_T *const nptr, uvarnumber_T *const unptr, const int maxlen,
+                const bool strict, bool *const overflow);
+#define FUNC_ATTR_NONNULL_ARG(...)
+
+/*@ predicate num_err_type(integer t) = t \in {VAR_FUNC, VAR_PARTIAL, VAR_LIST, VAR_DICT, VAR_BLOB, VAR_FLOAT, VAR_UNKNOWN};
+    logic integer num_value(typval_T *tv) =
+      tv->v_type == VAR_NUMBER ? tv->vval.v_number :
+      tv->v_type == VAR_STRING ? (tv->vval.v_string == \null ? 0 : str2nr_all(tv->vval.v_string, (varnumber_T)0)) :
+      tv->v_type == VAR_BOOL ? (tv->vval.v_bool == kBoolVarTrue ? 1 : 0) : 0;
+    predicate num_pre(typval_T *tv) = valid_tv(tv) &&
+      (tv->v_type == VAR_STRING && tv->vval.v_string != \null ==> is_str(tv->vval.v_string));
+*/
+/*@ requires num_pre((typval_T *)tv);
+    requires ret_error == \null || (\valid(ret_error) && \separated(ret_error, tv));
+    assigns vp_msgs, *ret_error;
+    behavior good: assumes !num_err_type(tv->v_type);
+      ensures \result == num_value((typval_T *)tv) && vp_msgs == \old(vp_msgs);
+    behavior bad_ptr: assumes num_err_type(tv->v_type) && ret_error != \null;
+      ensures \result == 0 && *ret_error == 1 && vp_msgs == \old(vp_msgs) + 1;
+    behavior bad_null: assumes num_err_type(tv->v_type) && ret_error == \null;
+      ensures \result == -1 && vp_msgs == \old(vp_msgs) + 1;
+    complete behaviors; disjoint behaviors; */
+varnumber_T tv_get_number_chk(const typval_T *const tv, bool *const ret_error);
+
+/*@ requires num_pre((typval_T *)tv);
+    assigns vp_msgs;
+    ensures \result == (num_err_type(tv->v_type) ? 0 : num_value((typval_T *)tv));
+    ensures vp_msgs == \old(vp_msgs) + (num_err_type(tv->v_type) ? 1 : 0); */
+varnumber_T tv_get_number(const typval_T *const tv);
+
+/*@ requires num_pre((typval_T *)tv);
+    requires ret_error == \null || (\valid(ret_error) && \separated(ret_error, tv));
+    assigns vp_msgs, *ret_error;
+    behavior good: assumes !num_err_type(tv->v_type);
+      ensures \result == num_value((typval_T *)tv) && vp_msgs == \old(vp_msgs);
+    behavior bad_ptr: assumes num_err_type(tv->v_type) && ret_error != \null;
+      ensures \result == 0 && *ret_error == 1 && vp_msgs == \old(vp_msgs) + 1;
+    behavior bad_null: assumes num_err_type(tv->v_type) && ret_error == \null;
+      ensures \result == -1 && vp_msgs == \old(vp_msgs) + 1;
+    complete behaviors; disjoint behaviors; */
+varnumber_T tv_get_bool_chk(const typval_T *const tv, bool *const ret_error);
+
+/*@ requires num_pre((typval_T *)tv);
+    assigns vp_msgs;
+    ensures \result == (num_err_type(tv->v_type) ? -1 : num_value((typval_T *)tv));
+    ensures vp_msgs == \old(vp_msgs) + (num_err_type(tv->v_type) ? 1 : 0); */
+varnumber_T tv_get_bool(const typval_T *const tv);
+
+/*@ predicate cb_ok(Callback *cb) = \valid_read(cb) && kCallbackNone <= cb->type <= kCallbackExpr
+      && (cb->type == kCallbackFuncref ==> (cb->data.funcref == \null || is_str(cb->data.funcref)))
+      && (cb->type == kCallbackExpr ==> (cb->data.expr == \null || is_str(cb->data.expr))); */
+/*@ requires cb_ok((Callback *)cb1) && cb_ok((Callback *)cb2);
+    assigns \nothing;
+    ensures \result == 0 || \result == 1;
+    ensures \result == 1 <==> cb1->type == cb2->type &&
+      (cb1->type == kCallbackFuncref ==> str_eq(cb1->data.funcref, cb2->data.funcref)) &&
+      (cb1->type == kCallbackPartial ==> cb1->data.partial == cb2->data.partial) &&
+      (cb1->type == kCallbackLua ==> cb1->data.luaref == cb2->data.luaref) &&
+      (cb1->type == kCallbackExpr ==> str_eq(cb1->data.expr, cb2->data.expr)); */
+bool tv_callback_equal(const Callback *cb1, const Callback *cb2);
 '''
 
 CHECKS = [
+    ("src/nvim/charset.h", "  STR2NR_ALL = STR2NR_BIN | STR2NR_OCT | STR2NR_HEX | STR2NR_OOCT,"),
+    ("src/nvim/eval/typval_defs.h", "    char *expr;    ///< kCallbackExpr: Vimscript, for \"expr\" options."),
+    ("src/nvim/eval/typval_defs.h", "  CallbackType type;"),
+    ("src/nvim/types_defs.h", "typedef int LuaRef;"),
     ("src/nvim/vim_defs.h", "  NUMBUFLEN = 65,"),
     ("src/nvim/hashtab_defs.h", "  size_t ht_used;        ///< number of items used"),
     ("src/nvim/hashtab_defs.h", "  hashitem_T ht_smallarray[HT_INIT_SIZE];  ///< initial array"),
