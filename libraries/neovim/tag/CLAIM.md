@@ -25,6 +25,11 @@ unwound (`--unwinding-assertions`).
 | `matching_line_len(lbuf)` | for the documented layout `<mtt><tag_fname>NUL<lbuf>NUL`, returns the offset of the final NUL (line length); no read past it |
 | `vim_strchr` (strings.c, verbatim, dependency) | used only with ASCII c; its c >= 0x80 branch is proved unreachable (stub asserts false) |
 
+## Update 08:55Z
+- N=8 (unwind 11), both char types: parse_tag_line, tag_strnicmp, matching_line_len VERIFICATION SUCCESSFUL.
+- test_for_static at N=8 failed because the harness let `command` point past an embedded NUL (outside the line). Harness fixed (`off <= strlen`); the fixed harness is NOT re-run yet at N=8. Note N=6 could not reach a true result (needs 7 bytes), so test_for_static's "true" case is covered only by the difftest so far.
+- Differential test (`cbmc/difftest.c`, gcc -O2, real libc, signed and unsigned char): parse_tag_line and test_for_static exhaustive over an 8-symbol alphabet up to 7 bytes (2,396,745 lines) plus tag_strnicmp case pairs: 0 failures.
+
 ## Relies on
 - libc `strlen`, `strchr`, `strncmp` written from C11 7.24 in `cbmc/libc.h` (CBMC's own models replaced so every byte read is checked). `strstr` is proved unreachable.
 - `--conversion-check` is off: char -> uint8_t casts are defined C; same check set as mbyte plus unsigned/pointer overflow.

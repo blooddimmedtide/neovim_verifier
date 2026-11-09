@@ -55,10 +55,11 @@ void h_tag_strnicmp(void)
 void h_test_for_static(void)
 {
   size_t n; char *s = nondet_cstr(&n);
-  size_t off = nondet_size(); __CPROVER_assume(off < n);
+  size_t sl = strlen(s);
+  // command points into the line (parse_tag_line sets it before the NUL)
+  size_t off = nondet_size(); __CPROVER_assume(off <= sl);
   tagptrs_T t; t.command = s + off;
   bool r = test_for_static(&t);
-  size_t sl = strlen(s);
   bool want = false;   // some TAB at i >= off (before the NUL) followed by "file:"
   for (size_t i = off; i < sl; i++)
     if (s[i] == '\t' && i + 5 < sl + 1 && s[i+1]=='f' && s[i+2]=='i' && s[i+3]=='l'

@@ -26,7 +26,9 @@ PRELUDE = """\
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#ifndef NV_REAL_LIBC
 #include "libc.h"
+#endif
 #define NUL '\\000'
 #define TAB '\\011'
 #define OK 1
