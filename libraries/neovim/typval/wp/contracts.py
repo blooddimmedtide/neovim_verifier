@@ -57,6 +57,7 @@ struct listvar_S {
 };
 extern const char e_blobidx[];
 //@ ghost int vp_msgs;
+//@ ghost const char *vp_last;  // the message (format) passed to the last emsg/semsg
 
 typedef enum {
   VAR_UNKNOWN = 0,  ///< Unknown (unspecified) value.
@@ -151,19 +152,19 @@ typedef struct {
 static const char *const num_errors[VAR_BLOB + 1];  // values: messages only, passed to emsg
 static const char *const str_errors[VAR_BLOB + 1];
 extern const char e_intern2[];
-/*@ assigns vp_msgs; ensures vp_msgs == \old(vp_msgs) + 1; */
-void vp_emsg(void);
-#define emsg(...) vp_emsg()
+/*@ assigns vp_msgs, vp_last; ensures vp_msgs == \old(vp_msgs) + 1 && vp_last == m; */
+void vp_emsg(const char *m);
+#define emsg(m) vp_emsg(m)
 // abort() must be unreachable: its precondition is false, so WP has to prove no call happens.
 /*@ requires \false; assigns \nothing; ensures \false; */
 void abort(void);
 
 
 // semsg: only its occurrence matters here (it shows an error message).
-/*@ assigns vp_msgs; ensures vp_msgs == \old(vp_msgs) + 1; */
-void vp_semsg(void);
+/*@ assigns vp_msgs, vp_last; ensures vp_msgs == \old(vp_msgs) + 1 && vp_last == m; */
+void vp_semsg(const char *m);
 // Arguments are still evaluated (their overflow checks stay in the proof).
-#define semsg(fmt, ...) ((void)(__VA_ARGS__), vp_semsg())
+#define semsg(fmt, ...) ((void)(__VA_ARGS__), vp_semsg(fmt))
 
 /*@ predicate valid_blob(blob_T *b) =
       \valid_read(b) && 0 <= b->bv_ga.ga_len &&
@@ -195,18 +196,18 @@ static inline int tv_blob_len(const blob_T *const b);
     ensures \result == ((uint8_t *)b->bv_ga.ga_data)[idx]; */
 static inline uint8_t tv_blob_get(const blob_T *const b, int idx);
 
-/*@ assigns vp_msgs;
+/*@ assigns vp_msgs, vp_last;
     behavior ok: assumes 0 <= n1 <= bloblen; ensures \result == OK && vp_msgs == \old(vp_msgs);
     behavior bad_quiet: assumes !(0 <= n1 <= bloblen) && quiet; ensures \result == FAIL && vp_msgs == \old(vp_msgs);
-    behavior bad_loud: assumes !(0 <= n1 <= bloblen) && !quiet; ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
+    behavior bad_loud: assumes !(0 <= n1 <= bloblen) && !quiet; ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_blobidx;
     complete behaviors; disjoint behaviors; */
 int tv_blob_check_index(int bloblen, varnumber_T n1, bool quiet);
 
-/*@ assigns vp_msgs;
+/*@ assigns vp_msgs, vp_last;
     behavior ok: assumes 0 <= n1 <= n2 < bloblen || (n1 < 0 && 0 <= n2 < bloblen);
       ensures \result == OK && vp_msgs == \old(vp_msgs);
     behavior bad_quiet: assumes !(n1 <= n2 && 0 <= n2 < bloblen) && quiet; ensures \result == FAIL && vp_msgs == \old(vp_msgs);
-    behavior bad_loud: assumes !(n1 <= n2 && 0 <= n2 < bloblen) && !quiet; ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
+    behavior bad_loud: assumes !(n1 <= n2 && 0 <= n2 < bloblen) && !quiet; ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_blobidx;
     complete behaviors; disjoint behaviors; */
 int tv_blob_check_range(int bloblen, varnumber_T n1, varnumber_T n2, bool quiet);
 
@@ -227,7 +228,7 @@ static inline VarLockStatus tv_list_locked(const list_T *const l);
 /*@ predicate valid_tv(typval_T *tv) = \valid_read(tv) && VAR_UNKNOWN <= tv->v_type <= VAR_BLOB; */
 
 /*@ requires valid_tv((typval_T *)tv);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     behavior yes: assumes tv->v_type == VAR_NUMBER || tv->v_type == VAR_STRING;
       ensures \result == 1 && vp_msgs == \old(vp_msgs);
     behavior no: assumes !(tv->v_type == VAR_NUMBER || tv->v_type == VAR_STRING);
@@ -236,7 +237,7 @@ static inline VarLockStatus tv_list_locked(const list_T *const l);
 bool tv_check_str_or_nr(const typval_T *const tv);
 
 /*@ requires valid_tv((typval_T *)tv);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     behavior yes: assumes tv->v_type \in {VAR_NUMBER, VAR_BOOL, VAR_SPECIAL, VAR_STRING};
       ensures \result == 1 && vp_msgs == \old(vp_msgs);
     behavior no: assumes !(tv->v_type \in {VAR_NUMBER, VAR_BOOL, VAR_SPECIAL, VAR_STRING});
@@ -245,7 +246,7 @@ bool tv_check_str_or_nr(const typval_T *const tv);
 bool tv_check_num(const typval_T *const tv);
 
 /*@ requires valid_tv((typval_T *)tv);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     behavior yes: assumes tv->v_type \in {VAR_NUMBER, VAR_BOOL, VAR_SPECIAL, VAR_STRING, VAR_FLOAT};
       ensures \result == 1 && vp_msgs == \old(vp_msgs);
     behavior no: assumes !(tv->v_type \in {VAR_NUMBER, VAR_BOOL, VAR_SPECIAL, VAR_STRING, VAR_FLOAT});
@@ -265,133 +266,6 @@ bool tv_check_str(const typval_T *const tv);
 bool tv_islocked(const typval_T *const tv);
 
 enum { MAX_FUNC_ARGS = 20, };  ///< Maximum number of function arguments
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_STRING}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_string_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_number_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_FLOAT, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_FLOAT, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_float_or_nr_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_BLOB}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_BLOB}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_blob_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_LIST}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_LIST}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_list_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_DICT}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_DICT}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_dict_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_string_or_number_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_buffer_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_lnum_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_LIST}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_LIST}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_string_or_list_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_LIST, VAR_BLOB}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_LIST, VAR_BLOB}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_string_or_list_or_blob_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_PARTIAL, VAR_FUNC, VAR_STRING}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_PARTIAL, VAR_FUNC, VAR_STRING}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_string_or_func_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_LIST, VAR_BLOB}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_LIST, VAR_BLOB}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_list_or_blob_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_opt_string_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_opt_number_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_DICT}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_DICT}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_opt_dict_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING, VAR_LIST}; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING, VAR_LIST}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_opt_string_or_list_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes (args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1))); ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !((args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1)))); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_bool_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes (args[idx].v_type == VAR_UNKNOWN || (args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1)))); ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !((args[idx].v_type == VAR_UNKNOWN || (args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1))))); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_opt_bool_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type == VAR_DICT && args[idx].vval.v_dict != \null; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type == VAR_DICT && args[idx].vval.v_dict != \null); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_nonnull_dict_arg(const typval_T *const args, const int idx);
-/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
-    requires args[idx].v_type == VAR_STRING && args[idx].vval.v_string != \null ==> \valid_read(args[idx].vval.v_string);
-    assigns vp_msgs;
-    behavior ok: assumes args[idx].v_type == VAR_STRING && args[idx].vval.v_string != \null && args[idx].vval.v_string[0] != 0; ensures \result == OK && vp_msgs == \old(vp_msgs);
-    behavior bad: assumes !(args[idx].v_type == VAR_STRING && args[idx].vval.v_string != \null && args[idx].vval.v_string[0] != 0); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1;
-    complete behaviors; disjoint behaviors; */
-int tv_check_for_nonempty_string_arg(const typval_T *const args, const int idx);
 extern const char e_string_required_for_argument_nr[];
 extern const char e_non_empty_string_required_for_argument_nr[];
 extern const char e_number_required_for_argument_nr[];
@@ -406,6 +280,133 @@ extern const char e_string_or_list_required_for_argument_nr[];
 extern const char e_string_list_or_blob_required_for_argument_nr[];
 extern const char e_string_or_function_required_for_argument_nr[];
 extern const char e_list_or_blob_required_for_argument_nr[];
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_STRING}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_string_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_number_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_number_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_FLOAT, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_FLOAT, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_float_or_number_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_float_or_nr_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_BLOB}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_BLOB}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_blob_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_blob_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_LIST}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_LIST}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_list_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_list_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_DICT}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_DICT}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_dict_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_dict_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_or_number_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_string_or_number_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_or_number_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_buffer_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_or_number_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_lnum_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_LIST}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_LIST}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_or_list_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_string_or_list_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_STRING, VAR_LIST, VAR_BLOB}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_STRING, VAR_LIST, VAR_BLOB}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_list_or_blob_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_string_or_list_or_blob_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_PARTIAL, VAR_FUNC, VAR_STRING}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_PARTIAL, VAR_FUNC, VAR_STRING}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_or_function_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_string_or_func_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_LIST, VAR_BLOB}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_LIST, VAR_BLOB}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_list_or_blob_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_list_or_blob_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_opt_string_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_NUMBER}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_NUMBER}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_number_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_opt_number_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_DICT}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_DICT}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_dict_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_opt_dict_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING, VAR_LIST}; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type \in {VAR_UNKNOWN, VAR_STRING, VAR_LIST}); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_string_or_list_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_opt_string_or_list_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes (args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1))); ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !((args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1)))); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_bool_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_bool_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes (args[idx].v_type == VAR_UNKNOWN || (args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1)))); ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !((args[idx].v_type == VAR_UNKNOWN || (args[idx].v_type == VAR_BOOL || (args[idx].v_type == VAR_NUMBER && (args[idx].vval.v_number == 0 || args[idx].vval.v_number == 1))))); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (char *)e_bool_required_for_argument_nr;
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_opt_bool_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type == VAR_DICT && args[idx].vval.v_dict != \null; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type == VAR_DICT && args[idx].vval.v_dict != \null); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (args[idx].v_type != VAR_DICT ? (char *)e_dict_required_for_argument_nr : (char *)e_non_null_dict_required_for_argument_nr);
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_nonnull_dict_arg(const typval_T *const args, const int idx);
+/*@ requires 0 <= idx <= MAX_FUNC_ARGS && \valid_read(args + idx);
+    requires args[idx].v_type == VAR_STRING && args[idx].vval.v_string != \null ==> \valid_read(args[idx].vval.v_string);
+    assigns vp_msgs, vp_last;
+    behavior ok: assumes args[idx].v_type == VAR_STRING && args[idx].vval.v_string != \null && args[idx].vval.v_string[0] != 0; ensures \result == OK && vp_msgs == \old(vp_msgs);
+    behavior bad: assumes !(args[idx].v_type == VAR_STRING && args[idx].vval.v_string != \null && args[idx].vval.v_string[0] != 0); ensures \result == FAIL && vp_msgs == \old(vp_msgs) + 1 && vp_last == (args[idx].v_type != VAR_STRING ? (char *)e_string_required_for_argument_nr : (char *)e_non_empty_string_required_for_argument_nr);
+    complete behaviors; disjoint behaviors; */
+int tv_check_for_nonempty_string_arg(const typval_T *const args, const int idx);
 #define NUL '\000'
 
 enum { NUMBUFLEN = 65, };
@@ -417,7 +418,7 @@ int vp_snprintf(char *buf, size_t len);
 #define PRId64 "ld"
 
 /*@ requires slen > 0;
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     behavior ok: assumes n <= INT_MAX / slen;
       ensures \result == OK && vp_msgs == \old(vp_msgs) && n * slen <= INT_MAX;
     behavior too_large: assumes n > INT_MAX / slen;
@@ -426,7 +427,7 @@ int vp_snprintf(char *buf, size_t len);
 int check_repeat_count(varnumber_T slen, varnumber_T n);
 
 /*@ requires valid_tv((typval_T *)tv);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     behavior num: assumes tv->v_type == VAR_NUMBER;
       ensures \result == (double)tv->vval.v_number && vp_msgs == \old(vp_msgs);
     behavior flt: assumes tv->v_type == VAR_FLOAT;
@@ -503,9 +504,10 @@ void vim_str2nr(const char *const start, int *const prep, int *const len, const 
 */
 /*@ requires num_pre((typval_T *)tv);
     requires ret_error == \null || (\valid(ret_error) && \separated(ret_error, tv));
-    assigns vp_msgs, *ret_error;
+    assigns vp_msgs, vp_last, *ret_error;
     behavior good: assumes !num_err_type(tv->v_type);
       ensures \result == num_value((typval_T *)tv) && vp_msgs == \old(vp_msgs);
+      ensures ret_error != \null ==> *ret_error == \old(*ret_error);
     behavior bad_ptr: assumes num_err_type(tv->v_type) && ret_error != \null;
       ensures \result == 0 && *ret_error == 1 && vp_msgs == \old(vp_msgs) + 1;
     behavior bad_null: assumes num_err_type(tv->v_type) && ret_error == \null;
@@ -514,16 +516,17 @@ void vim_str2nr(const char *const start, int *const prep, int *const len, const 
 varnumber_T tv_get_number_chk(const typval_T *const tv, bool *const ret_error);
 
 /*@ requires num_pre((typval_T *)tv);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     ensures \result == (num_err_type(tv->v_type) ? 0 : num_value((typval_T *)tv));
     ensures vp_msgs == \old(vp_msgs) + (num_err_type(tv->v_type) ? 1 : 0); */
 varnumber_T tv_get_number(const typval_T *const tv);
 
 /*@ requires num_pre((typval_T *)tv);
     requires ret_error == \null || (\valid(ret_error) && \separated(ret_error, tv));
-    assigns vp_msgs, *ret_error;
+    assigns vp_msgs, vp_last, *ret_error;
     behavior good: assumes !num_err_type(tv->v_type);
       ensures \result == num_value((typval_T *)tv) && vp_msgs == \old(vp_msgs);
+      ensures ret_error != \null ==> *ret_error == \old(*ret_error);
     behavior bad_ptr: assumes num_err_type(tv->v_type) && ret_error != \null;
       ensures \result == 0 && *ret_error == 1 && vp_msgs == \old(vp_msgs) + 1;
     behavior bad_null: assumes num_err_type(tv->v_type) && ret_error == \null;
@@ -532,7 +535,7 @@ varnumber_T tv_get_number(const typval_T *const tv);
 varnumber_T tv_get_bool_chk(const typval_T *const tv, bool *const ret_error);
 
 /*@ requires num_pre((typval_T *)tv);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     ensures \result == (num_err_type(tv->v_type) ? -1 : num_value((typval_T *)tv));
     ensures vp_msgs == \old(vp_msgs) + (num_err_type(tv->v_type) ? 1 : 0); */
 varnumber_T tv_get_bool(const typval_T *const tv);
@@ -574,10 +577,12 @@ size_t strlen(const char *s);
          \exists integer n; str_len(name, n) && n <= INT_MAX :
          name_len <= INT_MAX); */
 /*@ requires lock_ok(lock) && name_ok((char *)name, name_len);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     ensures \result == 0 || \result == 1;
     ensures \result == 1 <==> lock != VAR_UNLOCKED;
-    ensures vp_msgs == \old(vp_msgs) + (lock != VAR_UNLOCKED ? 1 : 0); */
+    ensures vp_msgs == \old(vp_msgs) + (lock != VAR_UNLOCKED ? 1 : 0);
+    ensures lock == VAR_LOCKED ==> vp_last == (name == \null ? (char *)e_value_is_locked : (char *)e_value_is_locked_str);
+    ensures lock == VAR_FIXED ==> vp_last == (name == \null ? (char *)e_cannot_change_value : (char *)e_cannot_change_value_of_str); */
 bool value_check_lock(VarLockStatus lock, const char *name, size_t name_len);
 
 /*@ logic integer inner_lock(typval_T *tv) =
@@ -588,7 +593,7 @@ bool value_check_lock(VarLockStatus lock, const char *name, size_t name_len);
     requires tv->v_type == VAR_BLOB && tv->vval.v_blob != \null ==> \valid_read(tv->vval.v_blob) && lock_ok(tv->vval.v_blob->bv_lock);
     requires tv->v_type == VAR_LIST && tv->vval.v_list != \null ==> \valid_read(tv->vval.v_list) && lock_ok(tv->vval.v_list->lv_lock);
     requires tv->v_type == VAR_DICT && tv->vval.v_dict != \null ==> \valid_read(tv->vval.v_dict) && lock_ok(tv->vval.v_dict->dv_lock);
-    assigns vp_msgs;
+    assigns vp_msgs, vp_last;
     ensures \result == 0 || \result == 1;
     ensures \result == 1 <==> (tv->v_lock != VAR_UNLOCKED || inner_lock((typval_T *)tv) != VAR_UNLOCKED);
     ensures vp_msgs == \old(vp_msgs) + (\result == 1 ? 1 : 0); */

@@ -30,8 +30,13 @@ dead by design). `wp_blob` and `wp_list` run smoke tests too (see their RESULTS.
 
 ## What is proved, for every input
 
-"Message" = one call of `emsg`/`semsg` (modelled as a counter `vp_msgs`; its arguments are
-still evaluated, so overflow in them is checked).
+"Message" = one call of `emsg`/`semsg`, modelled by a counter `vp_msgs` and a ghost `vp_last`
+holding the message (format) pointer. All arguments are still evaluated, so overflow or bad
+array reads in them are checked. Message identity is proved for the 21 `tv_check_for_*_arg`
+functions, `tv_blob_check_index/range` (E979) and `value_check_lock` (which of the 4 lock
+messages). Not proved: the identity of messages given as string literals (e.g. the E805/E745
+texts in `tv_check_str_or_nr`, `tv_get_float`), and the values of format arguments
+(the argument number `idx + 1`, the index printed by E979). Review (REVIEW.md) issue 2.
 
 | Function | Property |
 |---|---|
@@ -48,6 +53,7 @@ still evaluated, so overflow in them is checked).
 | `tv_blob_check_range(len, n1, n2, quiet)` | OK iff `n1 <= n2` and `0 <= n2 < len`; else FAIL, one message unless quiet |
 | `tv_blob_equal(b1, b2)` | true iff same length (NULL = empty) and the same bytes |
 | `tv_get_number_chk(tv, err)` | Number: the value; String: 0 for NULL, else the value `vim_str2nr` stores (uninterpreted function of the string); Bool: 1/0; Special: 0; other types: one message, and `*err = true`, result 0 if `err` given, else -1 |
+| (all three) | on success `*err` is not touched (review issue 1, fixed) |
 | `tv_get_bool_chk`, `tv_get_bool` | the same as `tv_get_number_chk` (with `err`, resp. NULL) |
 | `tv_callback_equal` | true iff same type and equal payload (string equality for Funcref/Expr by `strequal`'s proved contract; pointer/ref equality for Partial/Lua) |
 | `value_check_lock(lock, name, len)` | true iff `lock != VAR_UNLOCKED`, and then exactly one message; `assert(error_message != NULL)` proved |

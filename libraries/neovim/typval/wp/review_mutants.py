@@ -30,6 +30,8 @@ M = [  # (function, original text, mutant text) -- adversarial review mutants (R
     ("tv_blob_check_range", "      semsg(_(e_blobidx), n2);", "      semsg(_(e_blobidx), n1);"),
     ("tv_check_for_float_or_nr_arg", "float_or_number_required_for_argument_nr), idx + 1);", "float_or_number_required_for_argument_nr), idx);"),
     ("tv_check_for_opt_string_arg", "|| tv_check_for_string_arg(args, idx) != FAIL) ? OK : FAIL;", "|| tv_check_for_string_or_number_arg(args, idx) != FAIL) ? OK : FAIL;"),
+    # R26: documented "Otherwise it is not touched" for ret_error (spec has no frame for *ret_error on success)
+    ("tv_get_number_chk", "  case VAR_NUMBER:\n    return tv->vval.v_number;", "  case VAR_NUMBER:\n    if (ret_error != NULL) {\n      *ret_error = true;\n    }\n    return tv->vval.v_number;"),
 ]
 nv = sys.argv[1]; caught = 0
 for f, a, b in M:
