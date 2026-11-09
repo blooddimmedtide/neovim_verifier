@@ -56,3 +56,12 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/keycodes.c	name_to_mod_mask	candidate	keycodes/wp (Frama-C WP, all inputs)	documented modifier letter to MOD_MASK bit; see keycodes/CLAIM.md. No review yet
+src/nvim/keycodes.c	handle_x_keys	candidate	keycodes/wp (Frama-C WP, all inputs)	16 xterm keys to plain keys, rest unchanged. No review yet
+src/nvim/keycodes.c	get_mouse_button	candidate	keycodes/wp (Frama-C WP, all inputs)	first mouse-table entry or 0. No review yet
+src/nvim/keycodes.c	extract_modifiers	candidate	keycodes/wp (Frama-C WP, all inputs)	Shift/Ctrl folding into the key. No review yet
+src/nvim/keycodes.c	simplify_key	candidate	keycodes/cbmc (CBMC, every int)	first shifted-key table entry; needs key != INT_MIN (findings/keycodes-char-int-min.md). No review yet
+src/nvim/keycodes.c	unsimplify_key	candidate	keycodes/cbmc (CBMC, every int)	inverse lookup; needs c != INT_MIN. No review yet
+src/nvim/keycodes.c	add_char2buf	candidate	keycodes/cbmc (CBMC, every int)	escaped UTF-8 bytes. No review yet
+src/nvim/keycodes.c	special_to_buf	candidate	keycodes/cbmc (CBMC, every int)	modifier/special/char byte sequence; needs key != INT_MIN. No review yet
+src/nvim/keycodes.c	find_special_key_in_table	candidate	keycodes/table (CBMC, every int, generated table)	first preferred entry or -1. No review yet

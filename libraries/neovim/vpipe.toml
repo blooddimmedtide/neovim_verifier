@@ -104,3 +104,16 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.keycodes_helpers]
+file = "src/nvim/keycodes.c"
+functions = ["name_to_mod_mask", "handle_x_keys", "get_mouse_button", "extract_modifiers"]
+annotate = "keycodes/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only
+prove = ["bash keycodes/wp/run_wp.sh {src} 30 name_to_mod_mask handle_x_keys get_mouse_button extract_modifiers"]
+
+[targets.keycodes_cbmc]
+file = "src/nvim/keycodes.c"
+functions = ["simplify_key", "unsimplify_key", "add_char2buf", "special_to_buf", "find_special_key_in_table"]
+annotate = "keycodes/wp/build.py"   # same verbatim extraction; table/build.py for key_names_table
+prove = ["bash keycodes/cbmc/run_cbmc.sh {src}", "bash keycodes/table/run_cbmc.sh {src}"]
+mutants = "bash keycodes/cbmc/run_cbmc.sh {src} mutants"
