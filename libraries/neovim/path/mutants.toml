@@ -1,0 +1,112 @@
+# Planted bugs: each must make the WP run of its function fail (run_mutants.py).
+# mode = upstream unless given; text is matched in the (tool-patched) function text.
+[[mutant]]
+fn = "vim_ispathsep"
+old = "return c == '/';"
+new = "return c == '/' || c == ':';"
+[[mutant]]
+fn = "vim_ispathlistsep"
+old = "return c == ':';"
+new = "return c == ';';"
+[[mutant]]
+fn = "is_path_head"
+old = "return vim_ispathsep(*path);"
+new = "return vim_ispathsep(path[1]);"
+[[mutant]]
+fn = "path_skip_sep"
+old = "path++;"
+new = "path += 2;"
+[[mutant]]
+fn = "get_past_head"
+old = "  return (char *)retval;"
+new = "  return (char *)retval + (*retval != 0);"
+[[mutant]]
+fn = "path_tail"
+old = "tail = p + 1;"
+new = "tail = p;"
+[[mutant]]
+fn = "path_next_component"
+old = "  if (*fname != NUL) {"
+new = "  if (1) {"
+[[mutant]]
+fn = "path_is_absolute"
+old = "*fname == '/' || *fname == '~'"
+new = "*fname == '/'"
+[[mutant]]
+fn = "path_has_drive_letter"
+old = "(p[1] == ':' || p[1] == '|')"
+new = "(p[1] == ':')"
+[[mutant]]
+fn = "path_has_drive_letter"
+old = "path_len >= 2"
+new = "path_len >= 1"
+[[mutant]]
+fn = "path_is_url"
+old = "return URL_BACKSLASH;"
+new = "return URL_SLASH;"
+[[mutant]]
+fn = "path_is_url"
+old = "}, 3)"
+new = "}, 2)"
+[[mutant]]
+fn = "path_with_url"
+old = "(p[-1] == '.')"
+new = "(p[-1] == '/')"
+[[mutant]]
+fn = "path_with_url"
+old = "(*p == '-')"
+new = "(*p == '_')"
+[[mutant]]
+fn = "vim_isAbsName"
+old = "path_with_url(name) != 0 ||"
+new = "path_with_url(name) == 0 ||"
+[[mutant]]
+fn = "after_pathsep"
+old = "p > b &&"
+new = "p >= b &&"
+[[mutant]]
+fn = "path_tail_with_sep"
+old = "tail > past_head &&"
+new = "tail >= past_head &&"
+[[mutant]]
+fn = "invocation_path_tail"
+mode = "fixed"
+old = "tail_end = p + l;"
+new = "tail_end = p + l + 1;"
+[[mutant]]
+fn = "invocation_path_tail"
+mode = "fixed"
+old = "      l = utfc_ptr2len(p);"
+new = "      l = utfc_ptr2len(p) * 0 + 1;"
+[[mutant]]
+fn = "add_pathsep"
+old = "if (plen > MAXPATHL - pathsep_len) {"
+new = "if (plen > MAXPATHL - pathsep_len + 1) {"
+[[mutant]]
+fn = "add_pathsep"
+old = "if (!after_pathsep(p, p + plen)) {"
+new = "if (!after_pathsep(p, p + plen - 1)) {"
+[[mutant]]
+fn = "path_to_slash"
+old = "if (p != NULL && !path_with_url(p)) {"
+new = "if (p != NULL && !path_with_url(p) && *p != 'a') {"
+[[mutant]]
+fn = "path_to_backslash"
+old = "if (p != NULL) {"
+new = "if (p != NULL && *p != '/') {"
+[[mutant]]
+fn = "path_has_wildcard"
+old = "if (p[0] == '\\\\' && p[1] != NUL) {"
+new = "if (p[0] == '\\\\') {"
+[[mutant]]
+fn = "path_has_wildcard"
+old = "(all && p[0] == '~' && p[1] != NUL)"
+new = "(all && p[0] == '~')"
+[[mutant]]
+fn = "vim_backtick"
+old = "*(p + 1) != NUL &&"
+new = ""
+[[mutant]]
+fn = "has_env_var"
+old = "if (*p == '\\\\' && p[1] != NUL) {"
+new = "if (*p == '\\\\' && p[1] != NUL && p[1] != '$') {"
