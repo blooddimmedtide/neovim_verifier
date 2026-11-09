@@ -94,3 +94,11 @@ new = "if (p != NULL && !path_with_url(p) && *p != 'a') {"
 fn = "path_to_backslash"
 old = "if (p != NULL) {"
 new = "if (p != NULL && *p != '/') {"
+[[mutant]]
+fn = "path_has_wildcard"
+old = "if (p[0] == '\\\\' && p[1] != NUL) {"
+new = "if (p[0] == '\\\\') {"
+[[mutant]]
+fn = "path_has_wildcard"
+old = "(all && p[0] == '~' && p[1] != NUL)"
+new = "(all && p[0] == '~')"

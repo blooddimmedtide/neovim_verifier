@@ -13,6 +13,11 @@ int main(void)
   // PATHSEPSTR (ascii_defs.h "/") and the prelude's compound literal
   bad |= sizeof("/") != sizeof((const char[]){'/', '\0'})
          || memcmp("/", (const char[]){'/', '\0'}, sizeof("/")) != 0;
+  // path.h (UNIX) wildcard sets and the prelude's arrays
+  static const char esc[] = {'*', '?', '[', '{', '\0'};
+  static const char all[] = {'*', '?', '[', '{', '`', '\'', '$', '\0'};
+  bad |= sizeof("*?[{") != sizeof esc || memcmp("*?[{", esc, sizeof esc) != 0;
+  bad |= sizeof("*?[{`'$") != sizeof all || memcmp("*?[{`'$", all, sizeof all) != 0;
   puts(bad ? "literals differ" : "literals equal");
   return bad;
 }

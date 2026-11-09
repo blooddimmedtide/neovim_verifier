@@ -17,9 +17,18 @@ void strchrsub(char *str, char c, char x)
     *str++ = x;
   }
 }
+// strings.c vim_strchr for the bytes this test uses (c < 0x80 is the verbatim branch;
+// c >= 0x80 searches its 2-byte UTF-8 form as utf_char2bytes gives it)
+char *vim_strchr(const char *const string, const int c)
+{
+  if (c <= 0) return NULL;
+  if (c < 0x80) return (char *)strchr(string, c);
+  char u8[3] = { (char)(0xC0 | (c >> 6)), (char)(0x80 | (c & 0x3F)), 0 };
+  return strstr(string, u8);
+}
 #include "path_built.c"
 
-static const char AL[] = "/a:\\\"~+.C| -9";
+static const char AL[] = "/a:\\\"~+.C| -9*`";
 static int isal(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 static int issch(int c) { return isal(c) || (c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.'; }
 static size_t lead(const char *s) { size_t i = 0; while (s[i] == '/') i++; return i; }
@@ -42,6 +51,18 @@ static int r_url(const char *s) {
   return r_urlk(s + k);
 }
 
+// reference from the doc: an unescaped wildcard (UNIX "*?[{", with all also "`'$"), or with
+// all a '~' that is not last; a byte is escaped when an odd run of backslashes precedes it
+static int r_wild(const char *s, int all) {
+  for (size_t i = 0; s[i]; i++) {
+    size_t b = 0; while (b < i && s[i - 1 - b] == '\\') b++;
+    if (b % 2) continue;
+    if (strchr(all ? "*?[{`'$" : "*?[{", s[i])) return 1;
+    if (all && s[i] == '~' && s[i + 1]) return 1;
+  }
+  return 0;
+}
+
 static long fails;
 #define EXPECT(cond, s) do { if (!(cond)) { if (fails++ < 20) printf("FAIL %s: [%s]\n", #cond, s); } } while (0)
 
@@ -58,6 +79,8 @@ static void one(const char *src, size_t n)
   EXPECT(path_with_url(s) == r_url(s), s);
   EXPECT(vim_isAbsName(s) == (r_url(s) != 0 || s[0] == '/' || s[0] == '~'), s);
   EXPECT(path_is_url(s) == r_urlk(s), s);
+  EXPECT(path_has_wildcard(s, false) == r_wild(s, 0), s);
+  EXPECT(path_has_wildcard(s, true) == r_wild(s, 1), s);
   for (size_t m = 0; m <= n; m++) {
     EXPECT(path_has_drive_letter(s, m) == r_drive(s, m), s);
     EXPECT(after_pathsep(s, s + m) == (m > 0 && s[m - 1] == '/'), s);

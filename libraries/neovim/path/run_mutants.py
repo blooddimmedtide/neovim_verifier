@@ -23,5 +23,9 @@ for i, m in enumerate(ms, 1):
     ok &= caught
     rows.append(f"{i}\t{m['fn']}\t{mode}\t{'caught' if caught else 'MISSED'}\t{m['old']} -> {m['new']}")
     print(rows[-1], flush=True)
-open(os.path.join(HERE, "mutants_result.tsv"), "w").write("n\tfunction\tmode\tresult\tchange\n" + "\n".join(rows) + "\n")
+out = os.path.join(HERE, "mutants_result.tsv")
+if start > 1:  # a partial rerun adds its rows to the earlier result
+    open(out, "a").write("\n".join(rows) + "\n")
+else:
+    open(out, "w").write("n\tfunction\tmode\tresult\tchange\n" + "\n".join(rows) + "\n")
 sys.exit(0 if ok else 1)

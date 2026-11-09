@@ -34,6 +34,7 @@ SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd, in callee-first or
     "add_pathsep": "30da35d8e8ce0208b15ab8e08a0c1d3fef2d5f8f7da14cfaf4137ed66b8ee5f2",
     "path_to_slash": "74fdbbd964ad41bf235e8713eab9598f4f14c4a97ed67032598edd77b4b4f0d8",
     "path_to_backslash": "e1ce9afcf790005f7d6ca890a190c30fe0b629ccba195f3ad99f74e9a03c43b3",
+    "path_has_wildcard": "37b041689a3ffcda97f42391df71991613cfa14bf1253001b17b55551df403ed",
     "invocation_path_tail": "98ec5fa5d4d44edf0a06e92c4a87f6d8c4d2e939d2365974bddf4de70103d713",
 }
 FIXED_SHA = {  # verified_neovim branch claude/project-thread-t2grsh (fix: backslash at end)
@@ -71,6 +72,25 @@ static inline bool ascii_isdigit(int c)
     assigns str[0 .. n];
     ensures \\forall integer i; 0 <= i <= n ==> str[i] == (\\at(str[i], Pre) == c ? x : \\at(str[i], Pre)); */
 void strchrsub(char *str, char c, char x) /*@ ghost (size_t n) */;
+// path.h (UNIX) has PATH_ESC_WILDCARDS "*?[{" and PATH_ALL_WILDCARDS "*?[{`'$"; tool
+// patch: the same bytes as brace-initialized arrays, which WP reads correctly (a compound
+// literal here would end its lifetime too early in Frama-C's normalization). The arrays are
+// never written, as the string literals must not be. ../equiv/literals.c checks the bytes.
+static const char vp_esc_wild[] = {'*', '?', '[', '{', '\\0'};
+#define PATH_ESC_WILDCARDS ((char *)vp_esc_wild)
+static const char vp_all_wild[] = {'*', '?', '[', '{', '`', '\\'', '$', '\\0'};
+#define PATH_ALL_WILDCARDS ((char *)vp_all_wild)
+// strings.c vim_strchr, by contract from its doc comment (proved or not in strings.c's own
+// thread): the first byte of c in string, NULL when absent; NUL is never found; a
+// character >= 0x80 is searched as its UTF-8 bytes, so never found in an ASCII string.
+/*@ requires is_str((char *)string);
+    assigns \\result \\from string, c, ((char *)string)[0 ..];
+    ensures c <= 0 ==> \\result == \\null;
+    ensures 0 < c < 0x80 ==> \\forall integer n; str_len((char *)string, n) ==>
+              ((\\result == \\null) <==> (\\forall integer i; 0 <= i < n ==> string[i] != c));
+    ensures c >= 0x80 ==> \\forall integer n; str_len((char *)string, n) ==>
+              (\\forall integer i; 0 <= i < n ==> 0 <= string[i] < 0x80) ==> \\result == \\null; */
+char *vim_strchr(const char *const string, const int c);
 enum {
   URL_SLASH = 1,      // path_is_url() has found ":/"
   URL_BACKSLASH = 2,  // path_is_url() has found ":\\\\"
@@ -86,6 +106,9 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
           ("src/nvim/ascii_defs.h", "#define PATHSEPSTR     \"/\""),
           ("src/nvim/os/os_defs.h", "#define DEFAULT_MAXPATHL 4096"),
           ("src/nvim/memory.c", "void strchrsub(char *str, char c, char x)"),
+          ("src/nvim/path.h", "# define PATH_ESC_WILDCARDS \"*?[{\""),
+          ("src/nvim/path.h", "# define PATH_ALL_WILDCARDS \"*?[{`'$\""),
+          ("src/nvim/strings.c", "char *vim_strchr(const char *const string, const int c)"),
           (F, "  URL_SLASH = 1,      // path_is_url() has found \":/\""),
           (F, "  URL_BACKSLASH = 2,  // path_is_url() has found \":\\\\\"")]
 

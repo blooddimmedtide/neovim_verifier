@@ -4,7 +4,7 @@
 # with both char signednesses. Exit 0 = every goal proved.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd); MODE=$2; T=${3:-30}; shift 3 2>/dev/null || shift $#
-FUNCS=${*:-ascii_isdigit vim_ispathsep vim_ispathsep_nocolon vim_ispathlistsep path_head_length is_path_head path_skip_sep get_past_head path_tail path_next_component path_is_absolute path_has_drive_letter path_is_url path_with_url vim_isAbsName after_pathsep path_tail_with_sep add_pathsep path_to_backslash path_to_slash invocation_path_tail}
+FUNCS=${*:-ascii_isdigit vim_ispathsep vim_ispathsep_nocolon vim_ispathlistsep path_head_length is_path_head path_skip_sep get_past_head path_tail path_next_component path_is_absolute path_has_drive_letter path_is_url path_with_url vim_isAbsName after_pathsep path_tail_with_sep add_pathsep path_to_backslash path_to_slash path_has_wildcard invocation_path_tail}
 W=$(mktemp -d); mkdir -p "$W/stubs"; cp "$HERE"/stubs/*.h "$HERE/../../memory/wp/stubs/vp_string.h" "$W/stubs/"; status=0
 gcc -std=c11 -Wall -Werror "$HERE/../equiv/literals.c" -o "$W/literals" && "$W/literals" || exit 1
 python3 -I "$HERE/build.py" "$NV" "$W/path.c" "$MODE" || exit 1

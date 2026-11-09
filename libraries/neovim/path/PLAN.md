@@ -3,7 +3,7 @@
 Claimed by draft PR (this branch). Upstream pinned at neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd, Linux x86_64 (UNIX, no BACKSLASH_IN_FILENAME).
 Tool: Frama-C WP (loops over NUL-terminated strings).
 
-Progress: 19 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 47 open. See CLAIM.md.
+Progress: 20 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 46 open. See CLAIM.md.
 
 | function | line | status |
 |---|---|---|
@@ -28,7 +28,7 @@ Progress: 19 / 67 proved (candidate, needs review and owner sign-off), 1 partial
 | add_pathsep | 438 | proved (candidate), WP |
 | FullName_save | 463 | open |
 | save_abs_path | 481 | open |
-| path_has_wildcard | 499 | open |
+| path_has_wildcard | 499 | proved (candidate), WP |
 | pstrcmp | 518 | open |
 | path_expand | 534 | open |
 | scandir_next_with_dots | 540 | open |
