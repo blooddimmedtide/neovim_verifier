@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/path.c | 0 | 21 | 46 | 67 |
+| src/nvim/path.c | 0 | 22 | 45 | 67 |
 
 ## Function details
 
@@ -95,6 +95,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/path.c | `path_to_backslash` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (12,204,241 strings, 0 failures) | every '/' becomes '\\', nothing else changes; relies on memory.c strchrsub's proof where called; see path/CLAIM.md. Review by a fresh agent not done yet |
 | src/nvim/path.c | `path_to_slash` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (12,204,241 strings, 0 failures) | every '\\' becomes '/' unless the name is a URL; relies on memory.c strchrsub's proof where called; see path/CLAIM.md. Review by a fresh agent not done yet |
 | src/nvim/path.c | `path_has_wildcard` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (12,204,241 strings, 0 failures) | true exactly for an unescaped UNIX wildcard (all: also ` ' $ and a non-final ~); relies on vim_strchr's contract; see path/CLAIM.md. Review by a fresh agent not done yet |
+| src/nvim/path.c | `vim_backtick` | candidate | path/wp (Frama-C WP, all goals, signed and unsigned char), path/difftest (12,204,241 strings, 0 failures) | true exactly for a string of 2+ bytes that starts and ends with a backtick; see path/CLAIM.md. Review by a fresh agent not done yet |
 | src/nvim/path.c | `invocation_path_tail` | partial | path/wp (upstream 34/35: out-of-bounds read; fixed 40/40), findings/path-invocation-tail.md | upstream reads past the NUL after a quoted trailing backslash; fix in verified_neovim claude/project-thread-t2grsh proved memory-safe, terminating, result and len inside the string. The quote/escape rules themselves are not proved yet |
 
 ## All files

@@ -1,5 +1,5 @@
 ---
-entry: neovim/src/nvim/path.c (string and path helpers, first 20 of 67 functions)
+entry: neovim/src/nvim/path.c (string and path helpers, first 21 of 67 functions)
 upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: https://github.com/blooddimmedtide/verified_neovim (branch claude/project-thread-t2grsh, commit ae63bc4)
@@ -10,8 +10,8 @@ platform: x86_64 Linux (UNIX defined, no MSWIN, no BACKSLASH_IN_FILENAME), char 
 
 # Claim card: Neovim path.c string and path helpers
 
-Not finished: 20 of 67 path.c functions are proved, 1 more (`invocation_path_tail`) has a
-fix proved memory-safe but not yet against its quoting rules, and 46 are open. The list is in
+Not finished: 21 of 67 path.c functions are proved, 1 more (`invocation_path_tail`) has a
+fix proved memory-safe but not yet against its quoting rules, and 45 are open. The list is in
 `PLAN.md`.
 
 ## What is proved, for every input
@@ -40,6 +40,7 @@ past the NUL), writes nothing (`assigns \nothing`), and returns:
 | `add_pathsep(p)` | "" or a name ending in '/': true, unchanged; else if the name plus "/" fits in MAXPATHL (4096) bytes with its NUL: appends "/", true; else false, unchanged. Writes only `p[len]`, `p[len+1]` |
 | `path_to_backslash(p)` | returns p; every '/' becomes '\', nothing else changes (NULL: nothing) |
 | `path_has_wildcard(p, all)` | true exactly when some byte not escaped (an even run of backslashes right before it) is a UNIX wildcard `* ? [ {`, with `all` also `` ` ' $ ``, or with `all` a '~' that is not the last byte |
+| `vim_backtick(p)` (static) | true exactly when p is at least 2 bytes long and starts and ends with a backtick |
 | `path_to_slash(p)` | returns p; when p is not a URL (as `path_with_url`), every '\' becomes '/'; a URL is unchanged (NULL: nothing) |
 
 The specs are written from each doc comment (and the WHATWG / RFC 3986 rules the comments
@@ -87,7 +88,7 @@ Its quoting/escaping behavior is not specified or proved yet, so it is not count
 
 ## Not covered
 
-- The other 46 path.c functions (file system, globbing, expansion, `path_cmp`, ...), and the
+- The other 45 path.c functions (file system, globbing, expansion, `path_cmp`, ...), and the
   quoting rules of `invocation_path_tail`.
 - The MSWIN build (drive letters, backslashes as separators).
 - Independent review by a fresh agent, CI in the pinned container, owner sign-off.
@@ -96,8 +97,8 @@ Its quoting/escaping behavior is not specified or proved yet, so it is not count
 
 | Check | Command | Result |
 |---|---|---|
-| WP, upstream | `bash wp/run_wp.sh <nvim> upstream` | 21 functions (20 + ascii_isdigit) all goals, signed and unsigned char; `invocation_path_tail` 34/35 (the finding) |
-| WP, fixed fork | `bash wp/run_wp.sh <verified_neovim> fixed` | 22 / 22 functions all goals, signed and unsigned char |
+| WP, upstream | `bash wp/run_wp.sh <nvim> upstream` | 22 functions (21 + ascii_isdigit) all goals, signed and unsigned char; `invocation_path_tail` 34/35 (the finding) |
+| WP, fixed fork | `bash wp/run_wp.sh <verified_neovim> fixed` | 23 / 23 functions all goals, signed and unsigned char |
 | Differential test (gcc -O2, ASan+UBSan) | `bash difftest/run_difftest.sh <nvim> upstream` (and `fixed`) | 12,204,241 strings (all of length 0..6 over 15 bytes), 0 failures, both signednesses |
 | Planted bugs | `python3 -I run_mutants.py <nvim> <verified_neovim>` | see `mutants_result.tsv` |
 | Independent review | — | pending |

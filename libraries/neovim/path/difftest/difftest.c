@@ -79,6 +79,7 @@ static void one(const char *src, size_t n)
   EXPECT(path_with_url(s) == r_url(s), s);
   EXPECT(vim_isAbsName(s) == (r_url(s) != 0 || s[0] == '/' || s[0] == '~'), s);
   EXPECT(path_is_url(s) == r_urlk(s), s);
+  EXPECT(vim_backtick(s) == (n >= 2 && s[0] == '`' && s[n - 1] == '`'), s);
   EXPECT(path_has_wildcard(s, false) == r_wild(s, 0), s);
   EXPECT(path_has_wildcard(s, true) == r_wild(s, 1), s);
   for (size_t m = 0; m <= n; m++) {

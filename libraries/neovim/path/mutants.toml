@@ -102,3 +102,7 @@ new = "if (p[0] == '\\\\') {"
 fn = "path_has_wildcard"
 old = "(all && p[0] == '~' && p[1] != NUL)"
 new = "(all && p[0] == '~')"
+[[mutant]]
+fn = "vim_backtick"
+old = "*(p + 1) != NUL &&"
+new = ""

@@ -3,7 +3,7 @@
 Claimed by draft PR (this branch). Upstream pinned at neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd, Linux x86_64 (UNIX, no BACKSLASH_IN_FILENAME).
 Tool: Frama-C WP (loops over NUL-terminated strings).
 
-Progress: 20 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 46 open. See CLAIM.md.
+Progress: 21 / 67 proved (candidate, needs review and owner sign-off), 1 partial, 45 open. See CLAIM.md.
 
 | function | line | status |
 |---|---|---|
@@ -44,7 +44,7 @@ Progress: 20 / 67 proved (candidate, needs review and owner sign-off), 1 partial
 | has_special_wildchar | 1139 | open |
 | gen_expand_wildcards | 1188 | open |
 | FreeWild | 1329 | open |
-| vim_backtick | 1341 | open |
+| vim_backtick | 1341 | proved (candidate), WP |
 | expand_backtick | 1352 | open |
 | slash_adjust | 1406 | open |
 | path_to_backslash | 1428 | proved (candidate), WP |

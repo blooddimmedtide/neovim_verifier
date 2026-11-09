@@ -134,6 +134,9 @@ C = {
 "path_has_wildcard": r"""requires str_len((char *)p, n);
     assigns \nothing;
     ensures \result == ((\exists integer j; 0 <= j < n && hit((char *)p, j, all)) ? 1 : 0);""",
+"vim_backtick": r"""requires is_str(p);
+    assigns \nothing;
+    ensures \forall integer n; str_len(p, n) ==> \result == ((n >= 2 && p[0] == '`' && p[n - 1] == '`') ? 1 : 0);""",
 # Memory safety, termination and bounds only (not the quote rules): the result lies in
 # the string after the head, just past a '/' (or at the head), and *len stays inside.
 "invocation_path_tail": r"""requires str_len((char *)invocation, n);
