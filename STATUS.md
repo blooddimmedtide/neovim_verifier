@@ -9,6 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/keycodes.c | 0 | 4 | 13 | 17 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -74,6 +75,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/keycodes.c | `name_to_mod_mask` | candidate | keycodes/wp (Frama-C WP, all inputs) | documented modifier letter to MOD_MASK bit; see keycodes/CLAIM.md. No review yet |
+| src/nvim/keycodes.c | `handle_x_keys` | candidate | keycodes/wp (Frama-C WP, all inputs) | 16 xterm keys to plain keys, rest unchanged. No review yet |
+| src/nvim/keycodes.c | `get_mouse_button` | candidate | keycodes/wp (Frama-C WP, all inputs) | first mouse-table entry or 0. No review yet |
+| src/nvim/keycodes.c | `extract_modifiers` | candidate | keycodes/wp (Frama-C WP, all inputs) | Shift/Ctrl folding into the key. No review yet |
 
 ## All files
 
