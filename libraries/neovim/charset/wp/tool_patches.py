@@ -25,7 +25,10 @@ unchanged, into its own static function vp_parse_<base>, which copies ptr and un
 block (with the same STRING_ENDED macro) and copies them back out; the block's place gets
 the call. The block uses only start, ptr, un, what, maxlen and overflow. Why: WP treats a
 call through its contract, so each digit loop is proved once instead of once for every path
-through the prefix checks before it. Same CBMC check as above.
+through the prefix checks before it. The tail after the label vim_str2nr_proceed (the
+next-character check and the result writes) moves the same way into vp_finish, which gets
+ptr, un, pre and negative by value; its early `return;` still ends the call with nothing
+written. Same CBMC check as above.
 """
 import re
 PATCHES = {
@@ -116,6 +119,11 @@ PARSE_LABELS = ["bin", "oct", "dec", "hex"]   # source order of the four expande
 HELPER_SIG = ("static void vp_parse_{lab}(const char *const start, const char **const pptr, "
               "uvarnumber_T *const pun,\n                          const int what, const int maxlen, "
               "bool *const overflow)")
+FINISH_SIG = ("static void vp_finish(const char *const start, const char *const ptr, uvarnumber_T un,\n"
+              "                      const int pre, const bool negative, const bool strict, const int maxlen,\n"
+              "                      int *const prep, int *const len, varnumber_T *const nptr,\n"
+              "                      uvarnumber_T *const unptr, bool *const overflow)")
+FINISH_CALL = "vp_finish(start, ptr, un, pre, negative, strict, maxlen, prep, len, nptr, unptr, overflow)"
 HELPER_CALL = "vp_parse_{lab}(start, &ptr, &un, what, maxlen, overflow)"
 
 
@@ -134,6 +142,14 @@ def outline_str2nr(text):
         helpers.append(HELPER_SIG.format(lab=lab) + "\n{\n  const char *ptr = *pptr;\n  uvarnumber_T un = *pun;\n"
                        + macro + "\n" + block + "\n#undef STRING_ENDED\n  *pptr = ptr;\n  *pun = un;\n}\n")
         text = text[:s] + "  " + HELPER_CALL.format(lab=lab) + ";" + text[e:]
+    # the tail after vim_str2nr_proceed: (checks the next character, writes the results)
+    head = "vim_str2nr_proceed:\n"
+    if text.count(head) != 1:
+        raise SystemExit("tool_patches: vim_str2nr: vim_str2nr_proceed not found once")
+    s = text.index(head) + len(head)
+    e = text.rindex("#undef STRING_ENDED\n}")
+    helpers.append(FINISH_SIG + "\n{\n" + text[s:e] + "}\n")
+    text = text[:s] + "  " + FINISH_CALL + ";\n" + text[e:]
     return "\n".join(helpers) + "\n" + text
 
 

@@ -472,13 +472,14 @@ def _helper(b):
     requires maxlen > 0 || n < 2147483647;   // upstream only: as vim_str2nr's
     requires 0 <= what <= 255;
     requires \valid(pptr) && \valid(pun) && \separated(pptr, pun);
-    requires \separated(start + (0 .. {_BND}), pptr, pun);
+    requires \separated(start + (0 .. (maxlen > 0 ? maxlen - 1 : n)), pptr, pun);
     requires overflow != \null ==> \valid(overflow) && \separated(overflow, pptr, pun)
-             && \separated(start + (0 .. {_BND}), overflow);
+             && \separated(start + (0 .. (maxlen > 0 ? maxlen - 1 : n)), overflow);
     requires h_base: nbase((char *)start, maxlen, what) == {b};
     requires h_pos: \base_addr(*pptr) == \base_addr(start) && *pptr - start == a0((char *)start) + nskip((char *)start, maxlen, what);
     requires h_zero: *pun == 0;
     assigns *pptr, *pun, *overflow;
+    ensures range: \base_addr(*pptr) == \base_addr(start) && \at(*pptr, Pre) <= *pptr && *pptr - start <= {_BND};
     ensures \exists integer m; ndig{{Pre}}({la}, m);
     ensures \forall integer m; ndig{{Pre}}({la}, m) ==>
       \base_addr(*pptr) == \base_addr(start) && *pptr - start == dp{{Pre}}({la}, m) && *pptr - start <= {_BND}
@@ -489,12 +490,53 @@ def _helper(b):
 # The four digit loops are in the helpers tool_patches.outline_str2nr makes (vp_parse_<base>),
 # in the order of _PARSE; each helper gets its contract, a ghost digit counter gj, the loop
 # invariants and the gj increment.
+# the parse result in the spec's terms, stated after each helper call and again where the
+# four paths join, so the tail's goals start from it
+_MERGE = "  vp_finish(start, ptr, un,"
+# vp_finish (the tool patch's outlined tail): F is the "alphanumeric right after" case,
+# which returns with nothing written
+_FF = r"(strict != 0 && ptr - start != maxlen && is_alnum(*ptr))"
+_FINISH = rf"""requires \base_addr(ptr) == \base_addr(start) && 0 <= ptr - start <= 2147483647;
+    requires strict != 0 && ptr - start != maxlen ==> \valid_read(ptr);
+    requires prep != \null ==> \valid(prep);
+    requires len != \null ==> \valid(len);
+    requires nptr != \null ==> \valid(nptr);
+    requires unptr != \null ==> \valid(unptr);
+    requires overflow != \null ==> \valid(overflow);
+    requires prep != \null && len != \null ==> \separated(prep, len);
+    requires prep != \null && nptr != \null ==> \separated(prep, nptr);
+    requires prep != \null && unptr != \null ==> \separated(prep, unptr);
+    requires prep != \null && overflow != \null ==> \separated(prep, overflow);
+    requires len != \null && nptr != \null ==> \separated(len, nptr);
+    requires len != \null && unptr != \null ==> \separated(len, unptr);
+    requires len != \null && overflow != \null ==> \separated(len, overflow);
+    requires nptr != \null && unptr != \null ==> \separated(nptr, unptr);
+    requires nptr != \null && overflow != \null ==> \separated(nptr, overflow);
+    requires unptr != \null && overflow != \null ==> \separated(unptr, overflow);
+    assigns *prep, *len, *nptr, *unptr, *overflow;
+    ensures prep != \null ==> *prep == (\old({_FF}) ? \old(*prep) : pre);
+    ensures len != \null ==> *len == (\old({_FF}) ? \old(*len) : ptr - start);
+    ensures nptr != \null ==> *nptr == (\old({_FF}) ? \old(*nptr) :
+              (negative != 0 ? (un > 9223372036854775807 ? -9223372036854775808 : -un)
+                             : (un > 9223372036854775807 ? 9223372036854775807 : un)));
+    ensures unptr != \null ==> *unptr == (\old({_FF}) ? \old(*unptr) :
+              ((nptr != \null && negative == 0 && un > 9223372036854775807) ? 9223372036854775807 : un));
+    ensures overflow != \null ==> (*overflow != 0 <==> (\old(*overflow) != 0
+              || (!\old({_FF}) && nptr != \null && un > 9223372036854775807)));"""
+_PROCEED = [("  goto vim_str2nr_proceed;", x) for x in (
+    rf"assert parsed_exists: \exists integer m; ndig{{Pre}}({_ARGS}, m);",
+    rf"assert parsed: {_FIRST} \base_addr(ptr) == \base_addr(start) && ptr - start == {_E} && ptr - start <= {_BND} && un == sat({_V}) && (overflow != \null ==> (*overflow != 0 <==> (\at(*overflow, Pre) != 0 || {_V} > 18446744073709551615)));",
+    rf"assert ptr_range: \base_addr(ptr) == \base_addr(start) && 0 <= ptr - start <= {_BND};",
+    rf"assert parsed_pre: pre == npre{{Pre}}({_S2N}, what) && (negative != 0 <==> {_NEG});")]
 LOOPS["vim_str2nr"] = [
     ("  int pre = 0;  // default is decimal", "ghost int gi = 2;"),   # copy of the octal check's i
     # the prefix detection, step by step (which class cls() the code has found)
     ("    // Detect old octal format: 0 followed by octal digits.\n    pre = 0;\n",
      r"assert no_prefix: c0{Pre}((char *)start, maxlen, what) && (cls{Pre}((char *)start, maxlen, what) == 8 || cls{Pre}((char *)start, maxlen, what) == 10);", None, "after"),
     ("      goto vim_str2nr_dec;\n    }\n", r"assert not_old_octal: cls{Pre}((char *)start, maxlen, what) == 10;"),
+    ("        goto vim_str2nr_dec;\n      }", r"assert here_digit: \let k = i; is_digit(\at(start[a0{Pre}((char *)start) + k], Pre));"),
+    ("        goto vim_str2nr_dec;\n      }", r"assert here_lt: maxlen == 0 ==> \let k = i; a0{Pre}((char *)start) + k < n;"),
+    ("        goto vim_str2nr_dec;\n      }", r"assert here_av: av(maxlen, a0{Pre}((char *)start) + i);"),
     ("        goto vim_str2nr_dec;\n      }", r"assert digits_so_far: \forall integer m; a0{Pre}((char *)start) + 2 <= m <= a0{Pre}((char *)start) + i ==> av(maxlen, m) && is_digit(\at(start[m], Pre));"),
     ("        goto vim_str2nr_dec;\n      }", r"assert digit_8_or_9: !oct_ok{Pre}((char *)start, maxlen, a0{Pre}((char *)start) + 2) && cls{Pre}((char *)start, maxlen, what) == 10;"),
     ("    }\n    pre = '0';\n    goto vim_str2nr_oct;", "ghost gi++;"),
@@ -503,6 +545,7 @@ LOOPS["vim_str2nr"] = [
     ("    goto vim_str2nr_dec;\n  }\n", r"assert no_zero: !c0{Pre}((char *)start, maxlen, what) && cls{Pre}((char *)start, maxlen, what) == 10;"),
     ("    for (int i = 2; !STRING_ENDED(ptr + i) && ascii_isdigit(ptr[i]); i++) {",
      rf"""loop invariant 2 <= i && a0{{Pre}}((char *)start) + i <= {_BND} + 1 && ptr - start == a0{{Pre}}((char *)start) && gi == i;
+      loop invariant a0{{Pre}}((char *)start) + i <= {_BND};
       loop invariant \forall integer k; a0{{Pre}}((char *)start) + 2 <= k < a0{{Pre}}((char *)start) + i ==>
         av(maxlen, k) && is_digit(\at(start[k], Pre)) && \at(start[k], Pre) <= 55;
       loop assigns i, gi;
@@ -521,7 +564,9 @@ LOOPS["vim_str2nr"] = [
   + [("          continue;", rf"assert ptr - start == dp{{Pre}}({_LARGS.format(b=b)}, gj) && qskip{{Pre}}({_LARGS.format(b=b)}, rawp{{Pre}}({_LARGS.format(b=b)}, gj));", k)
      for k, (_, b) in enumerate(_PARSE)] \
   + [("#undef STRING_ENDED\n  *pptr = ptr;", rf"assert ndig{{Pre}}((char *)start, maxlen, qf(what), {b}, {_P0}, gj) && \forall integer m; ndig{{Pre}}((char *)start, maxlen, qf(what), {b}, {_P0}, m) ==> m == gj;", k)
-     for k, (_, b) in enumerate(_PARSE)]
+     for k, (_, b) in enumerate(_PARSE)] \
+  + [("static void vp_finish(", _FINISH)] \
+  + [(a, t, k) for k in range(4) for a, t in _PROCEED] + [(_MERGE, t) for _, t in _PROCEED]
 
 GHOST_PARAMS["vim_str2nr"] = [(
     "void vim_str2nr(const char *const start, int *const prep, int *const len, const int what,\n"
