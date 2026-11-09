@@ -1,6 +1,6 @@
 # src/nvim/fold.c — claim (work in progress)
 
-Pinned upstream: neovim/neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Functions: 1 / 83 proved within a bound (foldFind, see below); 0 / 83 proved for all sizes.
+Pinned upstream: neovim/neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Functions: 2 / 83 proved within a bound (foldFind, foldReverseOrder; see below); 0 / 83 proved for all sizes.
 
 ## foldFind (fold.c:1020-1049) — CBMC: proved for arrays of 0..6 folds
 
@@ -36,6 +36,16 @@ Pinned upstream: neovim/neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Functio
   and every lnum in -2..14, plus edges near INT32_MAX: 778,279 cases, 0 mismatches.
   This is testing, not a proof.
 
+## foldReverseOrder (fold.c:2587-2599) — CBMC: proved for arrays of 0..6 folds
+
+- Spec (`h_foldReverseOrder` in `cbmc/harness.c`; the function has no doc comment, so the meaning
+  is from its name and its callers in foldMoveRange, fold.c:2734-2738): entries start..end
+  inclusive are reversed (every field, including the nested array header), all other entries are
+  unchanged; when start >= end nothing changes.
+- Precondition (every caller): `0 <= start` and `end < ga_len` whenever `start < end`.
+- Result: 14 of 14 runs proved (n = 0..6, both char signednesses, every start/end and contents).
+  Bounded, like foldFind. No planted-bug run or difftest yet for this function.
+
 ## Next
 
 Check whether a fold can end on line MAXLNUM (finding or not); independent review and
@@ -43,4 +53,4 @@ Check whether a fold can end on line MAXLNUM (finding or not); independent revie
 
 ## Still unverified
 
-82 of 83 functions in fold.c (every function except foldFind), and foldFind beyond 6 folds.
+81 of 83 functions in fold.c (every function except foldFind and foldReverseOrder), and both of those beyond 6 folds.
