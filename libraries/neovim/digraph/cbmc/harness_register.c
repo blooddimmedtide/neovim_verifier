@@ -24,15 +24,13 @@ int nondet_int(void); uint8_t nondet_u8(void); char nondet_char(void);
 static void semsg(const char *f, const char *a) { (void)f; (void)a; }
 static void emsg(const char *f) { (void)f; }
 static int utf_char2bytes(int c, char *buf) { (void)c; buf[0] = 'x'; return 1; }
-// Garray append model (not the garray proof's stub): a fresh exact-size buffer of len+1 items,
-// old items copied, new slot zeroed, len incremented. This is ga_append_via_ptr's documented
-// effect; growth policy and allocation failure (xrealloc aborts) are not modelled.
+// Garray append model (not the garray proof's stub): the table lives in a buffer with exactly
+// one free slot; append asserts the slot is free, zeroes it and bumps ga_len. This is
+// ga_append_via_ptr's documented effect; growth and allocation failure are not modelled.
+static digr_T *slot_buf; static int slot_cap;
 static void *ga_append_via_ptr(garray_T *gap, size_t sz) {
-  char *p = malloc(sz * (size_t)(gap->ga_len + 1));
-  if (gap->ga_len) memcpy(p, gap->ga_data, sz * (size_t)gap->ga_len);
-  memset(p + sz * (size_t)gap->ga_len, 0, sz);
-  gap->ga_data = p; gap->ga_maxlen = gap->ga_len + 1;
-  return p + sz * (size_t)gap->ga_len++;
+  assert(sz == sizeof(digr_T) && gap->ga_data == slot_buf && gap->ga_len < slot_cap);
+  digr_T *d = &slot_buf[gap->ga_len++]; d->char1 = 0; d->char2 = 0; d->result = 0; return d;
 }
 #define GA_APPEND_VIA_PTR(item_type, gap) ga_append_via_ptr(gap, sizeof(item_type))
 #ifdef FIXED
@@ -45,10 +43,11 @@ static void *ga_append_via_ptr(garray_T *gap, size_t sz) {
 #endif
 void check_register(void) {
   int n0 = nondet_int(); __CPROVER_assume(n0 >= 0 && n0 <= NU);
-  digr_T *p = n0 ? malloc(sizeof(digr_T) * (size_t)n0) : NULL;
+  digr_T *p = malloc(sizeof(digr_T) * (size_t)(n0 + 1)); __CPROVER_assume(p != NULL); slot_buf = p; slot_cap = n0 + 1;
+#ifdef FIXED
   for (int i = 0; i < n0; i++) { p[i].char1 = nondet_int(); p[i].char2 = nondet_int(); p[i].result = nondet_int(); }
-#ifndef FIXED
-  for (int i = 0; i < n0; i++) { p[i].char1 = nondet_u8(); p[i].char2 = nondet_u8(); }
+#else
+  for (int i = 0; i < n0; i++) { p[i].char1 = nondet_u8(); p[i].char2 = nondet_u8(); p[i].result = nondet_int(); }
 #endif
   // the table has no duplicate pairs (invariant kept by registerdigraph itself)
   for (int i = 0; i < n0; i++) for (int j = i + 1; j < n0; j++)

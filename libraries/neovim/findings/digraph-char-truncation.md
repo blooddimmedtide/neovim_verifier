@@ -1,7 +1,7 @@
 # digraph_set() silently truncates multibyte digraph characters to one byte
 
 File: src/nvim/digraph.c (pinned 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd), `registerdigraph()`.
-Severity: wrong result (no memory-safety impact). Status: reproduced; fix not yet written or proved.
+Severity: wrong result (no memory-safety impact). Status: reproduced (concrete run and CBMC counterexample). The widened-struct registerdigraph is proved; full fix not finished.
 
 `digraph_set()` / `digraph_setlist()` accept "a string with two characters" (`:help digraph_set()`);
 `get_digraph_chars()` decodes each with `mb_cptr2char_adv()`, so {chars} may be any codepoints, and
