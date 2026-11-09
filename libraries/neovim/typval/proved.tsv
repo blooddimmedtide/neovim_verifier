@@ -1,0 +1,66 @@
+tv_list_len	wp (Frama-C WP), typval.h inline used by typval.c
+tv_list_uidx	wp (Frama-C WP), typval.h inline used by typval.c
+tv_list_locked	wp (Frama-C WP), typval.h inline used by typval.c
+tv_blob_len	wp (Frama-C WP), typval.h inline used by typval.c
+tv_blob_get	wp (Frama-C WP), typval.h inline used by typval.c
+tv_check_str_or_nr	wp (Frama-C WP)
+tv_check_num	wp (Frama-C WP)
+tv_check_str	wp (Frama-C WP)
+tv_islocked	wp (Frama-C WP)
+check_repeat_count	wp (Frama-C WP)
+tv_get_float	wp (Frama-C WP)
+tv2bool	wp (Frama-C WP)
+tv_get_number_chk	wp (Frama-C WP), modulo vim_str2nr (charset.c, uninterpreted value)
+tv_get_bool_chk	wp (Frama-C WP), via tv_get_number_chk (modulo vim_str2nr)
+tv_get_bool	wp (Frama-C WP), via tv_get_number_chk (modulo vim_str2nr)
+tv_callback_equal	wp (Frama-C WP), uses strequal's contract proved in memory/wp
+tv_blob_check_index	wp (Frama-C WP)
+tv_blob_check_range	wp (Frama-C WP)
+tv_blob_equal	wp (Frama-C WP)
+tv_check_for_string_arg	wp (Frama-C WP)
+tv_check_for_nonempty_string_arg	wp (Frama-C WP)
+tv_check_for_opt_string_arg	wp (Frama-C WP)
+tv_check_for_number_arg	wp (Frama-C WP)
+tv_check_for_opt_number_arg	wp (Frama-C WP)
+tv_check_for_float_or_nr_arg	wp (Frama-C WP)
+tv_check_for_bool_arg	wp (Frama-C WP)
+tv_check_for_opt_bool_arg	wp (Frama-C WP)
+tv_check_for_blob_arg	wp (Frama-C WP)
+tv_check_for_list_arg	wp (Frama-C WP)
+tv_check_for_dict_arg	wp (Frama-C WP)
+tv_check_for_nonnull_dict_arg	wp (Frama-C WP)
+tv_check_for_opt_dict_arg	wp (Frama-C WP)
+tv_check_for_string_or_number_arg	wp (Frama-C WP)
+tv_check_for_buffer_arg	wp (Frama-C WP)
+tv_check_for_lnum_arg	wp (Frama-C WP)
+tv_check_for_string_or_list_arg	wp (Frama-C WP)
+tv_check_for_string_or_list_or_blob_arg	wp (Frama-C WP)
+tv_check_for_opt_string_or_list_arg	wp (Frama-C WP)
+tv_check_for_string_or_func_arg	wp (Frama-C WP)
+tv_check_for_list_or_blob_arg	wp (Frama-C WP)
+value_check_lock	wp (Frama-C WP), strlen by its libc contract
+tv_check_lock	wp (Frama-C WP)
+tv_blob_alloc	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_free	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_unref	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_alloc_ret	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_copy	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_index	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_set_append	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_set_range	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
+tv_blob_slice	wp_blob (Frama-C WP), upstream only with n2 > INT64_MIN when exclusive (finding: slice overflow, no fix yet)
+tv_blob_slice_or_index	wp_blob (Frama-C WP), upstream only with n2 > INT64_MIN when exclusive (finding: slice overflow, no fix yet)
+tv_get_lnum_buf	wp_lnum (Frama-C WP): upstream wraps numbers outside int32 (findings/lnum-wraps.md); fixed version proved (verified_neovim #11)
+tv_list_find	wp_list (Frama-C WP), needs lv_idx + lv_len within int (candidate overflow above ~1.07e9 items)
+tv_list_idx_of_item	wp_list (Frama-C WP, linked-list model)
+tv_list_find_index	wp_list (Frama-C WP, linked-list model)
+tv_list_check_range_index_one	wp_list (Frama-C WP, linked-list model)
+tv_list_check_range_index_two	wp_list (Frama-C WP, linked-list model)
+tv_list_reverse	wp_list (Frama-C WP), needs lv_len - lv_idx within int (stale lv_idx, see wp_list/RESULTS.md)
+tv_blob_set	wp_blob (Frama-C WP), typval.h inline
+tv_blob_set_ret	wp_blob (Frama-C WP), typval.h inline
+tv_get_string_buf_chk	wp (Frama-C WP), snprintf/strcpy by bounded libc contracts; number text not specified
+tv_get_string_buf	wp (Frama-C WP), via tv_get_string_buf_chk
+tv_is_func	wp (Frama-C WP), typval.h inline
+tv_dict_wrong_func_name	wp (Frama-C WP), modulo get_globvar_dict/get_funccal_local_ht/var_wrong_func_name (modelled by their results)
+tv_dict_watcher_matches	wp (Frama-C WP), strcmp/strncmp by libc contracts
