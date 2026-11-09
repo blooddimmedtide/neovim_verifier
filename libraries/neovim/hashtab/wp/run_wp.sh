@@ -6,7 +6,7 @@
 # lemma function and the WP lemmas are proved in their own run. Exit 0 = all proved.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd); MODE=$2; T=${3:-60}; shift 3 2>/dev/null || shift $#
-GHOSTS="isused_c p5_add reach_slot ncmp_facts hl_same key_hash all_keys_hash item_str not_found no_nul counts_zero find_null count_bounds rest_unused no_removed_counts ptrs_distinct vp_clear_table vp_clear_items vp_copy_items"
+GHOSTS="isused_c p5_add reach_slot ncmp_facts hl_same key_hash all_keys_hash item_str not_found no_nul counts_zero find_null count_bounds rest_unused no_removed_counts ptrs_distinct used_pos vp_clear_table vp_clear_items vp_copy_items"
 FUNCS_ALL="hash_init hash_clear hash_clear_all hash_find hash_find_len hash_lookup hash_debug_results hash_add hash_add_item hash_remove hash_lock hash_unlock hash_may_resize hash_hash hash_hash_len _hash_key_removed"
 FUNCS=${*:-$GHOSTS $FUNCS_ALL}
 W=$(mktemp -d); mkdir -p "$W/stubs"; cp "$HERE"/stubs/*.h "$HERE/../../memory/wp/stubs/vp_string.h" "$W/stubs/"; status=0
@@ -25,6 +25,6 @@ run() {  # $1 = label, rest = frama-c selection options
   grep -qE "Proved goals: +([0-9]+) / \1$" "$W/wp_$l.log" || status=1
 }
 # WP proves its own lemmas; the bv_* lemmas are the Z3-checked statements above
-run lemmas -wp-prop=p5_range,p5_unfive,nonull_grow,reach_grow
+run lemmas -wp-prop=p5_range,p5_unfive,str_nz,keq_short,keq_long,keq_flip,keq_sym,slot_range,nonull_grow,reach_grow
 for f in $FUNCS; do run "$f" -wp-fct "$f"; done
 echo "logs: $W"; exit $status

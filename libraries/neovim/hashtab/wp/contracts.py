@@ -35,6 +35,14 @@ LOGIC = r"""
     // s is the key key[0 .. len-1]: the same bytes, then a NUL
     predicate keq{L}(char *s, char *key, integer len) =
       (\forall integer i; 0 <= i < len ==> s[i] == key[i]) && s[len] == 0;
+    // the bytes before a string's NUL are not NUL
+    lemma str_nz{L}: \forall char *b, integer m, n; str_len(b, m) && 0 <= n < m ==> b[n] != 0;
+    lemma keq_short{L}: \forall char *a, char *b, integer n, m; str_len(b, m) && keq(b, a, n) && 0 <= n ==> !(n < m);
+    lemma keq_long{L}: \forall char *a, char *b, integer n, m; str_len(a, n) && str_len(b, m) && keq(b, a, n) && 0 <= m ==> !(m < n);
+    // a string equal to another up to its own NUL is that string
+    lemma keq_flip{L}: \forall char *a, char *b, integer n; str_len(a, n) && keq(b, a, n) ==> keq(a, b, n);
+    lemma keq_sym{L}: \forall char *a, char *b, integer n, m; str_len(a, n) && str_len(b, m) && keq(b, a, n)
+      ==> n == m && keq(a, b, m);
     // item i holds a key: a string, its hash, and it is found by probing
     predicate item_ok{L}(hashitem_T *a, integer m, integer i) =
       \exists integer n; str_len(a[i].hi_key, n) && n < PTRDIFF_MAX
@@ -76,11 +84,13 @@ LOGIC = r"""
 """ + bvlemmas.acsl(["bv_unfive", "bv_assoc5", "bv_mask_le"]) + r"""
 /*@ lemma p5_range: \forall integer n; 0 <= p5(n) <= 18446744073709551615;
     lemma p5_unfive: \forall integer n; 1 <= n ==> p5(n - 1) == (size_t)(p5(n) * 14757395258967641293);
+    lemma slot_range: \forall integer h, m, n; 0 <= h <= 18446744073709551615 && 0 <= m <= 18446744073709551615
+      ==> 0 <= slot(h, m, n) <= m;
     // filling items keeps every probe path's items non-empty
-    lemma nonull_grow{L1, L2}: \forall hashitem_T *a, integer m, h, n; tmask(m)
+    lemma nonull_grow{L1, L2}: \forall hashitem_T *a, integer m, h, n; tmask(m) && 0 <= h <= 18446744073709551615
       && (\forall integer j; 0 <= j <= m && \at(a[j].hi_key, L1) != \null ==> \at(a[j].hi_key, L2) != \null)
       && nonull{L1}(a, m, h, n) ==> nonull{L2}(a, m, h, n);
-    lemma reach_grow{L1, L2}: \forall hashitem_T *a, integer m, h, i; tmask(m)
+    lemma reach_grow{L1, L2}: \forall hashitem_T *a, integer m, h, i; tmask(m) && 0 <= h <= 18446744073709551615
       && (\forall integer j; 0 <= j <= m && \at(a[j].hi_key, L1) != \null ==> \at(a[j].hi_key, L2) != \null)
       && reach{L1}(a, m, h, i) ==> reach{L2}(a, m, h, i);
 */
@@ -290,6 +300,17 @@ GHOST = r"""
                && isused(ht->ht_array[i].hi_key) && isused(ht->ht_array[j].hi_key)
                ==> ht->ht_array[i].hi_key != ht->ht_array[j].hi_key; @/
   void ptrs_distinct(hashtab_T *ht) {}
+
+  // a used item makes the used count positive
+  /@ requires s < n && isused(a[s].hi_key);
+     assigns \nothing;
+     ensures nused(a, n) >= 1; @/
+  void used_pos(hashitem_T *a, size_t n, size_t s) {
+    /@ loop invariant 0 <= i <= n && nused(a, i) >= 0 && (i > s ==> nused(a, i) >= 1);
+       loop assigns i; loop variant n - i; @/
+    for (size_t i = 0; i < n; i++) {}
+  }
+
 */
 """
 
@@ -608,24 +629,36 @@ def annotations(fixed):
          loop invariant nfilled({AR}, vp_j) == nfilled{{VpL}}({AR}, vp_j) + (vp_j > vp_s ? {df} : 0);
          loop assigns vp_j; loop variant {M} + 1 - vp_j; @/
       while (vp_j <= {M}) vp_j++; }}"""
-    def settled(extra):   # the table before hash_may_resize, from the one write at VpL
+    def settled(extra, mid=()):   # the table before hash_may_resize, from the one write at VpL
         R = "  hash_may_resize(ht, 0);"
         return [("before", R, f"assert \\forall integer j; 0 <= j <= {M} && \\at({AR}[j].hi_key, VpL) != \\null ==> {AR}[j].hi_key != \\null;"),
                 ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && i != vp_s ==> {AR}[i].hi_key == \\at({AR}[i].hi_key, VpL) && {AR}[i].hi_hash == \\at({AR}[i].hi_hash, VpL);"),
                 ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && i != vp_s && isused({AR}[i].hi_key) ==> item_ok{{VpL}}({AR}, {M}, i);"),
                 ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && i != vp_s && isused({AR}[i].hi_key) ==> reach({AR}, {M}, {AR}[i].hi_hash, i);"),
+                *mid,
                 ("before", R, f"assert \\forall integer i; 0 <= i <= {M} && isused({AR}[i].hi_key) ==> item_ok({AR}, {M}, i);"),
-                ("before", R, f"assert distinct({AR}, {M});")] + extra
+                ("before", R, f"assert distinct({AR}, {M});")] + extra + [("before", R, f"assert ht->ht_used == nused({AR}, {M} + 1);"),
+                ("before", R, f"assert ht->ht_filled == nfilled({AR}, {M} + 1);"),
+                ("before", R, "assert ht_base(ht);")]
+    ADD_S = [("before", "  hash_may_resize(ht, 0);", f"assert {AR}[vp_s].hi_key == key && {AR}[vp_s].hi_hash == hash;"),
+             ("before", "  hash_may_resize(ht, 0);", f"assert reach{{Pre}}({AR}, {M}, hash, vp_s);"),
+             ("before", "  hash_may_resize(ht, 0);", f"assert \\forall integer j; 0 <= j <= {M} && \\at({AR}[j].hi_key, Pre) != \\null ==> {AR}[j].hi_key != \\null;"),
+             ("before", "  hash_may_resize(ht, 0);", f"assert reach({AR}, {M}, hash, vp_s);"),
+             ("before", "  hash_may_resize(ht, 0);", f"assert item_ok({AR}, {M}, vp_s);")]
     A["hash_add_item"] = [
         ("after", "void hash_add_item(hashtab_T *ht, hashitem_T *hi, char *key, hash_T hash)", "ghost (size_t len)"),
         ("before", "  ht->ht_used++;", f"ghost count_bounds({AR}, {M} + 1);"),
+        ("before", "  hi->hi_key = key;", f"assert \\forall integer i; 0 <= i <= {M} ==> {AR}[i].hi_key == \\at({AR}[i].hi_key, Pre) && {AR}[i].hi_hash == \\at({AR}[i].hi_hash, Pre);"),
+        ("before", "  hi->hi_key = key;", f"assert \\forall integer i; 0 <= i <= {M} && isused({AR}[i].hi_key) ==> item_ok({AR}, {M}, i);"),
         ("before", "  hi->hi_key = key;", f"ghost size_t vp_s = hi - {AR};"),
         ("before", "  hi->hi_key = key;", "ghost VpL: ;"),
         ("after", "  hi->hi_hash = hash;", recount("1", "(\\at(hi->hi_key, VpL) == \\null ? 1 : 0)")),
-    ] + settled([("before", "  hash_may_resize(ht, 0);", "assert \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\at(has(ht, k, h), Pre) || (k == key && h == hash));")])
+    ] + settled([("before", "  hash_may_resize(ht, 0);", "assert \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\at(has(ht, k, h), Pre) || (k == key && h == hash));")], ADD_S)
     A["hash_remove"] = [
-        ("before", "  ht->ht_used--;", f"ghost count_bounds({AR}, {M} + 1); ptrs_distinct(ht);"),
+        ("before", "  ht->ht_used--;", f"ghost count_bounds({AR}, {M} + 1); ptrs_distinct(ht); used_pos({AR}, {M} + 1, hi - {AR});"),
         ("before", "  hi->hi_key = HI_KEY_REMOVED;", f"ghost size_t vp_s = hi - {AR};"),
+        ("before", "  hi->hi_key = HI_KEY_REMOVED;", f"assert 0 <= vp_s <= {M} && hi == {AR} + vp_s;"),
+        ("before", "  hi->hi_key = HI_KEY_REMOVED;", f"assert ht->ht_used + 1 == nused({AR}, {M} + 1) && ht->ht_filled == nfilled({AR}, {M} + 1);"),
         ("before", "  hi->hi_key = HI_KEY_REMOVED;", "ghost VpL: ;"),
         ("after", "  hi->hi_key = HI_KEY_REMOVED;", recount("-1", "0")),
     ] + settled([("before", "  hash_may_resize(ht, 0);", "assert \\forall char *k; \\forall integer h; has(ht, k, h) <==> (\\at(has(ht, k, h), Pre) && k != \\at(hi->hi_key, Pre));")])
