@@ -74,6 +74,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/cmdhist.c | `hist_char2type` | open | cmdhist/cbmc (CBMC, all inputs) | documented map holds; see cmdhist/CLAIM.md; no review yet |
+| src/nvim/cmdhist.c | `get_history_idx` | open | cmdhist/cbmc (CBMC, hislen 0..4 only) | bounded; no review yet |
+| src/nvim/cmdhist.c | `calc_hist_idx` | open | cmdhist/cbmc (CBMC, hislen 0..4 only) | upstream fails for num = INT_MIN (findings/cmdhist-calc-hist-idx-int-min.md); fix passes, bounded |
+| src/nvim/cmdhist.c | `del_history_idx` | open | cmdhist/cbmc (CBMC, hislen 0..4 only) | fails via calc_hist_idx upstream; fix passes, bounded; order of remaining entries not yet specified |
 
 ## All files
 

@@ -1,0 +1,22 @@
+== hislen=0 
+      1 VERIFICATION SUCCESSFUL
+== hislen=1 
+      1 VERIFICATION FAILED
+      1 [calc_hist_idx.overflow.3] line 56 arithmetic overflow on signed unary minus in -num: FAILURE
+      1 [calc_hist_idx.pointer_dereference.23] line 61 dereference failure: pointer outside object bounds in (hist + (signed long int)i)->hisstr: FAILURE
+      1 [main.assertion.1] line 95 assertion r == return_value_ref_calc: FAILURE
+== hislen=2 
+      1 VERIFICATION FAILED
+      1 [calc_hist_idx.overflow.3] line 56 arithmetic overflow on signed unary minus in -num: FAILURE
+      1 [calc_hist_idx.pointer_dereference.23] line 61 dereference failure: pointer outside object bounds in (hist + (signed long int)i)->hisstr: FAILURE
+      1 [main.assertion.1] line 95 assertion r == return_value_ref_calc: FAILURE
+== hislen=3 
+      1 VERIFICATION FAILED
+      1 [calc_hist_idx.overflow.3] line 56 arithmetic overflow on signed unary minus in -num: FAILURE
+      1 [calc_hist_idx.pointer_dereference.23] line 61 dereference failure: pointer outside object bounds in (hist + (signed long int)i)->hisstr: FAILURE
+      1 [main.assertion.1] line 95 assertion r == return_value_ref_calc: FAILURE
+== hislen=4 
+      1 VERIFICATION FAILED
+      1 [calc_hist_idx.overflow.3] line 56 arithmetic overflow on signed unary minus in -num: FAILURE
+      1 [calc_hist_idx.pointer_dereference.23] line 61 dereference failure: pointer outside object bounds in (hist + (signed long int)i)->hisstr: FAILURE
+      1 [main.assertion.1] line 95 assertion r == return_value_ref_calc: FAILURE
