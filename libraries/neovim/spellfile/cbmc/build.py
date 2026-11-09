@@ -45,7 +45,11 @@ def main(tree, out, shafile):
         h = hashlib.sha256(piece.encode()).hexdigest()
         if want.get(name) != h:
             sys.exit(f"build: {name} ({path}:{s+1}) sha256 {h} not reviewed")
+        if name == "read_string":   # replaceable by its WP-proved contract (harness_composed.c)
+            parts.append("#ifndef READ_STRING_CONTRACT")
         parts.append(f"// {path}:{s + 1} (verbatim)\n{piece}\n")
+        if name == "read_string":
+            parts.append('#else\n#include "read_string_contract.h"\n#endif')
     open(out, "w").write("\n".join(parts))
 
 if __name__ == "__main__":

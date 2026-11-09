@@ -3,8 +3,8 @@ entry: neovim/src/nvim/spellfile.c (.spl reader helpers, untrusted spell-file in
 upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: none (no bug found)
-toolchain: CBMC 6.11.0 (nixpkgs), python3 for the verbatim extraction
-strength: candidate (2 functions), bounded (2 functions; see below)
+toolchain: CBMC 6.11.0 (nixpkgs); Frama-C 33.0 WP + Why3 1.8.2 + Z3 5.1.0 + CVC5 1.4.0 (pinned nixpkgs of tools/install.sh); python3
+strength: candidate (all 4 functions)
 platform: x86_64, char signed and unsigned (both proved)
 ---
 
@@ -22,8 +22,8 @@ overflow, undefined shift, memory leak, unwinding assertions. Every byte is nond
 |---|---|---|
 | `spell_check_magic_string(fd)` | 0 iff the file starts with "VIMspell"; SP_TRUNCERROR when it holds fewer than 8 bytes; else SP_FORMERROR; consumes exactly min(len, 8) bytes | candidate: reads at most 8 bytes, so files up to 20 bytes cover every behaviour |
 | `read_region_section(fd, lp, len)`, len >= 0 | len > 16: SP_FORMERROR, nothing read; fewer than len bytes: SP_TRUNCERROR; a NUL among them: SP_FORMERROR; else `sl_regions` = the bytes + NUL, returns 0. No write outside `sl_regions[17]` | candidate: reads at most 16 bytes |
-| `read_cnt_string(fd, k, &cnt)`, k in {1, 2} | short count: NULL, SP_TRUNCERROR; count 0: NULL, 0; short body: NULL, SP_OTHERERROR, no leak; else a fresh NUL-terminated copy of the n bytes, cnt = n | **bounded**: file length <= 20 bytes, so bodies up to 18 bytes. Bodies up to 65535 bytes not covered: needs a WP loop invariant for `read_string` |
-| `read_string(fd, cnt)` (fileio.c, callee) | as used by read_cnt_string | **bounded**, same reason |
+| `read_cnt_string(fd, k, &cnt)`, k in {1, 2} | short count: NULL, SP_TRUNCERROR; count 0: NULL, 0; short body: NULL, SP_OTHERERROR, no leak; else a fresh NUL-terminated copy of the n bytes, cnt = n | candidate: every file length and count. `cbmc/harness_composed.c` runs the upstream count loop on read_string's WP-proved contract (`cbmc/read_string_contract.h`); files up to 70000 bytes > 2 + 65535 cover every count. Also proved directly, without the contract, for files up to 20 bytes |
+| `read_string(fd, cnt)` (fileio.c, callee) | enough bytes left: a valid (cnt+1)-byte block holding the next cnt bytes and a NUL, position +cnt; else NULL, position at end | candidate: Frama-C WP for every cnt (`wp/run_wp.sh`, 33/33 goals, 11/11 smoke tests, no admits). WP has no \fresh/\freeable, so freshness, the free on the error path and leaks are covered only by the CBMC runs (files <= 20 bytes) |
 
 ## Assumptions (each documented)
 
@@ -45,8 +45,9 @@ overflow, undefined shift, memory leak, unwinding assertions. Every byte is nond
 | Gate | Result |
 |---|---|
 | CBMC, 3 harnesses x 2 signednesses | 6/6 proved |
-| Planted bugs (`cbmc/mutants.txt`) | 8/9 caught. `cnt_shift7` (count built with `<< 7`) survives: with a 20-byte file every 2-byte count >= 256 is a short body either way, so the bound hides it. This is why read_cnt_string stays **bounded**, not candidate |
-| k = 1 run with 257-byte file (would cover every 1-byte count) | ran out of memory in this container; not done |
+| Planted bugs (`cbmc/mutants.txt`) | 9/9: 8 by the 20-byte runs, `cnt_shift7` only by the composed every-length run |
+| WP read_string (`wp/run_wp.sh`) | 33/33 goals, smoke tests 11/11 |
+| WP planted bugs (`wp/mutants.txt`) | 4/4 caught |
 | Differential test, independent review | not done (deadline 2026-11-09 09:00 UTC) |
 
 ## Still unverified in spellfile.c
@@ -54,4 +55,4 @@ overflow, undefined shift, memory leak, unwinding assertions. Every byte is nond
 Everything else: spell_load_file, tree_count_words, suggest_load_files, read_charflags_section,
 read_prefcond_section, read_rep_section, read_sal_section, read_words_section, read_sofo_section,
 read_compound, set_sofo, set_sal_first, mb_str2wide, spell_read_tree, read_tree_node, and all
-writer / .aff / .dic functions (77 of 81 inventory functions open).
+writer / .aff / .dic functions (77 of 81 inventory functions open; read_string is in fileio.c).

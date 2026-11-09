@@ -58,5 +58,5 @@ src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/spellfile.c	spell_check_magic_string	candidate	spellfile/cbmc (CBMC)	full correctness for every file (reads at most 8 bytes); see spellfile/CLAIM.md
 src/nvim/spellfile.c	read_region_section	candidate	spellfile/cbmc (CBMC)	full correctness for every file and len >= 0; see spellfile/CLAIM.md
-src/nvim/spellfile.c	read_cnt_string	partial	spellfile/cbmc (CBMC, bounded)	proved for files up to 20 bytes only; full proof needs WP invariant for read_string
-src/nvim/fileio.c	read_string	partial	spellfile/cbmc (CBMC, bounded)	proved as read_cnt_string callee, files up to 20 bytes only
+src/nvim/spellfile.c	read_cnt_string	candidate	spellfile/cbmc (CBMC, composed with WP contract of read_string)	every file length and count; see spellfile/CLAIM.md
+src/nvim/fileio.c	read_string	candidate	spellfile/wp (Frama-C WP), spellfile/cbmc (CBMC)	result for every cnt by WP; freshness/free/leaks by CBMC for files <= 20 bytes only; see spellfile/CLAIM.md
