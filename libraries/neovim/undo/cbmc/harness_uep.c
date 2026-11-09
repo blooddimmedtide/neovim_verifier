@@ -81,3 +81,19 @@ void h_uep_roundtrip(void) {
   assert(g.in_pos == g.in_len);
   free_entry(r);
 }
+
+// Split versions (the whole-stream harness above runs out of memory).
+// 1. Header fields: any 0..12 byte stream (cut off or negative fields -> one report, error,
+//    ue_size 0, safe to free).
+void h_uep_header(void) {
+  size_t len = nondet_size(); if (len > 13) return;
+  for (size_t i = 0; i < 13; i++) inbuf[i] = nondet_u8();
+  static FILE f; f.in = inbuf; f.in_len = len; f.in_pos = 0; f.eof = false; f.tell_fails = false;
+  bufinfo_T bi = { NULL, &f, 0 };
+  bool error = false; corruption_calls = 0;
+  u_entry_T *uep = unserialize_uep(&bi, &error, "file");
+  i128 top = spec_4c(inbuf, len, 0), bot = spec_4c(inbuf, len, 4), lc = spec_4c(inbuf, len, 8);
+  if (top < 0 || bot < 0 || lc < 0) assert(error && uep->ue_size == 0 && corruption_calls == 1);
+  else { assert(uep->ue_top == top && uep->ue_bot == bot && uep->ue_lcount == lc); assert(error && uep->ue_size == 0); }
+  free_entry(uep);
+}

@@ -36,3 +36,7 @@ bugs for the proved set.
   Whatever applies them later (extmark_apply_undo) must not trust them; not checked yet.
 - 08:45: read the code that applies the extmark records; suspected UB/DoS written up in
   `../findings/undo-extmark-unchecked-SUSPECTED.md` (not reproduced; needs an ASan build).
+- 08:47: split harness started: `h_uep_header` (harness_uep.c; every 0..13 byte stream: header
+  fields, negative/cut-off -> one report, error, ue_size 0, freeable, no leak) proved in 95 s.
+  Still needed for unserialize_uep: the line loop (ue_size >= 1) for any size, which CBMC cannot
+  unwind; plan: WP with the proved undo_read_len / undo_read_string contracts.
