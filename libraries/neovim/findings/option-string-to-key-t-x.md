@@ -23,5 +23,5 @@ not `>`. Not yet run in a built `nvim` (`:set cedit=<t_x` or `:set wildchar=<t_x
 accepted. Low severity.
 
 **Fix:** `blooddimmedtide/verified_neovim` branch `claude/project-thread-33fn39`, commit
-61856f2: `if (!has_lt || (len > 4 && arg[4] == '>'))`. Not yet proved with WP (needs a
-contract for `find_special_key`).
+61856f2: `if (!has_lt || (len > 4 && arg[4] == '>'))`. The fixed `find_key_len` is proved
+with WP (30/30); the same run on the upstream text fails at the `arg[4]` read.

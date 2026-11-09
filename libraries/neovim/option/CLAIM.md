@@ -23,6 +23,7 @@ Status per function is in `PLAN.md`. This card says what the proofs that pass ac
 | `stropt_concat_with_comma` (fixed fork) | `+=`: origval (minus a trailing unescaped `,` for one-comma options), `,` when both are non-empty comma-list values, then newval; `^=`: newval, `,`, origval. Any length |
 | `valid_name(val, allowed)` | true iff every byte of `val` is an ASCII letter or digit or a byte of `allowed` (allowed all ASCII) |
 | `check_option_listflag(val, flags, errbuf)` | NULL iff every byte of `val` is one of `flags` (flags all ASCII); else a non-NULL error message |
+| `find_key_len(arg, len, has_lt)` (fixed fork) | as `string_to_key` calls it: for a `t_xx` name, TERMCAP2KEY of the two bytes (with `has_lt` only when closed by `>`), else 0; reads nothing past the string. Otherwise memory-safe, result from `find_special_key` (not specified) |
 | `stropt_concat_with_comma` (upstream) | wrong from 2 GiB (finding below). The proof with lengths <= INT_MAX has one open goal (OP_ADDING ensures, timeout) |
 
 The references are written from the doc comments (quoted in `wp/contracts.py`), as comma-list
@@ -36,6 +37,8 @@ contradictory). The stubs here are new; the garray allocation stubs are not used
 - C library: `strlen`, `strncmp`, `memmove` contracts from C11 (`memory/wp/stubs/vp_string.h`).
 - `vim_strchr` (strings.c): strchr for ASCII c; for c >= 0x80, "not found" in an all-ASCII string
   (it searches for the UTF-8 encoding of c, whose lead byte is >= 0xC2). Not proved here.
+- `find_special_key` (keycodes.c): reads at most `src_len` bytes, writes only `*srcp`, `*modp`.
+- Ghost lemma `shl8` ((b << 8) == b * 256 for bytes): checked for all 256 values by `wp/lemmas.py`.
 - `illegal_char` (optionstr.c): returns non-NULL, writes only `errbuf->data` and transchar's static
   buffer (ghost `vp_transchar_buf`).
 - Preconditions each caller meets: strings are NUL-terminated; `key` has no NUL in its first

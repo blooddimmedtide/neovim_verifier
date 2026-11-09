@@ -21,7 +21,8 @@ yet: unsigned-char run and CI are not done.
 | stropt_concat_with_comma | option.c | WP | upstream wrong from 2 GiB (finding); fixed fork version proved (45/45); upstream under 2 GiB: 1 goal open |
 | valid_name | option.c | WP | proved (34/34) |
 | check_option_listflag | optionstr.c | WP | proved (33/33) |
-| find_key_len / string_to_key | option.c | - | open: bug found (reads past "<t_x"), fix 61856f2 not proved (needs find_special_key contract) |
+| find_key_len | option.c | WP | upstream reads past "<t_x" (finding; its WP run fails exactly at that read); fixed fork version proved (30/30) |
+| string_to_key | option.c | WP | open |
 | stropt_get_newval, stropt_expand_envvar | option.c | - | open: length casts fixed in 36f4ea6, not proved |
 | stropt_remove_val | option.c | WP | open (needs a strcpy contract; `int len` from caller) |
 | remove_key_item | option.c | WP | open |

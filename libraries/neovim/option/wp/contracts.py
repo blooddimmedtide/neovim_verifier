@@ -254,3 +254,38 @@ CONTRACTS["check_option_listflag"] = (LISTFLAG, [
     ("  for (char *s = val; *s; s++) {", LISTFLAG_LOOP, "before"),
     ("  return NULL;\n}", "  /*@ assert \\forall integer j; 0 <= j < n ==> in_str2(flags, m, val[j]); */\n", "before"),
     ("      return illegal_char(errbuf, (uint8_t)(*s));", "      /*@ assert s - val < n && !in_str2(flags, m, val[s - val]); */\n", "before")])
+
+# find_key_len, as string_to_key (its only caller) uses it: has_lt means arg_arg is just
+# after a '<' and len counts that '<'. A "t_xx" name gives TERMCAP2KEY(x, x) (with has_lt
+# only when "<t_xx>" is closed by '>'); otherwise has_lt asks find_special_key.
+FIND_KEY_LEN = r"""
+/*@ requires has_lt ==> 1 <= len && str_len((char *)arg_arg, len - 1) && \valid_read(arg_arg - 1);
+    requires !has_lt ==> str_len((char *)arg_arg, len);
+    requires len < SIZE_MAX;
+    assigns \nothing;
+    behavior termcap:
+      assumes len >= 4 && arg_arg[0] == 't' && arg_arg[1] == '_';
+      ensures (!has_lt || (len > 4 && arg_arg[4] == '>'))
+                ? \result == -((unsigned char)arg_arg[2] + (unsigned char)arg_arg[3] * 256)
+                : \result == 0;
+    behavior special:
+      assumes !(len >= 4 && arg_arg[0] == 't' && arg_arg[1] == '_') && has_lt;
+    behavior none:
+      assumes !(len >= 4 && arg_arg[0] == 't' && arg_arg[1] == '_') && !has_lt;
+      ensures \result == 0;
+    complete behaviors; disjoint behaviors;
+*/
+"""
+# shl8: a byte shifted left by 8 is b * 256. The SMT provers cannot do shifts, so this is a
+# bodiless ghost lemma function; lemmas.py checks it for all 256 values of b.
+SHL8 = r"""
+/*@ ghost
+  /@ requires 0 <= b <= 255;
+     assigns \nothing;
+     ensures (b << 8) == b * 256; @/
+  void shl8(int b);
+*/
+"""
+CONTRACTS["find_key_len"] = (SHL8 + FIND_KEY_LEN, [
+    ("      key = TERMCAP2KEY((uint8_t)arg[2], (uint8_t)arg[3]);",
+     "      /*@ ghost shl8((uint8_t)arg[3]); */\n", "before")])

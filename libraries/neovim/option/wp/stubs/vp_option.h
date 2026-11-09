@@ -41,4 +41,15 @@ typedef struct {
     assigns errbuf->data[0 .. errbuf->size - 1], vp_transchar_buf;
     ensures \result != \null; */
 const char *illegal_char(const CharBuf *errbuf, int c);
+
+enum { FSK_KEYCODE = 0x01, FSK_KEEP_X_KEY = 0x02, FSK_SIMPLIFY = 0x08 };
+/*@ // find_special_key (keycodes.c): parses a <...> key name at *srcp, reading at most
+    // src_len bytes. Only its memory footprint is used here, not its result.
+    requires \valid(srcp) && \valid(modp) && \separated(srcp, modp);
+    requires \valid_read(*srcp + (0 .. src_len - 1));
+    requires did_simplify == \null;
+    assigns *srcp, *modp, \result \from *srcp, src_len, flags, (*srcp)[0 .. src_len - 1];
+*/
+int find_special_key(const char **const srcp, const size_t src_len, int *const modp,
+                     const int flags, bool *const did_simplify);
 #endif

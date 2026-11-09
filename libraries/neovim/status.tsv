@@ -63,4 +63,4 @@ src/nvim/option.c	prepend_item	open	option/wp (Frama-C WP, 26/26)	proved locally
 src/nvim/option.c	stropt_concat_with_comma	open	option/wp (Frama-C WP, fixed 45/45)	upstream wrong from 2 GiB (findings/option-concat-over-2gib.md); fix on verified_neovim claude/project-thread-33fn39 36f4ea6 proved locally
 src/nvim/option.c	valid_name	open	option/wp (Frama-C WP, 34/34)	proved locally, review + 23/23 mutants done, CI pending
 src/nvim/optionstr.c	check_option_listflag	open	option/wp (Frama-C WP, 33/33)	proved locally, review + 23/23 mutants done, CI pending
-src/nvim/option.c	find_key_len	open	option/repro (ASan)	reads past "<t_x" (findings/option-string-to-key-t-x.md); fix 61856f2 not proved
+src/nvim/option.c	find_key_len	open	option/wp (Frama-C WP, fixed 30/30), option/repro (ASan)	upstream reads past "<t_x" (findings/option-string-to-key-t-x.md); fix 61856f2 proved locally, not in mutants/review yet

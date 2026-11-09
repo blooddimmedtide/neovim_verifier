@@ -21,10 +21,12 @@ SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
     "stropt_concat_with_comma": "7a9a6491fe0519e74191504c360f2da628f0415b42ad16a2ee0594d206f59985",
     "valid_name": "d359a2065b85f96c451bcaabefaa157b41d0eccd180a679e3547eb734f967144",
     "check_option_listflag": "cd9222e884338fd1e159a739482c556d5708eca954e825e05bea6bcae32d6b7d",
+    "find_key_len": "781ea54bc8d144aac7fae142a901b9bb8a1d531115df46efc0077a99585665ce",
 }
 FILE = {"check_option_listflag": "src/nvim/optionstr.c"}   # the rest are in option.c
 # verified_neovim branch claude/project-thread-33fn39, fix commit 36f4ea6
-FIXED_SHA = {"stropt_concat_with_comma": "1b8956176a636ed2e10821d306924a5f1fef5f5a6bd6afeb9a9542ba09296243"}
+FIXED_SHA = {"stropt_concat_with_comma": "1b8956176a636ed2e10821d306924a5f1fef5f5a6bd6afeb9a9542ba09296243",
+             "find_key_len": "79129338e450ab09e62aa63d40fe36a8c0b0918ed736a819ffe40351c3a2f8ee"}  # 61856f2
 PRELUDE = """\
 // Prelude: types and macros option.c uses here, as Neovim defines them (each line
 // checked against the upstream headers by build.py), and contracts for callees.
@@ -48,6 +50,7 @@ enum {
 #define FUNC_ATTR_NONNULL_ALL
 #define FUNC_ATTR_PURE
 #define FUNC_ATTR_WARN_UNUSED_RESULT
+#define TERMCAP2KEY(a, b)       (-((a) + ((int)(b) << 8)))
 #define ASCII_ISLOWER(c) ((unsigned)(c) >= 'a' && (unsigned)(c) <= 'z')
 #define ASCII_ISUPPER(c) ((unsigned)(c) >= 'A' && (unsigned)(c) <= 'Z')
 #define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))
@@ -72,6 +75,7 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
           ("src/nvim/ascii_defs.h", "static inline bool ascii_isdigit(int c)"),
           ("src/nvim/ascii_defs.h", "  return c >= '0' && c <= '9';"),
           ("src/nvim/types_defs.h", "  size_t size;  ///< Total writable bytes, including any space for a terminating NUL."),
+          ("src/nvim/keycodes.h", "#define TERMCAP2KEY(a, b)       (-((a) + ((int)(b) << 8)))"),
           ("src/nvim/memory.h", "#define STRMOVE(d, s)       memmove((d), (s), strlen(s) + 1)")]
 COMMENT = re.compile(r"(?:\s*/\*@(?:(?!\*/).)*\*/)+\s*", re.S)  # ACSL comments only, no code
 
@@ -93,6 +97,9 @@ def main(tree, out):
                 sys.exit(f"build: {name} changed: {h}")
             print(f"{name}: {'upstream' if h == want else 'fixed'} text")
             contract, anchors = concat_contract(h == want), CONCAT_ANCHORS
+        elif name in FIXED_SHA and h in (want, FIXED_SHA[name]):
+            print(f"{name}: {'upstream' if h == want else 'fixed'} text")
+            contract, anchors = CONTRACTS[name]
         elif h != want and not os.environ.get("VP_MUTANT"):
             sys.exit(f"build: {name} changed upstream: {h}")
         else:
