@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/undo.c | 0 | 27 | 56 | 83 |
 
 ## Function details
 
@@ -74,6 +75,33 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/undo.c | `undo_write` | candidate | undo/cbmc (CBMC) | fwrite result; inside every write harness; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_write_bytes` | candidate | undo/cbmc (CBMC, every nr, len 1..8) | big-endian nr mod 256^len; see undo/CLAIM.md; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `put_header_ptr` | candidate | undo/cbmc (CBMC) | 4-byte uh_seq or 0; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `serialize_pos` | candidate | undo/cbmc (CBMC) | 3 big-endian 4-byte fields; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `serialize_visualinfo` | candidate | undo/cbmc (CBMC) | 8 big-endian 4-byte fields; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_read_4c` | candidate | undo/cbmc (CBMC, every 0..6 byte stream) | get4c: 32-bit two's complement or -1; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_read_2c` | candidate | undo/cbmc (CBMC) | get2c: 0..65535 or -1; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_read_byte` | candidate | undo/cbmc (CBMC) | next byte or EOF; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_read_time` | fixed-candidate | undo/cbmc (CBMC, fixed fork) | upstream get8ctime signed shift overflow (findings/get8ctime-shift-overflow.md); fix verified_neovim PR #8 proved; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_read_len` | candidate | undo/cbmc (CBMC, every file size) | valid length or -1 + one corruption report; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_read` | candidate | undo/cbmc (CBMC, any size < 2^40) | next size bytes or false + zero-filled; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `undo_read_string` | candidate | undo/cbmc (CBMC, any len < 2^40) | NUL-terminated copy or NULL, no leak; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `unserialize_pos` | candidate | undo/cbmc (CBMC, every 0..13 byte stream) | fields clamped at 0; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `unserialize_visualinfo` | candidate | undo/cbmc (CBMC, every 0..33 byte stream) | review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `uhp_seq_cmp` | candidate | undo/cbmc (CBMC) | sign of uh_seq comparison; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `uhp_table_find` | candidate | undo/wp (Frama-C WP, any size, 33/33) | binary search on sorted table; CBMC n<=4 cross-check; review + 22/22 planted bugs done; waiting on owner sign-off |
+| src/nvim/undo.c | `get_undolevel` | candidate | undo/cbmc/run_small.sh (CBMC) | buffer 'undolevels' or global when unset; 3 own planted bugs caught, no independent review yet |
+| src/nvim/undo.c | `zero_fmark_additional_data` | candidate | undo/cbmc/run_small.sh (CBMC) | frees and NULLs all 26 marks' data, nothing else touched, no leak; no independent review yet |
+| src/nvim/undo.c | `u_get_headentry` | candidate | undo/cbmc/run_head.sh (CBMC) | newest entry or NULL + one internal error; no independent review yet |
+| src/nvim/undo.c | `u_getbot` | candidate | undo/cbmc/run_head.sh (CBMC) | ue_bot recomputed or reset with error; line counts below MAXLNUM (int overflow at exactly MAXLNUM lines, unconfirmed); 5 own planted bugs caught; no independent review yet |
+| src/nvim/undo.c | `u_update_save_nr` | candidate | undo/cbmc/run_save.sh (CBMC) | counter +1, stored in the header u would undo next; counter below INT_MAX; 3 own planted bugs caught; no independent review yet |
+| src/nvim/undo.c | `u_clearline` | candidate | undo/cbmc/run_misc.sh (CBMC) | frees saved U line, NULL + lnum 0; no leak; 2 own planted bugs caught; no independent review yet |
+| src/nvim/undo.c | `u_update_named_mark` | candidate | undo/cbmc/run_misc.sh (CBMC) | zeroes lnum of mark idx in current/newest header; idx 0..25 (mark.c passes c - 'a' for a lowercase c); 2 own planted bugs caught; no independent review yet |
+| src/nvim/undo.c | `serialize_extmark` | candidate | undo/cbmc/run_ext.sh (CBMC) | magic, type, raw struct bytes; 7 own planted bugs caught (with unserialize); no independent review yet |
+| src/nvim/undo.c | `unserialize_extmark` | candidate | undo/cbmc/run_ext.sh (CBMC) | splice/move object with the file's bytes, else NULL + error; no leak; no independent review yet |
+| src/nvim/undo.c | `undo_allowed` | candidate | undo/cbmc/run_allow.sh (CBMC, with expr_map_locked of ex_docmd.c) | E21/E48/E565 in order, else true; emsg recorded; 6 own planted bugs caught (with corruption_error); no independent review yet |
+| src/nvim/undo.c | `corruption_error` | candidate | undo/cbmc/run_allow.sh (CBMC) | one E825 message with mesg and file name; semsg recorded; no independent review yet |
 
 ## All files
 

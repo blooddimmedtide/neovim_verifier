@@ -1,0 +1,204 @@
+# Planted bugs for the undo-file byte helpers, chosen by the independent reviewer.
+# base = "fixed" means the mutant is applied to the fixed fork (blooddimmedtide/verified_neovim),
+# because upstream get8ctime already fails h_read_time (the finding).
+# expect_uncaught = true marks a real (non-equivalent) bug the current proof cannot see; see REVIEW.md.
+
+[[mutant]]
+id = "m01"
+function = "get4c"
+file = "src/nvim/fileio.c"
+find = "  n = (n << 8) + (unsigned)c;\n  return (int)n;"
+replace = "  n = (n << 7) + (unsigned)c;\n  return (int)n;"
+harness = "h_read_4c"
+equivalent = false
+
+[[mutant]]
+id = "m02"
+function = "get4c"
+file = "src/nvim/fileio.c"
+find = "  c = getc(fd);\n  if (c == EOF) {\n    return -1;\n  }\n  n = (n << 8) + (unsigned)c;\n  return (int)n;"
+replace = "  c = getc(fd);\n  n = (n << 8) + (unsigned)c;\n  return (int)n;"
+harness = "h_read_4c"
+equivalent = false
+
+[[mutant]]
+id = "m03"
+function = "get2c"
+file = "src/nvim/fileio.c"
+find = "int get2c(FILE *fd)\n{\n  const int n = getc(fd);\n  if (n == EOF) {\n    return -1;\n  }\n  const int c = getc(fd);\n  if (c == EOF) {\n    return -1;\n  }\n  return (n << 8) + c;"
+replace = "int get2c(FILE *fd)\n{\n  const int n = getc(fd);\n  if (n == EOF) {\n    return -1;\n  }\n  const int c = getc(fd);\n  if (c == EOF) {\n    return -1;\n  }\n  return (c << 8) + n;"
+harness = "h_read_2c"
+equivalent = false
+
+[[mutant]]
+id = "m04"
+function = "get2c"
+file = "src/nvim/fileio.c"
+find = "int get2c(FILE *fd)\n{\n  const int n = getc(fd);\n  if (n == EOF) {"
+replace = "int get2c(FILE *fd)\n{\n  const int n = getc(fd);\n  if (n == 0) {"
+harness = "h_read_2c"
+equivalent = false
+
+[[mutant]]
+id = "m05"
+function = "get8ctime"
+file = "src/nvim/fileio.c"
+base = "fixed"
+find = "  for (int i = 0; i < 8; i++) {"
+replace = "  for (int i = 0; i < 7; i++) {"
+harness = "h_read_time"
+equivalent = false
+
+[[mutant]]
+id = "m06"
+function = "get8ctime"
+file = "src/nvim/fileio.c"
+base = "fixed"
+find = "n = (n << 8) + (uint64_t)c;"
+replace = "n = (n << 8) | (uint64_t)(int8_t)c;"
+harness = "h_read_time"
+equivalent = false
+
+[[mutant]]
+id = "m07"
+function = "undo_write_bytes"
+file = "src/nvim/undo.c"
+find = "buf[bufi] = (uint8_t)(nr >> (i * 8));"
+replace = "buf[bufi] = (uint8_t)(nr >> (bufi * 8));"
+harness = "h_write_bytes"
+equivalent = false
+
+[[mutant]]
+id = "m08"
+function = "undo_write_bytes"
+file = "src/nvim/undo.c"
+find = "bufi < len;"
+replace = "bufi < len - 1;"
+harness = "h_write_bytes"
+equivalent = false
+
+[[mutant]]
+id = "m09"
+function = "undo_read_len"
+file = "src/nvim/undo.c"
+find = "len > bi->bi_fsize - pos"
+replace = "len >= bi->bi_fsize - pos"
+harness = "h_read_len"
+equivalent = false
+
+[[mutant]]
+id = "m10"
+function = "undo_read_len"
+file = "src/nvim/undo.c"
+find = "(pos < 0 || "
+replace = "("
+harness = "h_read_len"
+equivalent = false
+
+[[mutant]]
+id = "m11"
+function = "undo_read"
+file = "src/nvim/undo.c"
+find = "memset(buffer, 0, size);"
+replace = "memset(buffer, 0, size - 1);"
+harness = "h_read"
+equivalent = false
+
+[[mutant]]
+id = "m12"
+function = "undo_read_string"
+file = "src/nvim/undo.c"
+find = "    xfree(ptr);\n    return NULL;\n  }\n  return ptr;"
+replace = "    return NULL;\n  }\n  return ptr;"
+harness = "h_read_string"
+equivalent = false
+
+[[mutant]]
+id = "m13"
+function = "undo_read_string"
+file = "src/nvim/undo.c"
+find = "len > 0 && !undo_read("
+replace = "!undo_read("
+harness = "h_read_string"
+equivalent = false          # real fread(.., 0, 1, ..) returns 0, so len 0 would give NULL
+
+[[mutant]]
+id = "m14"
+function = "unserialize_pos"
+file = "src/nvim/undo.c"
+find = "pos->col = MAX(pos->col, 0);"
+replace = "pos->col = MAX(pos->lnum, 0);"
+harness = "h_unserialize_pos"
+equivalent = false
+
+[[mutant]]
+id = "m15"
+function = "serialize_pos"
+file = "src/nvim/undo.c"
+find = "pos.coladd, 4)"
+replace = "pos.col, 4)"
+harness = "h_serialize_pos"
+equivalent = false
+
+[[mutant]]
+id = "m16"
+function = "unserialize_visualinfo"
+file = "src/nvim/undo.c"
+find = "info->vi_curswant = undo_read_4c(bi);"
+replace = "info->vi_curswant = undo_read_2c(bi);"
+harness = "h_unserialize_visualinfo"
+equivalent = false
+
+[[mutant]]
+id = "m17"
+function = "uhp_seq_cmp"
+file = "src/nvim/undo.c"
+find = "u1->uh_seq > u2->uh_seq ? 1 : -1"
+replace = "u1->uh_seq > u2->uh_seq ? -1 : 1"
+harness = "h_seq_cmp"
+equivalent = false
+
+[[mutant]]
+id = "m18"
+function = "put_header_ptr"
+file = "src/nvim/undo.c"
+find = "uhp->uh_seq : 0), 4)"
+replace = "uhp->uh_seq : 0), 2)"
+harness = "h_put_header_ptr"
+equivalent = false
+
+[[mutant]]
+id = "m19"
+function = "undo_read_len"
+file = "src/nvim/undo.c"
+find = "feof(bi->bi_fp) ? \"truncated\" : what"
+replace = "feof(bi->bi_fp) ? what : \"truncated\""
+harness = "h_read_len"
+equivalent = false          # wrong error message for a truncated file
+
+[[mutant]]
+id = "m20"
+function = "uhp_table_find"
+file = "src/nvim/undo.c"
+find = "      lo = mid + 1;"
+replace = "      lo = mid;"
+harness = "wp"
+equivalent = false
+
+[[mutant]]
+id = "m21"
+function = "uhp_table_find"
+file = "src/nvim/undo.c"
+find = "  int hi = num_head - 1;"
+replace = "  int hi = num_head - 2;"
+harness = "wp"
+equivalent = false
+
+[[mutant]]
+id = "m22"
+function = "uhp_table_find"
+file = "src/nvim/undo.c"
+find = "uh_seq < seq) {"
+replace = "uh_seq <= seq) {"
+harness = "wp"
+equivalent = false
