@@ -56,3 +56,9 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/indent.c	tabstop_count	candidate	indent/cbmc (CBMC, lists <= 4 entries)	ts[0], 0 for NULL; see indent/CLAIM.md. Review pending
+src/nvim/indent.c	tabstop_first	candidate	indent/cbmc (CBMC, lists <= 4 entries)	ts[1], 8 for NULL; needs ts[0] >= 1; see indent/CLAIM.md. Review pending
+src/nvim/indent.c	tabstop_padding	open	indent/cbmc harness (run unfinished)	CBMC run did not finish before the 2026-11-09 stop; not proved
+src/nvim/indent.c	tabstop_at	open	indent/cbmc harness (run unfinished)	CBMC run did not finish before the 2026-11-09 stop; not proved
+src/nvim/indent.c	tabstop_start	open	indent/cbmc harness (run unfinished)	CBMC run did not finish before the 2026-11-09 stop; not proved
+src/nvim/indent.c	tabstop_fromto	open	indent/cbmc harness (run unfinished)	CBMC run did not finish before the 2026-11-09 stop; not proved

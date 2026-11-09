@@ -3,7 +3,18 @@
 Pinned upstream: neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Tool: CBMC 6.4.1
 (`cbmc/run_cbmc.sh`), verbatim extraction with sha256 pins (`cbmc/build.py`).
 
-## Claimed (candidate, not yet reviewed)
+## State at the 2026-11-09 09:00 UTC stop
+
+- **Proved** (CBMC, signed and unsigned char, x86_64): `tabstop_count`, `tabstop_first`.
+- **Harness written, run not finished** (CBMC still solving after 15+ minutes, killed at the
+  deadline; most likely the 32-bit `%` on unbounded columns): `tabstop_padding`,
+  `tabstop_at`, `tabstop_start`, `tabstop_fromto`. These are NOT proved. Next step: split the
+  column range (col < S_n vs. col >= S_n) or prove them in Frama-C WP instead.
+- No bugs found. `tabstop_at(left=true)` left of the first stop returns `ts` with no list but
+  `col` with one; the function's comment only promises "at least that distance", so the
+  harness checks `>= col` there (a spec choice, listed for review).
+
+## Properties the harness checks
 
 Each function is checked against `cbmc/harness.c`'s reference, which is written from
 `:help 'vartabstop'`: tab stops at the running sums of the list, then every last width.

@@ -31,7 +31,7 @@ static long long count(long long x) {
 static colnr_T *mk(long long ts) {
   if (nondet_bool()) { n_ = 1; w_[1] = (int)ts; return NULL; }
   int n = nondet_int(); __CPROVER_assume(n >= 0 && n <= MAXN);
-  colnr_T *v = malloc((size_t)(n + 1) * sizeof(int)); v[0] = n;
+  colnr_T *v = malloc((size_t)(n + 1) * sizeof(int)); __CPROVER_assume(v != NULL); v[0] = n;
   for (int i = 1; i <= n; i++) {
     int w = nondet_int(); __CPROVER_assume(w >= 1 && w <= TABSTOP_MAX); v[i] = w; w_[i] = w;
   }
@@ -53,9 +53,15 @@ void h_at(void) {
   bool left = nondet_bool();
   colnr_T *v = mk(ts);
   long long c = count(col), want;
-  if (!left) want = stop(c + 1) - stop(c);           // interval holding col
-  else want = c == 0 ? col : stop(c) - stop(c - 1);  // interval to its left, or col
-  __CPROVER_assert(tabstop_at(col, ts, v, left) == want, "tabstop_at");
+  int r = tabstop_at(col, ts, v, left);
+  if (left && c == 0) {
+    // Left of the first stop the comment only promises "at least that distance" (col).
+    __CPROVER_assert(r >= col, "tabstop_at left of first stop >= col");
+    return;
+  }
+  if (!left) want = stop(c + 1) - stop(c);  // interval holding col
+  else want = stop(c) - stop(c - 1);        // interval to its left
+  __CPROVER_assert(r == want, "tabstop_at");
 }
 
 void h_start(void) {
@@ -85,7 +91,7 @@ void h_count_first(void) {
     return;
   }
   int n = nondet_int(); __CPROVER_assume(n >= 1 && n <= MAXN);
-  colnr_T *v = malloc((size_t)(n + 1) * sizeof(int)); v[0] = n;
+  colnr_T *v = malloc((size_t)(n + 1) * sizeof(int)); __CPROVER_assume(v != NULL); v[0] = n;
   for (int i = 1; i <= n; i++) { v[i] = nondet_int(); __CPROVER_assume(v[i] >= 1 && v[i] <= TABSTOP_MAX); }
   __CPROVER_assert(tabstop_count(v) == n, "count");
   __CPROVER_assert(tabstop_first(v) == v[1], "first");
