@@ -1,0 +1,12 @@
+g_not_toggle|subflags->do_all = !subflags->do_all;|subflags->do_all = true;
+c_set|subflags->do_ask = !subflags->do_ask;|subflags->do_ask = true;
+e_set|subflags->do_error = !subflags->do_error;|subflags->do_error = false;
+default_error|    subflags->do_error = true;|    subflags->do_error = false;
+default_gd|    subflags->do_all = p_gd;|    subflags->do_all = false;
+amp_no_skip|    cmd++;\n  } else {|  } else {
+hash_no_number|      subflags->do_number = true;\n    } else if (*cmd == 'l')|    } else if (*cmd == 'l')
+i_swap|      subflags->do_ic = kSubIgnoreCase;|      subflags->do_ic = kSubMatchCase;
+r_wrong|      *which_pat = RE_LAST;|      *which_pat = RE_SUBST;
+count_ask|  if (subflags->do_count) {\n    subflags->do_ask = false;|  if (subflags->do_count) {\n    subflags->do_ask = subflags->do_ask;
+l_no_list|      subflags->do_list = true;|      subflags->do_list = false;
+past_nul|  while (*cmd) {|  while (*cmd || cmd[1]) {
