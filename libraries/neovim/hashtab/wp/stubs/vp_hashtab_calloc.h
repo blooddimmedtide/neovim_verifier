@@ -7,6 +7,7 @@
     // overflowing, it frees memory, retries, then calls preserve_exit().
     requires size == sizeof(hashitem_T);
     requires vp_live < LONG_MAX;
+    requires \valid_read(a1) && \valid_read(a2);
     assigns \result \from count, size;
     assigns vp_live;
     allocates \result;
@@ -15,8 +16,10 @@
     ensures \result != \null && \valid((hashitem_T *)\result + (0 .. count - 1));
     ensures \forall integer i; 0 <= i < count ==>
               ((hashitem_T *)\result)[i].hi_key == \null && ((hashitem_T *)\result)[i].hi_hash == 0;
-    ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr((char *)\result);
+    // the new block overlaps no live one: stated for the live blocks the caller names
+    // (WP does not model allocation, so "every block valid before" would be contradictory)
+    ensures \base_addr((char *)\result) != \base_addr(a1) && \base_addr((char *)\result) != \base_addr(a2);
     ensures vp_live == \old(vp_live) + 1;
 */
-void *xcalloc(size_t count, size_t size);
+void *xcalloc(size_t count, size_t size) /*@ ghost (char *a1, char *a2) */;
 #endif

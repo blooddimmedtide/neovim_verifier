@@ -443,7 +443,7 @@ def contracts(fixed):
     ensures vp_live == \\old(vp_live) + (ht->ht_array != {SMALL} && ht->ht_array != \\old(ht->ht_array) ? 1 : 0)
                        - ({FREED} ? 1 : 0);
     ensures ht->ht_array != \\old(ht->ht_array) && ht->ht_array != {SMALL} ==>
-              \\forall char *q; \\at(\\valid_read(q), Pre) ==> \\base_addr(q) != \\base_addr(ht->ht_array);"""
+              \\base_addr(ht->ht_array) != \\base_addr(ht) && \\base_addr(ht->ht_array) != \\base_addr(\\old(ht->ht_array));"""
     SAME = r"""ensures \forall char *k; \forall integer h; has(ht, k, h) <==> \old(has(ht, k, h));"""
     RS_ASSIGNS = (f"ht->ht_array, ht->ht_mask, ht->ht_filled, ht->ht_changed, ht->ht_smallarray[0 .. HT_INIT_SIZE - 1],\n"
                   f"            vp_live, vp_nfree, vp_freelog[vp_nfree], vp_rg, vp_rb")
@@ -680,5 +680,90 @@ def annotations(fixed):
       loop assigns hi, todo, vp_o, vp_live, vp_nfree, vp_freelog[\\at(vp_nfree, Pre) .. \\at(vp_nfree, Pre) + ht->ht_used - 1];
       loop variant {M} + 1 - vp_o;"""),
         ("before", "    if (!HASHITEM_EMPTY(hi)) {", "ghost vp_o++;"),
+    ]
+    # hash_may_resize. OK(k) = old item k (at Pre); NA = the new array.
+    NA, NM = "newarray", "newmask"
+    OK = lambda k, f: f"\\at({AR}[{k}].{f}, Pre)"
+    SRC = (f"\\exists integer k; 0 <= k < vp_o && isused({OK('k', 'hi_key')}) && {NA}[j].hi_key == {OK('k', 'hi_key')}"
+           f" && {NA}[j].hi_hash == {OK('k', 'hi_hash')}")
+    A["hash_may_resize"] = [
+        ("before", "  if (ht->ht_locked > 0) {",
+         f"ghost count_bounds({AR}, {M} + 1); ptrs_distinct(ht); rest_unused({AR}, {M} + 1);"),
+        ("before", "  size_t newsize = HT_INIT_SIZE;",
+         "assert minsize == msz(ht->ht_used, \\at(minitems, Pre)) && minsize <= 2305843009213693952;"),
+        ("before", "  while (newsize < minsize) {",
+         """loop invariant 16 <= newsize <= 4611686018427387904 && (newsize == 16 || (newsize & (newsize - 1)) == 0);
+      loop invariant newsize == 16 || newsize / 2 < minsize;
+      loop assigns newsize; loop variant 4611686018427387904 - newsize;"""),
+        ("before", "    newsize <<= 1;", "ghost bv_pow2_next(newsize);"),
+        ("before", "  bool newarray_is_small = newsize == HT_INIT_SIZE;",
+         f"ghost bv_pow2_lt(newsize, {M}); bv_pow2_lt(newsize, 1152921504606846975);"),
+        ("after", "xcalloc(newsize, sizeof(hashitem_T))", "ghost ((char *)ht, (char *)ht->ht_array)"),
+        ("before", "  hash_T newmask = newsize - 1;", "ghost bv_pow2_mask(newsize);"),
+        ("before", "  hash_T newmask = newsize - 1;",
+         f"assert \\forall integer k; 0 <= k <= {M} ==> oldarray[k].hi_key == {OK('k', 'hi_key')} && oldarray[k].hi_hash == {OK('k', 'hi_hash')};"),
+        ("before", "  hash_T newmask = newsize - 1;",
+         f"assert \\valid_read(oldarray + (0 .. {M})) && \\valid(newarray + (0 .. newsize - 1)) && newsize <= 1152921504606846976;"),
+        ("before", "  hash_T newmask = newsize - 1;",
+         f"assert \\forall integer j; 0 <= j < newsize ==> {NA}[j].hi_key == \\null;"),
+        ("before", "  hash_T newmask = newsize - 1;", "assert \\base_addr(oldarray) != \\base_addr(newarray);"),
+        ("before", "  hash_T newmask = newsize - 1;", "ghost counts_zero(newarray, newsize);"),
+        ("before", "  for (hashitem_T *olditem = oldarray; todo > 0; olditem++) {",
+         "ghost size_t vp_o = 0, vp_c = 0;"),
+        ("before", "  for (hashitem_T *olditem = oldarray; todo > 0; olditem++) {",
+         f"""loop invariant 0 <= vp_o <= {M} + 1 && olditem == oldarray + vp_o && newmask == newsize - 1 && tmask(newmask) && ht->ht_used <= newmask;
+      loop invariant todo == ht->ht_used - nused{{Pre}}(\\at({AR}, Pre), vp_o);
+      loop invariant \\forall integer k; 0 <= k <= {M} ==> oldarray[k].hi_key == {OK('k', 'hi_key')} && oldarray[k].hi_hash == {OK('k', 'hi_hash')};
+      loop invariant \\forall integer j; 0 <= j < newsize && {NA}[j].hi_key != \\null ==> {SRC};
+      loop invariant \\forall integer k; 0 <= k < vp_o && isused({OK('k', 'hi_key')}) ==>
+                       \\exists integer j; 0 <= j < newsize && {NA}[j].hi_key == {OK('k', 'hi_key')} && {NA}[j].hi_hash == {OK('k', 'hi_hash')};
+      loop invariant \\forall integer j1, j2; 0 <= j1 < newsize && 0 <= j2 < newsize && j1 != j2 && {NA}[j1].hi_key != \\null
+                       ==> {NA}[j1].hi_key != {NA}[j2].hi_key;
+      loop invariant nfilled({NA}, newsize) == ht->ht_used - todo;
+      loop invariant \\forall integer j; 0 <= j < newsize && {NA}[j].hi_key != \\null ==> reach({NA}, {NM}, {NA}[j].hi_hash, j);
+      loop assigns olditem, todo, vp_o, vp_c, {NA}[0 .. newsize - 1], vp_rg, vp_rb;
+      loop variant {M} + 1 - vp_o;"""),
+        ("before", "    if (HASHITEM_EMPTY(olditem)) {", "ghost vp_c = vp_o; vp_o++;"),
+        ("before", "    hash_T newi = olditem->hi_hash & newmask;",
+         f"""ghost size_t vp_h = olditem->hi_hash; size_t vp_t = find_null({NA}, {NM});
+      size_t vp_n = 0, vp_g = 0, vp_b = 0, vp_oi = 0, vp_N = 0; bv_mask_le(vp_h, {NM}); bv_mask_idem(vp_h, {NM});
+      if (vp_h == 0) {{ reach_slot(vp_h & {NM}, vp_t, {NM}); vp_g = vp_rg; vp_b = vp_rb; }}"""),
+        ("before", "      for (hash_T perturb = olditem->hi_hash;; perturb >>= PERTURB_SHIFT) {",
+         f"""loop invariant 0 <= vp_n && newi == pidx(vp_h, {NM}, vp_n) && perturb == pert(vp_h, vp_n);
+        loop invariant newitem == {NA} + (newi & {NM}) && newitem->hi_key != \\null;
+        loop invariant nonull({NA}, {NM}, vp_h, vp_n + 1);
+        loop invariant 0 <= vp_t <= {NM} && {NA}[vp_t].hi_key == \\null;
+        loop invariant perturb != 0 ==> vp_n <= 12 && perturb <= (vp_h >> (5 * vp_n));
+        loop invariant perturb == 0 ==> vp_n + vp_g <= 13 + {NM};
+        loop invariant perturb == 0 ==> p5(vp_g) == {FA.format(b="vp_b")} && ({VAL.format(b="vp_b", x="newi")} & {NM}) == vp_t;
+        loop assigns newi, newitem, perturb, vp_n, vp_g, vp_b, vp_oi, vp_rg, vp_rb;
+        loop variant perturb != 0 ? 18446744073709551616 + perturb : vp_g;"""),
+        ("inline", "newi = 5 * newi + perturb + 1;",
+         f"ghost vp_oi = newi; if (perturb == 0) bv_zero(vp_b, newi, {NM});"),
+        ("before", "        newitem = &newarray[newi & newmask];", f"ghost bv_mask_le(newi, {NM});"),
+        ("before", "        if (newitem->hi_key == NULL) {", f"assert newitem == {NA} + slot(vp_h, {NM}, vp_n + 1);"),
+        ("after", "          break;\n        }",
+         f"""ghost bv_shr_mono(perturb, vp_h, 5 * vp_n); bv_shr_zero(vp_h, 5 * vp_n + 5); vp_n++;
+        bv_lsr5(perturb, PERTURB_SHIFT);
+        if (perturb == 0) {{ bv_peel(vp_b, vp_oi); vp_b = vp_b - (4 * vp_b + 1) * 14757395258967641293u; vp_g--; }}
+        else if ((perturb >> PERTURB_SHIFT) == 0) {{ reach_slot(newi, vp_t, {NM}); vp_g = vp_rg; vp_b = vp_rb; }}"""),
+        ("inline", "break;", "ghost vp_N = vp_n + 1;"),
+        ("before", "    *newitem = *olditem;",
+         f"assert newitem == {NA} + slot(vp_h, {NM}, vp_N) && nonull({NA}, {NM}, vp_h, vp_N) && newitem->hi_key == \\null;"),
+        ("before", "    *newitem = *olditem;", f"ghost size_t vp_s = newitem - {NA};"),
+        ("before", "    *newitem = *olditem;", "ghost VpW: ;"),
+        ("after", "    *newitem = *olditem;",
+         f"""ghost {{ size_t vp_j = 0;
+      /@ loop invariant 0 <= vp_j <= newsize;
+         loop invariant nfilled({NA}, vp_j) == nfilled{{VpW}}({NA}, vp_j) + (vp_j > vp_s ? 1 : 0);
+         loop assigns vp_j; loop variant newsize - vp_j; @/
+      while (vp_j < newsize) vp_j++; }}"""),
+        ("before", "    todo--;", f"assert olditem == oldarray + vp_c && {NA}[vp_s].hi_key == oldarray[vp_c].hi_key && {NA}[vp_s].hi_hash == oldarray[vp_c].hi_hash;"),
+        ("before", "    todo--;", f"assert \\forall integer j; 0 <= j < newsize && j != vp_s ==> {NA}[j].hi_key == \\at({NA}[j].hi_key, VpW) && {NA}[j].hi_hash == \\at({NA}[j].hi_hash, VpW);"),
+        ("before", "    todo--;", f"assert \\forall integer j; 0 <= j <= {NM} && \\at({NA}[j].hi_key, VpW) != \\null ==> {NA}[j].hi_key != \\null;"),
+        ("before", "    todo--;", f"assert reach({NA}, {NM}, vp_h, vp_s);"),
+        ("before", "  if (ht->ht_array != ht->ht_smallarray) {",
+         f"assert \\forall integer k; vp_o <= k <= {M} ==> !isused({OK('k', 'hi_key')});"),
+        ("before", "  if (ht->ht_array != ht->ht_smallarray) {", "ghost no_removed_counts(newarray, newsize);"),
     ]
     return A

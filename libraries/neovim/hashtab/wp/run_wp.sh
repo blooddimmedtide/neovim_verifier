@@ -19,10 +19,13 @@ fi
 run() {  # $1 = label, rest = frama-c selection options
   local l=$1; shift
   (cd "$W" && frama-c -machdep x86_64 -cpp-extra-args="-I stubs" ht.c -wp "$@" -wp-rte -warn-signed-downcast \
-     -wp-model Typed+Cast -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" -wp-cache none > "wp_$l.log" 2>&1)
+     -wp-model Typed+Cast -wp-smoke-tests -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" -wp-cache none > "wp_$l.log" 2>&1)
   local r; r=$(grep -E "Proved goals" "$W/wp_$l.log" | sed 's/.*goals: *//')
-  echo "$MODE $l: ${r:-no result}"; grep -E '\[(Timeout|Unknown|Failed)\]|error|Error' "$W/wp_$l.log" | head -20 | sed 's/^/   /'
+  echo "$MODE $l: ${r:-no result}"; grep -iE '\[(Timeout|Unknown|Failed)\]|error|smoke|dead|unreachable' "$W/wp_$l.log" | head -20 | sed 's/^/   /'
   grep -qE "Proved goals: +([0-9]+) / \1$" "$W/wp_$l.log" || status=1
+  # smoke tests: WP tries to prove each contract's assumptions inconsistent; all must fail to
+  local sm; sm=$(grep -E "Smoke Tests:" "$W/wp_$l.log" | sed 's/.*Tests: *//'); echo "   smoke tests passed: ${sm:-none}"
+  [ -z "$sm" ] || echo "$sm" | grep -qE "^([0-9]+) / \1$" || status=1
 }
 # WP proves its own lemmas; the bv_* lemmas are the Z3-checked statements above
 run lemmas -wp-prop=p5_range,p5_unfive,str_nz,keq_short,keq_long,keq_flip,keq_sym,slot_range,nonull_grow,reach_grow

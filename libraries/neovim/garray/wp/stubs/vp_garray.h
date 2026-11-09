@@ -19,28 +19,26 @@
 /*@ ghost int vp_oom; */
 /*@ ghost void *vp_freelog[4294967296]; */
 
-/*@ // a block returned by an allocator is either p's own block or one that was
-    // not readable before the call (realloc never returns live memory of another object)
-    predicate vp_new_or_same{L}(void *r, void *p) =
-      \forall char *q; \valid_read(q) && \base_addr(q) != \base_addr((char *)p)
-        ==> \base_addr(q) != \base_addr((char *)r);
-*/
 
 /*@ // Neovim's xrealloc (memory.c): realloc of max(n, 1) bytes; on failure it
     // frees memory and retries, then calls preserve_exit(): it never returns NULL.
     // `old` (ghost) is how many leading bytes the caller relies on keeping.
     requires p == \null || \valid((char *)p + (0 .. old - 1));
     requires vp_live < LONG_MAX;
+    // a1, a2 (ghost): live blocks the caller names; the result overlaps neither. (WP does not
+    // model allocation: "differs from every block readable before" would be contradictory.)
+    requires \valid_read(a1) && \valid_read(a2);
+    requires p != \null ==> \base_addr((char *)p) != \base_addr(a1) && \base_addr((char *)p) != \base_addr(a2);
     assigns \result \from p, n;
     assigns vp_live;
     allocates \result;
     ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
     ensures \forall integer i; 0 <= i < old && i < n ==> ((char *)\result)[i] == \old(((char *)p)[i]);
-    ensures vp_new_or_same{Pre}(\result, p);
+    ensures \base_addr((char *)\result) != \base_addr(a1) && \base_addr((char *)\result) != \base_addr(a2);
     ensures vp_live == \old(vp_live) + (p == \null ? 1 : 0);
     exits vp_oom;   // preserve_exit() when memory runs out
 */
-void *xrealloc(void *p, size_t n) /*@ ghost (size_t old) */;
+void *xrealloc(void *p, size_t n) /*@ ghost (size_t old, char *a1, char *a2) */;
 
 /*@ requires vp_nfree < 4294967296;
     requires p != \null ==> vp_live > LONG_MIN;
@@ -52,6 +50,9 @@ void xfree(void *p);
 
 /*@ // xmallocz (memory.c): size + 1 bytes, last one NUL; preserve_exit() if size + 1 wraps
     requires vp_live < LONG_MAX;
+    // the result overlaps none of the named live blocks: arr, arr[0 .. cnt-1], sp (ghost)
+    requires \valid_read(arr + (0 .. cnt - 1)) && \valid_read(sp)
+             && \forall integer k; 0 <= k < cnt ==> \valid_read(arr[k]);
     assigns \result \from size;
     assigns vp_live;
     allocates \result;
@@ -59,14 +60,15 @@ void xfree(void *p);
     behavior fits:
       assumes size < SIZE_MAX;
       ensures \result != \null && \valid((char *)\result + (0 .. size)) && ((char *)\result)[size] == 0;
-      ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr((char *)\result);
+      ensures \base_addr((char *)\result) != \base_addr((char *)arr) && \base_addr((char *)\result) != \base_addr(sp)
+              && \forall integer k; 0 <= k < cnt ==> \base_addr((char *)\result) != \base_addr(\at(arr[k], Pre));
       ensures vp_live == \old(vp_live) + 1;
     behavior too_big:
       assumes size == SIZE_MAX;
       ensures \false;
     complete behaviors; disjoint behaviors;
 */
-void *xmallocz(size_t size);
+void *xmallocz(size_t size) /*@ ghost (char **arr, size_t cnt, char *sp) */;
 
 /*@ // xstrdup (memory.c): a new copy of the string
     requires str_len((char *)str, n) && n < SIZE_MAX;
@@ -76,7 +78,6 @@ void *xmallocz(size_t size);
     allocates \result;
     ensures \result != \null && str_len(\result, n)
             && \forall integer i; 0 <= i <= n ==> \result[i] == \old(str[i]);
-    ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr(\result);
     ensures vp_live == \old(vp_live) + 1;
     exits vp_oom;   // preserve_exit() when memory runs out
 */

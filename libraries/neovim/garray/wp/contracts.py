@@ -94,7 +94,7 @@ def contracts(fixed):
       ensures \\forall integer i; 0 <= i < \\old(ga_bytes(gap)) ==>
                 ((char *)gap->ga_data)[i] == \\old(((char *)gap->ga_data)[i]);
       ensures \\forall integer i; \\old(ga_bytes(gap)) <= i < ga_bytes(gap) ==> ((char *)gap->ga_data)[i] == 0;
-      ensures vp_new_or_same{{Pre}}(gap->ga_data, \\old(gap->ga_data));
+      ensures \\base_addr((char *)gap->ga_data) != \\base_addr(a1);
       ensures vp_live == \\old(vp_live) + (\\old(gap->ga_data) == \\null ? 1 : 0);"""
     too_many = lambda cond: "" if not fixed else f"""
     behavior too_many:   // more than INT_MAX items: preserve_exit()
@@ -138,6 +138,8 @@ def contracts(fixed):
     ensures gap->ga_growsize == (growsize < 1 ? 1 : growsize);"""
 
     C["ga_grow"] = rf"""requires ga_ok(gap) && vp_live < LONG_MAX;
+    // a1 (ghost): a live block the caller needs kept apart from the new array
+    requires \valid_read(a1) && (gap->ga_data != \null ==> \base_addr(a1) != \base_addr((char *)gap->ga_data));
     exits vp_oom{' || \\old(gap->ga_maxlen - gap->ga_len < n && n > INT_MAX - gap->ga_len)' if fixed else ''};   // out of memory{', or preserve_exit() for too many items' if fixed else ''}
     assigns gap->ga_maxlen, gap->ga_data, vp_live,
             ((char *)\at(gap->ga_data, Post))[0 .. \at(ga_bytes(gap), Post) - 1];
@@ -161,7 +163,6 @@ def contracts(fixed):
       ensures {src};
       ensures \\forall integer i; \\old(gap->ga_len) + {n} <= i < ga_bytes(gap) ==>
                 ((char *)gap->ga_data)[i] == (i < \\old(ga_bytes(gap)) ? \\old(((char *)gap->ga_data)[i]) : 0);
-      ensures vp_new_or_same{{Pre}}(gap->ga_data, \\old(gap->ga_data));
       ensures vp_live == \\old(vp_live) + (\\old(gap->ga_data) == \\null && \\old(gap->ga_maxlen - gap->ga_len) < {n} ? 1 : 0);"""
     unchanged = r"""ensures gap->ga_len == \old(gap->ga_len) && gap->ga_maxlen == \old(gap->ga_maxlen)
               && gap->ga_data == \old(gap->ga_data) && vp_live == \old(vp_live);"""
@@ -227,7 +228,6 @@ def contracts(fixed):
       ensures \forall integer i; 0 <= i < \old(ga_bytes(gap)) ==>
                 ((char *)gap->ga_data)[i] == \old(((char *)gap->ga_data)[i]);
       ensures \forall integer i; \old(ga_bytes(gap)) <= i < ga_bytes(gap) ==> ((char *)gap->ga_data)[i] == 0;
-      ensures vp_new_or_same{{Pre}}(gap->ga_data, \old(gap->ga_data));
       ensures vp_live == \old(vp_live) + (\old(gap->ga_data) == \null && \old(gap->ga_maxlen) == \old(gap->ga_len) ? 1 : 0);{too_many(full + ' && gap->ga_len == INT_MAX')}
     {'complete behaviors; disjoint behaviors;' if fixed else ''}"""
     S = "((char **)gap->ga_data)"
@@ -238,14 +238,16 @@ def contracts(fixed):
     requires str_len((char *)sep, m) && m < PTRDIFF_MAX;{'' if fixed else f"""
     requires gap->ga_len > 0 ==> {T} <= SIZE_MAX;   // upstream only: the sum does not wrap (see findings)"""}
     exits vp_oom || \old(gap->ga_len > 0 && {T} >= SIZE_MAX);   // out of memory, or the length does not fit
-    assigns vp_live;
-    ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr(\result);
+    assigns vp_live, \at(\result, Post)[0 .. (gap->ga_len > 0 ? {T} : 0)];   // only the new string
     behavior empty:   // a new empty string
       assumes gap->ga_len == 0;
       ensures \valid(\result) && \result[0] == 0 && vp_live == \old(vp_live) + 1;
     behavior join:    // string 0, sep, string 1, sep, ..., string n-1, then NUL
       assumes gap->ga_len > 0 && {T} < SIZE_MAX;
       ensures vp_live == \old(vp_live) + 1;
+      // the new string overlaps none of the inputs
+      ensures \base_addr(\result) != \base_addr((char *)\old(gap->ga_data)) && \base_addr(\result) != \base_addr((char *)sep)
+              && \forall integer k; 0 <= k < \old(gap->ga_len) ==> \base_addr(\result) != \base_addr(\old({S}[k]));
       ensures \valid(\result + (0 .. \old({T}))) && \result[\old({T})] == 0;
       ensures \forall integer k, j; 0 <= k < \old(gap->ga_len) && 0 <= j < \old(Ls[k]) ==>
                 \result[\old(off(Ls, m, k)) + j] == \old({S}[k][j]);
@@ -278,7 +280,8 @@ def annotations(fixed):
     'after' = right after the anchor text, 'inline' = right before it."""
     A = {}
     A["ga_grow"] = [
-        ("after", "char *pp = xrealloc(gap->ga_data, new_size)", "ghost (old_size)"),
+        ("after", "void ga_grow(garray_T *gap, int n)", "ghost (char *a1)"),
+        ("after", "char *pp = xrealloc(gap->ga_data, new_size)", "ghost (old_size, (char *)gap, a1)"),
         ("before", "  memset(pp + old_size, 0, new_size - old_size);",
          r"assert new_size == gap->ga_itemsize * new_maxlen && old_size == gap->ga_itemsize * gap->ga_maxlen;"),
         ("before", "  gap->ga_maxlen = new_maxlen;",
@@ -323,18 +326,22 @@ def annotations(fixed):
         ("before", "  char *const ret = xmallocz(len);", r"assert len == total(Ls, m, nelem);"),
     ]) + [
         ("after", "strcpy(s, strings[nelem - 1])", "ghost (Ls[nelem - 1])"),
+        ("after", "xmallocz(len)", "ghost ((char **)strings, nelem, (char *)sep)"),
     ]
     A["ga_concat_len"] = [
+        ("after", "ga_grow(gap, (int)len)", "ghost ((char *)s)"),
         ("before", "  char *data = gap->ga_data;", r"assert \base_addr(s) != \base_addr((char *)gap->ga_data);"),
         ("before", "  char *data = gap->ga_data;", r"assert \forall integer i; 0 <= i < len ==> s[i] == \at(s[i], Pre);"),
         ("before", "  char *data = gap->ga_data;",
          r"assert \forall integer i; 0 <= i < gap->ga_len ==> ((char *)gap->ga_data)[i] == \at(((char *)gap->ga_data)[i], Pre);"),
     ]
     A["ga_append"] = [
+        ("after", "ga_grow(gap, 1)", "ghost ((char *)gap)"),
         ("inline", "((char *)(gap)->ga_data)[(gap)->ga_len] = (char)((c) - ((c) > 127 ? 256 : 0));",
          r"assert \forall integer i; 0 <= i < gap->ga_len ==> ((char *)gap->ga_data)[i] == \at(((char *)gap->ga_data)[i], Pre);"),
     ]
     A["ga_append_via_ptr"] = [
+        ("after", "ga_grow(gap, 1)", "ghost ((char *)gap)"),
         ("before", "  return ((char *)gap->ga_data) + (item_size * (size_t)gap->ga_len++);",
          r"assert \forall integer i; \at(ga_bytes(gap), Pre) <= i < ga_bytes(gap) ==> ((char *)gap->ga_data)[i] == 0;"),
     ]

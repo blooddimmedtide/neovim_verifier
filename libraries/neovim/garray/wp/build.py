@@ -65,7 +65,7 @@ typedef struct {
   void *ga_data;                    // pointer to the first item
 } garray_T;
 extern const char e_resulting_text_too_long[];
-void ga_grow(garray_T *gap, int n);
+void ga_grow(garray_T *gap, int n) /*@ ghost (char *a1) */;
 void ga_clear(garray_T *gap);
 void ga_set_growsize(garray_T *gap, int growsize);
 void ga_concat_len(garray_T *const gap, const char *restrict s, const size_t len);

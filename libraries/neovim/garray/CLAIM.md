@@ -5,12 +5,32 @@ commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: https://github.com/blooddimmedtide/verified_neovim (branch claude/project-thread-aslfna: ga_grow 850a906, ga_concat_strings dec9b23; PR #5 into verified)
 toolchain: Frama-C 33.0 WP, Why3, Z3 5.1.0, CVC5 1.4.0 with --full-saturate-quant (tools/install.sh); CBMC 6.4.1 for the tool patch; gcc for the differential test
 container: ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac (CI)
-strength: candidate   # becomes full-correctness after the review, planted bugs and the owner's spec sign-off
+strength: unverified   # 2026-11-09: allocator stubs found contradictory, see the notice below; was: candidate
 tools: Frama-C WP (deductive, unbounded: every length, every input), Typed+Cast memory model, -wp-rte
 platform: x86_64 (machdep x86_64, char signed: what WP proves); unsigned char is covered by the differential test and the CBMC tool-patch check, not by WP
 ---
 
 # Claim card: Neovim garray.c
+
+> **Not verified (2026-11-09).** The allocator contracts in `wp/stubs/vp_garray.h` are
+> contradictory: WP does not model `allocates`, so `vp_new_or_same{Pre}(\result, p)` (and
+> "the result's base differs from every block readable before") together with
+> `\valid(\result)` let WP prove `\false` after an allocation (`xrealloc(NULL, n)`).
+> Every path through an allocating call (ga_grow and everything built on it,
+> ga_concat_strings) was proved vacuously. The goal counts below are void until the stubs use
+> explicit "avoid" ghost arguments (as in ../typval/wp_blob) and every run passes
+> `-wp-smoke-tests`. The ga_grow int overflow finding stands (reproduced in Nvim 0.9.5);
+> the ga_concat_strings length wrap is plain size_t arithmetic, to be rechecked with the
+> fixed stubs, as are both fixes.
+>
+> Redo in progress (2026-11-09, upstream text, stubs with ghost "avoid" arguments, every run with
+> `-wp-smoke-tests`): ga_grow 67/67, ga_concat_len 48/48, ga_append 33/33, ga_concat 33/33,
+> ga_clear 19/19, ga_clear_strings 48/48, ga_init 22/22, ga_set_growsize 14/14, both lemma
+> helpers, all smoke tests passing. Open: ga_concat_strings 84/94 (the write loop needs
+> separation facts that the old stubs gave vacuously), ga_remove_duplicate_strings 84/85 (one
+> loop invariant timed out at 20 s, passed before; rerun), ga_append_via_ptr 32/34 (both are
+> smoke tests flagging the WLOG branch as dead: the contract requires item_size == ga_itemsize;
+> to be widened). The fixed variant has not been rerun yet.
 
 `wp/build.py` copies the exact pinned text of each function (sha256 checked; the fixed
 fork's text for `ga_grow` and `ga_concat_strings` in mode `fixed`), expands the two garray.h
