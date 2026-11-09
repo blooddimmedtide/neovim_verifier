@@ -109,3 +109,19 @@ void h_skip(void)
   if (n < off) { assert(r == kSDReadStatusNotShaDa && fd.pos == n); return; }
   assert(r == kSDReadStatusSuccess && fd.pos == off);
 }
+
+// shada_check_status: classifies an unpack result. Success only when the parse
+// succeeded (MPACK_OK) and consumed every byte of the item (remaining == 0);
+// every other case is NotShaDa. (initial_fpos only affects the message.)
+void h_check_status(void)
+{
+  uint64_t fpos = ((uint64_t)nondet_uint() << 32) | (uint64_t)nondet_uint();
+  int status = nondet_int();
+  size_t remaining = nondet_ulong();
+  ShaDaReadResult r = shada_check_status(fpos, status, remaining);
+  if (status == MPACK_OK && remaining == 0) {
+    assert(r == kSDReadStatusSuccess);
+  } else {
+    assert(r == kSDReadStatusNotShaDa);
+  }
+}

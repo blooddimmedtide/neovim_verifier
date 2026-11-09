@@ -11,6 +11,7 @@ REVIEWED = {
     "fread_len": "fad233abb28876f2eee36f9899bc3e2f6406801af4a999b2abbfc9de5ece6cdd",
     "msgpack_read_uint64": "bff38afa16c9150b968f24cc929005cd38e09c8d30fd13ebff80a96e414e2626",
     "sd_reader_skip": "e4bcdfbed398b43e72c84814e6b9ba372ad7fa17d9b58108fd2b8096abdcdc6f",
+    "shada_check_status": "c6f61a236da2ac39792aa359cc738f434223649453c41f4ecc9a815178814667",
 }
 FIXED = {}
 
@@ -31,6 +32,7 @@ PRELUDE = r"""
 #define RERR "E575: "
 #define RCERR "E576: "
 #define SERR "E886: "
+enum { MPACK_OK = 0, MPACK_EOF = 1, MPACK_ERROR = 2 };
 """
 
 def piece(lines, name):

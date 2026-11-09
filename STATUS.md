@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/shada.c | 0 | 4 | 53 | 57 |
+| src/nvim/shada.c | 0 | 5 | 52 | 57 |
 
 ## Function details
 
@@ -79,6 +79,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/shada.c | `fread_len` | candidate | shada/cbmc (CBMC, all inputs, exact-size file model) | Success iff exactly length bytes available, then buffer holds them; NotShaDa on short read, ReadError on failure; no OOB write |
 | src/nvim/shada.c | `sd_reader_skip` | candidate | shada/cbmc (CBMC, all inputs) | Success iff offset bytes available and cursor advances exactly offset; NotShaDa on short skip, ReadError on failure |
 | src/nvim/shada.c | `msgpack_read_uint64` | candidate | shada/cbmc (CBMC, all inputs, MessagePack-spec reference) | decodes one unsigned msgpack int to its exact value; Finished/NotShaDa/ReadError per contract; *result untouched unless Success. Sizes every shada entry |
+| src/nvim/shada.c | `shada_check_status` | candidate | shada/cbmc (CBMC, all inputs) | Success iff msgpack parse was MPACK_OK and consumed every byte of the item; NotShaDa otherwise. Guards each parsed entry |
 
 ## All files
 

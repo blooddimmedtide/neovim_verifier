@@ -107,7 +107,7 @@ assumptions = [
 
 [targets.shada_read]
 file = "src/nvim/shada.c"
-functions = ["vim_be64toh", "fread_len", "sd_reader_skip", "msgpack_read_uint64"]
+functions = ["vim_be64toh", "fread_len", "sd_reader_skip", "msgpack_read_uint64", "shada_check_status"]
 annotate = "shada/cbmc/build.py"   # verbatim extraction, sha256 pinned per function
 prove = ["bash shada/cbmc/run_cbmc.sh {src}"]
 mutants = "bash shada/cbmc/run_mutants.sh {src}"
