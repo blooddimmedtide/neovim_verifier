@@ -44,10 +44,7 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 
 ## Leads for the next session
 
-- ml_recover (memline.c:902) takes the page size from the swap file's block 0 and only checks that it is
-  not smaller than the guess; there is no upper bound (MAX_SWAP_PAGE_SIZE is not checked there). A crafted
-  swap file can set a page size up to 4 GiB. Not yet shown to be a bug: check what the recovery loop does
-  with pb_count_max wrapping (pages over ~1.5 MiB) and with db_txt_end / db_index values read from the file.
+- ml_recover: next target after the helpers (see the project's private notes before working on it).
 - Lesson: a stub whose ensures says the result is valid must also say `allocates \result`, or WP treats
   the call as dead and proves anything after it. -wp-smoke-tests caught this (run_wp.sh now always uses it).
 
