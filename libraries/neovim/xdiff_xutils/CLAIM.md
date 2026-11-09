@@ -36,12 +36,12 @@ for bytes 128..255 depends on the locale (modelled as an unknown but fixed set).
 | `xdl_guess_lines` | proved | WP | size / (mean length of the first `sample` lines) + 1 |
 | `xdl_blankline` | proved | WP | with a whitespace flag: only whitespace; without: `""` or `"\n"` (upstream: any line of 1 byte, a bug) |
 | `len_without_eol` (new, fix) | proved | WP | the line length without `"\n"` / `"\r\n"` |
-| `xdl_recmatch` | OPEN (WP 178/184) | WP | 1 iff the lines match in the mode of the flags, else 0 |
-| `xdl_hash_record` | OPEN | WP | the hash of the record's counted bytes; `*data` moves past the record |
-| `xdl_hash_record_with_whitespace` | OPEN | WP | as `xdl_hash_record` |
+| `xdl_recmatch` | OPEN (WP: every goal proved in some run except `sk_bd`, a case step of `-b`; one full run with all hints still to do) | WP | 1 iff the lines match in the mode of the flags, else 0 |
+| `xdl_hash_record` | proved (no whitespace flag: WP 69/69; with a flag it calls `xdl_hash_record_with_whitespace`, which is OPEN) | WP | the hash of the record's counted bytes; `*data` moves past the record |
+| `xdl_hash_record_with_whitespace` | OPEN (not run yet) | WP | as `xdl_hash_record` |
 | `xdl_hashbits` | proved | CBMC | the least `b >= 1` with `2^b >= size` |
-| `xdl_num_out` | running | CBMC | the decimal text and NUL, its length; nothing after the NUL |
-| `xdl_format_hunk_hdr` (via `xdl_emit_hunk_hdr`) | running | CBMC | the unified-diff hunk header, function name cut so the line is at most 128 bytes |
+| `xdl_num_out` | OPEN (CBMC does not finish in 40 min: 64-bit division) | CBMC | the decimal text and NUL, its length; nothing after the NUL |
+| `xdl_format_hunk_hdr` (via `xdl_emit_hunk_hdr`) | OPEN (waits on `xdl_num_out`) | CBMC | the unified-diff hunk header, function name cut so the line is at most 128 bytes |
 | `xdl_emit_hunk_hdr` | proved (callback path) | CBMC | passes the hunk to `out_hunk` with the empty-side start rule; -1 iff it fails |
 | `xdl_fall_back_diff` | proved | CBMC | re-diffs the two ranges as files and copies the line changes into the ranges; nothing changes on failure |
 
@@ -62,8 +62,9 @@ for bytes 128..255 depends on the locale (modelled as an unknown but fixed set).
   model that records its argument; the `-w` loop of `xdl_recmatch`, which WP cannot take because
   `goto skip_ws` enters it in the middle, is rotated into a loop with the same statements in the
   same order.
-- `hash_step` (one hash step as the C code computes it) is checked by Z3 over 80-bit bit-vectors
-  in `wp/lemmas.py` and used by WP as a hypothesis. All other ACSL lemmas are WP-proved; the
+- `hash_step` (one hash step as the C code computes it) and `ws_bits` (`XDF_WHITESPACE_FLAGS`,
+  30, is the four bits 2, 4, 8, 16 of a long) are checked by Z3 over 80-bit bit-vectors
+  in `wp/lemmas.py` and used by WP as hypotheses. All other ACSL lemmas are WP-proved; the
   `lem_*` ghost functions are proved induction steps, not assumptions.
 
 ## Upstream

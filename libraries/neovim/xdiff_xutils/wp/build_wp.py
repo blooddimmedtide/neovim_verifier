@@ -108,6 +108,8 @@ void free_log(void *p);
 '''
 
 out = [PRELUDE]
+import os, subprocess
+out.append(subprocess.check_output([sys.executable, "-I", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lemmas.py"), "--acsl", "ws_bits"], text=True))
 
 # ---------------------------------------------------------------- xdl_cha_free
 f = piece('void xdl_cha_free(chastore_t *cha) {', 'void *xdl_cha_alloc')
@@ -338,7 +340,12 @@ f = f.replace(BLOOP, f"""\t\t/*@ loop invariant 0 <= i1 <= s1 && 0 <= i2 <= s2;
 """ + BLOOP, 1)
 SKIPB = "\t\t\t\twhile (i1 < s1 && XDL_ISSPACE(l1[i1]))\n\t\t\t\t\ti1++;\n\t\t\t\twhile (i2 < s2 && XDL_ISSPACE(l2[i2]))\n\t\t\t\t\ti2++;\n\t\t\t\tcontinue;"
 assert f.count(SKIPB) == 1
-f = f.replace(SKIPB, f"""\t\t\t\t//@ ghost long r1 = i1;
+f = f.replace(SKIPB, f"""\t\t\t\t//@ assert sk_0: i1 < s1 && i2 < s2 && S({L1}, i1) && S({L2}, i2);
+\t\t\t\t//@ assert sk_nd: !({DOOM});
+\t\t\t\t//@ assert sk_inv: ({SB} && {BOUND}) || ({DOOM});
+\t\t\t\t//@ assert sk_bd: {BOUND};
+\t\t\t\t//@ assert sk_01: (i1 == 0 || !S({L1}, i1 - 1)) && (i2 == 0 || !S({L2}, i2 - 1));
+\t\t\t\t//@ ghost long r1 = i1;
 \t\t\t\t/*@ loop invariant r1 <= i1 <= s1 && allsp({L1}, r1, i1); loop assigns i1; loop variant s1 - i1; */
 \t\t\t\twhile (i1 < s1 && XDL_ISSPACE(l1[i1]))
 \t\t\t\t\ti1++;
@@ -380,6 +387,87 @@ f = f.replace(TAIL2, f"""\t//@ ghost long t2 = i2;
 \t\twhile (i2 < s2 && XDL_ISSPACE(l2[i2]))
 \t\t\ti2++;
 """, 1)
+
+# proof hints for xdl_recmatch: one assert per return and per case, so each goal is small
+T1, T2 = f"tr({L1}, s1)", f"tr({L2}, s2)"
+def C(l, s, i, mo='2'): return f"cnt({l}, {s}, {mo}, {i})"
+# the whitespace flags are bits 1..4 (lemma ws_bits, lemmas.py)
+FIRST = "\tif (s1 == s2 && !memcmp(l1, l2, s1))\n\t\treturn 1;\n\tif (!(flags & XDF_WHITESPACE_FLAGS))\n\t\treturn 0;\n"
+assert f.count(FIRST) == 1
+f = f.replace(FIRST, f"""\t//@ assert r_eq: s1 == s2 && same({L1}, {L2}, s1) ==> {MATCH};
+\tif (s1 == s2 && !memcmp(l1, l2, s1))
+\t\treturn 1;
+\t//@ assert r_ne: !(s1 == s2 && same({L1}, {L2}, s1));
+\t//@ assert wsf: ((flags & XDF_WHITESPACE_FLAGS) != 0) <==> (m != 0);
+\t//@ assert r_nows: (flags & XDF_WHITESPACE_FLAGS) == 0 ==> !{MATCH};
+\tif (!(flags & XDF_WHITESPACE_FLAGS))
+\t\treturn 0;
+""", 1)
+# -w: a differing pair of counted bytes at the same count
+WCMP = "\t\t\tif (!(i1 < s1 && i2 < s2))\n\t\t\t\tbreak;\n\t\t\tif (l1[i1++] != l2[i2++])\n\t\t\t\treturn 0;\n"
+assert f.count(WCMP) == 1
+f = f.replace(WCMP, f"""\t\t\t//@ assert w_end: (i1 == s1 || !S({L1}, i1)) && (i2 == s2 || !S({L2}, i2));
+\t\t\tif (!(i1 < s1 && i2 < s2))
+\t\t\t\tbreak;
+\t\t\t//@ assert w_el: el({L1}, s1, 1, i1) && el({L2}, s2, 1, i2) && {C(L1,'s1','i1 + 1','1')} == {C(L1,'s1','i1','1')} + 1 && {C(L2,'s2','i2 + 1','1')} == {C(L2,'s2','i2','1')} + 1;
+\t\t\t//@ assert r_w0: {MATCH} ==> ev({L1}, 1, i1) == ev({L2}, 1, i2);
+\t\t\t//@ assert r_w1: ev({L1}, 1, i1) == l1[i1] && ev({L2}, 1, i2) == l2[i2];
+\t\t\t//@ assert r_w: l1[i1] != l2[i2] ==> !{MATCH};
+\t\t\tif (l1[i1++] != l2[i2++])
+\t\t\t\treturn 0;
+""", 1)
+TW = "\t\t//@ assert tail_w:"
+assert f.count(TW) == 1
+f = f.replace(TW, f"""\t\t//@ assert w_x: (i1 == s1 || i2 == s2) && (i1 == s1 || !S({L1}, i1)) && (i2 == s2 || !S({L2}, i2));
+\t\t//@ assert w_both: i1 == s1 && i2 == s2 ==> {MATCH};
+\t\t//@ assert w_2: i1 == s1 && i2 < s2 ==> {C(L2,'s2','i2','1')} < {C(L2,'s2','s2','1')} && !{MATCH} && !allsp({L2}, i2, s2);
+\t\t//@ assert w_1a: i2 == s2 && i1 < s1 ==> el({L1}, s1, 1, i1) && !allsp({L1}, i1, s1);
+\t\t//@ assert w_1b: i2 == s2 && i1 < s1 ==> {C(L1,'s1','i1','1')} < {C(L1,'s1','s1','1')};
+\t\t//@ assert w_1c: i2 == s2 && i1 < s1 ==> {C(L2,'s2','s2','1')} == {C(L2,'s2','i2','1')};
+\t\t//@ assert w_1: i2 == s2 && i1 < s1 ==> {C(L1,'s1','i1','1')} < {C(L1,'s1','s1','1')} && !{MATCH} && !allsp({L1}, i1, s1);
+""" + TW, 1)
+# -b
+G = f"({SB} && {BOUND})"
+SKIPS = "\t\t\t\t//@ assert run_ends: "
+assert f.count(SKIPS) == 1
+f = f.replace(SKIPS, f"""\t\t\t\t//@ assert sk_r: r1 < i1 && r2 < i2 && S({L1}, r1) && S({L2}, r2) && (r1 == 0 || !S({L1}, r1 - 1)) && (r2 == 0 || !S({L2}, r2 - 1));
+\t\t\t\t//@ assert sk_el: (el({L1}, s1, 2, r1) <==> r1 < {T1}) && (el({L2}, s2, 2, r2) <==> r2 < {T2});
+\t\t\t\t//@ assert sk_a1: {C(L1,'s1','r1 + 1')} == {C(L1,'s1','r1')} + (el({L1}, s1, 2, r1) ? 1 : 0);
+\t\t\t\t//@ assert sk_b1: \\forall integer j; r1 + 1 <= j < i1 ==> !el({L1}, s1, 2, j);
+\t\t\t\t//@ assert sk_d1: {C(L1,'s1','i1')} == {C(L1,'s1','r1 + 1')};
+\t\t\t\t//@ assert sk_c1: {C(L1,'s1','i1')} == {C(L1,'s1','r1')} + (r1 < {T1} ? 1 : 0);
+\t\t\t\t//@ assert sk_a2: {C(L2,'s2','r2 + 1')} == {C(L2,'s2','r2')} + (el({L2}, s2, 2, r2) ? 1 : 0);
+\t\t\t\t//@ assert sk_b2: \\forall integer j; r2 + 1 <= j < i2 ==> !el({L2}, s2, 2, j);
+\t\t\t\t//@ assert sk_d2: {C(L2,'s2','i2')} == {C(L2,'s2','r2 + 1')};
+\t\t\t\t//@ assert sk_c2: {C(L2,'s2','i2')} == {C(L2,'s2','r2')} + (r2 < {T2} ? 1 : 0);
+\t\t\t\t//@ assert sk_t1: r1 >= {T1} ==> i1 == s1;
+\t\t\t\t//@ assert sk_t2: r2 >= {T2} ==> i2 == s2;
+\t\t\t\t//@ assert sk_n1: r1 < {T1} ==> i1 < {T1} && !S({L1}, i1) && el({L1}, s1, 2, i1);
+\t\t\t\t//@ assert sk_n2: r2 < {T2} ==> i2 < {T2} && !S({L2}, i2) && el({L2}, s2, 2, i2);
+""" + SKIPS, 1)
+BCMP = "\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tif (l1[i1++] != l2[i2++])\n\t\t\t\treturn 0;\n"
+assert f.count(BCMP) == 1
+f = f.replace(BCMP, f"""\t\t\t\tcontinue;
+\t\t\t}}
+\t\t\t//@ assert b_g: {G};
+\t\t\t//@ assert b_ns: !(S({L1}, i1) && S({L2}, i2));
+\t\t\t//@ assert b_eq: l1[i1] == l2[i2] ==> !S({L1}, i1) && !S({L2}, i2) && i1 < {T1} && i2 < {T2} && el({L1}, s1, 2, i1) && el({L2}, s2, 2, i2) && {C(L1,'s1','i1 + 1')} == {C(L1,'s1','i1')} + 1 && {C(L2,'s2','i2 + 1')} == {C(L2,'s2','i2')} + 1;
+\t\t\t//@ assert b_nn: !S({L1}, i1) && !S({L2}, i2) && l1[i1] != l2[i2] ==> !{MATCH};
+\t\t\t//@ assert b_sn_in: S({L1}, i1) && !S({L2}, i2) && i1 < {T1} ==> el({L1}, s1, 2, i1) && el({L2}, s2, 2, i2) && ev({L1}, 2, i1) == 32 && ev({L2}, 2, i2) != 32 && !{MATCH};
+\t\t\t//@ assert b_sn_out: S({L1}, i1) && !S({L2}, i2) && i1 >= {T1} ==> {C(L1,'s1','s1')} == {C(L1,'s1','i1')} && {C(L2,'s2','i2')} < {C(L2,'s2','s2')} && !{MATCH};
+\t\t\t//@ assert b_ns_in: !S({L1}, i1) && S({L2}, i2) && i2 < {T2} ==> el({L1}, s1, 2, i1) && el({L2}, s2, 2, i2) && ev({L2}, 2, i2) == 32 && ev({L1}, 2, i1) != 32 && !{MATCH};
+\t\t\t//@ assert b_ns_out: !S({L1}, i1) && S({L2}, i2) && i2 >= {T2} ==> {C(L2,'s2','s2')} == {C(L2,'s2','i2')} && {C(L1,'s1','i1')} < {C(L1,'s1','s1')} && !{MATCH};
+\t\t\tif (l1[i1++] != l2[i2++])
+\t\t\t\treturn 0;
+""", 1)
+TB = "\t\t//@ assert tail_b:"
+assert f.count(TB) == 1
+f = f.replace(TB, f"""\t\t//@ assert b_x: i1 == s1 || i2 == s2;
+\t\t//@ assert b_2a: {G} && i1 == s1 && i2 < {T2} ==> !S({L2}, {T2} - 1) && el({L2}, s2, 2, {T2} - 1) && {C(L2,'s2','i2')} < {C(L2,'s2','s2')} && !{MATCH} && !allsp({L2}, i2, s2);
+\t\t//@ assert b_2b: {G} && i1 == s1 && i2 >= {T2} ==> allsp({L2}, i2, s2) && {C(L2,'s2','i2')} == {C(L2,'s2','s2')} && {MATCH};
+\t\t//@ assert b_1a: {G} && i2 == s2 && i1 < {T1} ==> !S({L1}, {T1} - 1) && el({L1}, s1, 2, {T1} - 1) && {C(L1,'s1','i1')} < {C(L1,'s1','s1')} && !{MATCH} && !allsp({L1}, i1, s1);
+\t\t//@ assert b_1b: {G} && i2 == s2 && i1 >= {T1} ==> allsp({L1}, i1, s1) && {C(L1,'s1','i1')} == {C(L1,'s1','s1')} && {MATCH};
+""" + TB, 1)
 out.append(f)
 
 # ---------------------------------------------------------------- the hash functions
@@ -408,7 +496,7 @@ out.append(r"""
 */
 """)
 import os, subprocess
-out.append(subprocess.check_output([sys.executable, "-I", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lemmas.py"), "--acsl"], text=True))
+out.append(subprocess.check_output([sys.executable, "-I", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lemmas.py"), "--acsl", "hash_step"], text=True))
 HASH_REQ = r"""requires \valid(data) && *data <= top && \base_addr(*data) == \base_addr(top) && top - *data < LONG_MAX;
     requires \valid_read(*data + (0 .. top - *data - 1)) && \separated(data, *data + (0 .. top - *data - 1));
     assigns *data;
@@ -434,7 +522,7 @@ D = '(char *)\\at(*data, Pre)'
 HL = f"hacc({D}, sh, m, ptr - \\at(*data, Pre))"
 WSLOOP = "\tfor (; ptr < top && *ptr != '\\n'; ptr++) {\n\t\tif (cr_at_eol_only) {"
 assert f.count(WSLOOP) == 1
-f = f.replace(WSLOOP, f"""\t/*@ loop invariant \\at(*data, Pre) <= ptr <= \\at(*data, Pre) + ge && *data == \\at(*data, Pre);
+f = f.replace(WSLOOP, f"""\t/*@ loop invariant \\at(*data, Pre) <= ptr <= \\at(*data, Pre) + ge && *data == \\at(*data, Pre) && \\base_addr(ptr) == \\base_addr(\\at(*data, Pre)) && ptr == \\at(*data, Pre) + (ptr - \\at(*data, Pre));
 \t    loop invariant cr_at_eol_only != 0 <==> m == 4;
 \t    loop invariant ha == {HL};
 \t    loop invariant m == 2 ==> (ptr == \\at(*data, Pre) || ptr == \\at(*data, Pre) + ge || !S({D}, ptr - \\at(*data, Pre) - 1) || !S({D}, ptr - \\at(*data, Pre)));
@@ -456,12 +544,25 @@ f = piece('unsigned long xdl_hash_record(char const **data', 'unsigned int xdl_h
 f = f.replace('unsigned long xdl_hash_record(char const **data, char const *top, long flags) {', "/*@ " + HASH_REQ + "\n*/\nunsigned long xdl_hash_record(char const **data, char const *top, long flags) {", 1)
 assert f.count('\tchar const *ptr = *data;\n') == 1
 f = f.replace('\tchar const *ptr = *data;\n', GE, 1)
+HRET = "\t\treturn xdl_hash_record_with_whitespace(data, top, flags);\n\n"
+assert f.count(HRET) == 1
+f = f.replace(HRET, HRET + "\t//@ assert h_m0: m == 0;\n", 1)
+HSTEP = f"\t\t//@ assert h_el: el({D}, sh, 0, ptr - \\at(*data, Pre)) && ev({D}, 0, ptr - \\at(*data, Pre)) == *ptr && hacc({D}, sh, 0, ptr - \\at(*data, Pre) + 1) == step(ha, *ptr);\n"
 NLOOP = "\tfor (; ptr < top && *ptr != '\\n'; ptr++) {\n\t\tha += (ha << 5);"
 assert f.count(NLOOP) == 1
-f = f.replace(NLOOP, f"""\t/*@ loop invariant \\at(*data, Pre) <= ptr <= \\at(*data, Pre) + ge && *data == \\at(*data, Pre);
+f = f.replace(NLOOP, f"""\t/*@ loop invariant \\at(*data, Pre) <= ptr <= \\at(*data, Pre) + ge && *data == \\at(*data, Pre) && \\base_addr(ptr) == \\base_addr(\\at(*data, Pre)) && ptr == \\at(*data, Pre) + (ptr - \\at(*data, Pre));
 \t    loop invariant ha == {HL};
 \t    loop assigns ptr, ha; loop variant top - ptr; */
-""" + NLOOP.replace("\t\tha += (ha << 5);", "\t\t//@ assert here: ptr - \\at(*data, Pre) < ge && B((char *)\\at(*data, Pre), ptr - \\at(*data, Pre)) == (unsigned char)*ptr;\n\t\tha += (ha << 5);"), 1)
+""" + NLOOP.replace("\t\tha += (ha << 5);", "\t\t//@ assert here: ptr - \\at(*data, Pre) < ge && B((char *)\\at(*data, Pre), ptr - \\at(*data, Pre)) == (unsigned char)*ptr;\n" + HSTEP + "\t\tha += (ha << 5);"), 1)
+f = f.replace("\t*data = ptr < top ? ptr + 1: ptr;\n", f"""\t//@ assert h_x: ptr >= top || *ptr == '\\n';
+\t//@ assert h_x1: ptr < top && *ptr == '\\n' ==> B({D}, ptr - \\at(*data, Pre)) == 10;
+\t//@ assert h_x2: ptr - \\at(*data, Pre) >= ge;
+\t//@ assert h_end0: ptr - \\at(*data, Pre) == ge;
+\t//@ assert h_end1: ge < sh ==> B({D}, ge) == 10;
+\t//@ assert h_end: ptr == \\at(*data, Pre) + ge && (ge < sh ==> !el({D}, sh, 0, ge));
+\t//@ assert h_last: hacc({D}, sh, 0, sh) == hacc({D}, sh, 0, ge);
+\t*data = ptr < top ? ptr + 1: ptr;
+""", 1)
 out.append(f)
 
 open(sys.argv[2], 'w').write('\n'.join(out))

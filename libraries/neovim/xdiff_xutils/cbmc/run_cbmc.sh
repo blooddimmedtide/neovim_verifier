@@ -10,7 +10,7 @@ W=$(mktemp -d); mkdir -p "$W/xdiff" "$W/nvim"
 for f in xinclude.h xmacros.h xdiff.h xtypes.h xutils.h xprepare.h xdiffi.h xemit.h; do cp "$NV/src/xdiff/$f" "$W/xdiff/"; done
 cp "${2:-$NV/src/xdiff/xutils.c}" "$W/xdiff/xutils.c"; cp "$HERE/memory.h" "$W/nvim/memory.h"
 UP_C=9972da1b2e6cd1017590597d08052906ea2fd812430008d1eea6242a1a56cd0b     # 7b87ce8
-FIX_C=03680d3e6d9beb279741f33b9d1f8c3d3c9b5d37cf655e59e4d23e6d750eb059    # fork: the three xdiff fixes merged
+FIX_C=739c432fdd10cd614d70c93bd84e466d45813f78da9e7419f7df8e9cd3121116    # fork: the four xdiff fixes merged
 H=eb495aad474092cbc35ac49bb01c4f9742a3ddc15cc26b4b9f2bce2a4765f725   # the 8 headers, concatenated
 [ "$(cd "$W/xdiff" && cat xinclude.h xmacros.h xdiff.h xtypes.h xutils.h xprepare.h xdiffi.h xemit.h | sha256sum | cut -d' ' -f1)" = "$H" ] || { echo "xdiff headers changed upstream"; exit 1; }
 c=$(sha256sum < "$W/xdiff/xutils.c" | cut -d' ' -f1)

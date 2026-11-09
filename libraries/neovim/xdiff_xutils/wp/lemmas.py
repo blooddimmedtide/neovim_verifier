@@ -11,6 +11,9 @@ ACSL = {
   # one step of the hash, as the C code computes it: ha += ha << 5; ha ^= (unsigned long)c;
   "hash_step": ("\\forall integer h, c; 0 <= h < 18446744073709551616 && -128 <= c < 256 ==> "
                 "(unsigned long)((unsigned long)(h + (unsigned long)(h << 5)) ^ (unsigned long)c) == step(h, c)"),
+  # the whitespace flags of xdiff.h (XDF_WHITESPACE_FLAGS == 30) are the bits 2, 4, 8 and 16
+  "ws_bits": ("\\forall integer f; -9223372036854775808 <= f < 9223372036854775808 ==> "
+              "(((f & 30) != 0) <==> ((f & 2) != 0 || (f & 4) != 0 || (f & 8) != 0 || (f & 16) != 0))"),
 }
 
 def check():
@@ -25,10 +28,16 @@ def check():
     hyp = z3.And(h >= 0, h < z3.BitVecVal(M, W), c >= -128, c < 256)
     s = z3.Solver(); s.add(hyp, lhs != step)
     r = s.check(); print("hash_step", "proved" if r == z3.unsat else "FAILED")
-    return r == z3.unsat
+    ok = r == z3.unsat
+    f = z3.BitVec("f", W)                          # & on integers is & on two's complement
+    nz = lambda k: (f & z3.BitVecVal(k, W)) != 0
+    s = z3.Solver(); s.add(f >= -2 ** 63, f < 2 ** 63, nz(30) != z3.Or(nz(2), nz(4), nz(8), nz(16)))
+    r = s.check(); print("ws_bits", "proved" if r == z3.unsat else "FAILED")
+    return ok and r == z3.unsat
 
 if __name__ == "__main__":
     if "--acsl" in sys.argv:
-        print("".join(f"/*@ lemma {n}: {t}; */\n" for n, t in ACSL.items()), end="")
+        names = sys.argv[sys.argv.index("--acsl") + 1:] or list(ACSL)   # --acsl [name ...]
+        print("".join(f"/*@ lemma {n}: {ACSL[n]}; */\n" for n in names), end="")
     else:
         sys.exit(0 if check() else 1)
