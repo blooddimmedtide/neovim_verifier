@@ -105,11 +105,11 @@ assumptions = [
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
 
-[targets.unpacker]   # IN PROGRESS: 7 of 16 functions; see unpacker/CLAIM.md for the open list
+[targets.unpacker]   # IN PROGRESS: 8 of 16 functions; see unpacker/CLAIM.md for the open list
 file = "src/nvim/msgpack_rpc/unpacker.c"
-functions = ["unpack_string", "unpack_array", "unpack_integer", "unpack_uint_or_sint", "parse_nop", "api_parse_exit", "push_additional_data"]
-open = ["unpack", "api_parse_enter", "unpacker_init", "unpacker_teardown", "unpacker_parse_header", "unpacker_advance", "unpacker_parse_redraw", "unpack_skip", "unpack_keydict"]
+functions = ["unpack_string", "unpack_array", "unpack_integer", "unpack_uint_or_sint", "parse_nop", "api_parse_exit", "push_additional_data", "unpacker_init"]
+open = ["unpack", "api_parse_enter", "unpacker_teardown", "unpacker_parse_header", "unpacker_advance", "unpacker_parse_redraw", "unpack_skip", "unpack_keydict"]
 annotate = "unpacker/cbmc/build.py"   # verbatim extraction, sha256 pinned (pins.txt, pins_fixed.txt)
 # push_additional_data fails upstream by design (finding). Its fixed proof needs verified_neovim 76c51e8
 # (PR #9); add "MODE=fixed bash unpacker/cbmc/run_cbmc.sh {fixed}" once fixed_commit includes it.
-prove = ["ONLY='h_unpack_|h_parse_nop|h_api_parse_exit' bash unpacker/cbmc/run_cbmc.sh {src}"]
+prove = ["ONLY='h_unpack_|h_parse_nop|h_api_parse_exit|h_unpacker_init' bash unpacker/cbmc/run_cbmc.sh {src}"]

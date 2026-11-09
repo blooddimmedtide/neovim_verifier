@@ -65,7 +65,7 @@ src/nvim/msgpack_rpc/unpacker.c	push_additional_data	fixed-candidate	unpacker/cb
 src/nvim/msgpack_rpc/unpacker.c	unpack	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	api_parse_enter	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	api_parse_exit	candidate	unpacker/cbmc (CBMC)	empty
-src/nvim/msgpack_rpc/unpacker.c	unpacker_init	open		not started (needs WP with callee contracts)
+src/nvim/msgpack_rpc/unpacker.c	unpacker_init	candidate	unpacker/cbmc/harness_init.c (CBMC, real object.c)	empty parser (depth 32) pointing back at p, empty readers, no error, empty arena; other fields unchanged. Not in the independent review
 src/nvim/msgpack_rpc/unpacker.c	unpacker_teardown	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	unpacker_parse_header	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	unpacker_advance	open		not started (needs WP with callee contracts)

@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/msgpack_rpc/unpacker.c | 0 | 7 | 9 | 16 |
+| src/nvim/msgpack_rpc/unpacker.c | 0 | 8 | 8 | 16 |
 
 ## Function details
 
@@ -84,7 +84,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/msgpack_rpc/unpacker.c | `unpack` | open |  | not started (needs WP with callee contracts) |
 | src/nvim/msgpack_rpc/unpacker.c | `api_parse_enter` | open |  | not started (needs WP with callee contracts) |
 | src/nvim/msgpack_rpc/unpacker.c | `api_parse_exit` | candidate | unpacker/cbmc (CBMC) | empty |
-| src/nvim/msgpack_rpc/unpacker.c | `unpacker_init` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `unpacker_init` | candidate | unpacker/cbmc/harness_init.c (CBMC, real object.c) | empty parser (depth 32) pointing back at p, empty readers, no error, empty arena; other fields unchanged. Not in the independent review |
 | src/nvim/msgpack_rpc/unpacker.c | `unpacker_teardown` | open |  | not started (needs WP with callee contracts) |
 | src/nvim/msgpack_rpc/unpacker.c | `unpacker_parse_header` | open |  | not started (needs WP with callee contracts) |
 | src/nvim/msgpack_rpc/unpacker.c | `unpacker_advance` | open |  | not started (needs WP with callee contracts) |

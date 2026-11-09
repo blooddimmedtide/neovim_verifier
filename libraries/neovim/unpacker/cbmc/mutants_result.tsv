@@ -6,3 +6,8 @@ h_unpack_array	accept MAP instead of ARRAY	caught
 h_unpack_array	return tok.length - 1	caught
 h_unpack_integer	SINT decoded with mpack_unpack_uint	caught
 h_unpack_uint_or_sint	BOOLEAN accepted as UINT	caught
+h_unpacker_init	parser.data.p not set	caught
+h_unpacker_init	has_grid_line_event not cleared	caught
+h_unpacker_init	parser capacity 4 instead of default	caught
+h_unpacker_init	arena only partly reset (pos only)	caught
+h_unpacker_init	reader tokbuf not initialised	caught

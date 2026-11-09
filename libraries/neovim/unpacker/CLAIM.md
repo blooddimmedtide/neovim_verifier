@@ -7,7 +7,7 @@ toolchain: CBMC 6.11.0 (vpipe Nix toolchain)
 strength: candidate   # becomes full-correctness after the owner signs off the spec
 tools: CBMC (bit-precise; loop-free code plus the real mpack reader, unwinding assertions on)
 platform: x86_64, char signed and unsigned (both proved)
-status: IN PROGRESS: 7 of 16 functions have proofs; 9 open (listed below). The file is not done.
+status: IN PROGRESS: 8 of 16 functions have proofs; 8 open (listed below). The file is not done.
 ---
 
 # Claim card: Neovim msgpack_rpc/unpacker.c
@@ -27,6 +27,7 @@ MessagePack specification, not the code.
 | `unpack_integer(&d, &s, &res)` | If the buffer starts with a complete integer (pos/neg fixint, uint8..64, int8..64), returns true, sets res to its value and consumes exactly it. Otherwise false, res untouched, consumption stays inside the buffer | `h_unpack_integer` |
 | `unpack_uint_or_sint(tok, &res)` | For every token the real reader produces: true and the integer value for UINT/SINT tokens, false and res untouched otherwise | `h_unpack_uint_or_sint` |
 | `parse_nop`, `api_parse_exit` | empty; read and write nothing | `h_parse_nop`, `h_api_parse_exit` |
+| `unpacker_init(p)` | from any prior contents: parser empty with the default depth 32, `parser.data.p == p`, stack nodes cleared (`items[0].pos == SIZE_MAX`), token readers empty, `unpack_error` = none, arena empty, `has_grid_line_event` false; `read_ptr`, `read_size`, `state`, `nevents`, `ncalls`, `result` unchanged. Real `object.c`/`mpack_core.c`; struct Unpacker verbatim, untouched field types opaque (`build_init.py`) | `harness_init.c` |
 | `push_additional_data(ad, data, size)` (fixed fork) | appends the bytes after an AdditionalData header (created zeroed on first use), nitems + 1, and keeps `nbytes == total size - header`. Upstream: wrong from 4 GiB (finding) | `harness_ad.c` |
 
 Reference decision (stated, not derived): a msgpack uint64 of 2^63 or more has no `Integer`
@@ -58,7 +59,7 @@ That part is in shada.c (claimed by PR #10) and is not fixed here. See `../findi
 
 ## Not covered yet (file not done)
 
-`unpack`, `api_parse_enter`, `unpacker_init`, `unpacker_teardown`,
+`unpack`, `api_parse_enter`, `unpacker_teardown`,
 `unpacker_parse_header`, `unpacker_advance`, `unpacker_parse_redraw`, `unpack_skip`,
 `unpack_keydict`. These call `mpack_parse` (object.c), the arena allocator, the UI client
 and the ShaDa key hash tables, and loop over unbounded input; they need Frama-C WP with
@@ -67,7 +68,7 @@ is defined only while generated key sets have at most 64 fields (to check).
 
 ## Mutants
 
-Author: 7 planted bugs, 7 caught (`cbmc/mutants_result.tsv`). Independent review (`REVIEW.md`,
+Author: 11 planted bugs, 11 caught (4 of them on unpacker_init, added after the review) (`cbmc/mutants_result.tsv`). Independent review (`REVIEW.md`,
 accept with changes): 22 more mutants (`cbmc/mutants.toml`); 20 non-equivalent ones in scope,
 18 caught by the first harness, 20/20 after its issues 1-3 were applied. Issue 7 is applied too:
 build.py now checks the String and AdditionalData structs as whole blocks.
