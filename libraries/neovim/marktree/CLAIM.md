@@ -68,6 +68,6 @@ function reads it). The upstream `assert` becomes a call whose precondition is t
 - CBMC: meta_* functions, both char signednesses, fixed tree 8/8; upstream meta_has fails (the finding).
 - Independent review: REVIEW.md, 20/20 non-equivalent planted bugs caught (mutants.toml).
   Review finding 1 (an annotation holding `*/ ... /*@` could smuggle code past the strip check) is fixed: build.py
-  rejects comment tokens in every contract, annotation and LOGIC. Open: finding 2 (prelude lines are checked one by
-  one, not as ordered blocks), finding 3 (DecorInlineData opaque, MTNode without `s[]`; no proved function depends
+  rejects comment tokens in every contract, annotation and LOGIC. Finding 2 is fixed too: each copied type is now
+  checked as a whole block, in order (a swapped field fails the build). Open: finding 3 (DecorInlineData opaque, MTNode without `s[]`; no proved function depends
   on layout). The meta_* contracts in contracts.py are not run by WP; their proof is the CBMC harness.

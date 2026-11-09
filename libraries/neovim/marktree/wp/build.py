@@ -62,6 +62,12 @@ def check_prelude(tree):
             continue
         if l not in lines:
             sys.exit(f"build: prelude line not in the pinned headers: {l!r}")
+    # review finding 2: each copied type must match the header as a whole block, in order
+    full = hdr.replace("  struct mtnode_inner_s s[];\n", "")  # the prelude leaves out MTNode's inner part
+    pre = open(f"{HERE}/stubs/vp_marktree.h").read()
+    for blk in re.findall(r"^(?:typedef struct \{|typedef enum \{|struct mtnode_s \{)\n.*?^\}[^\n]*;$", pre, re.S | re.M):
+        if blk not in full:
+            sys.exit(f"build: prelude type block differs from the pinned headers: {blk.splitlines()[-1]!r}")
     if "  MT_BRANCH_FACTOR = 10," not in open(f"{tree}/src/nvim/marktree_defs.h").read():
         sys.exit("build: MT_BRANCH_FACTOR changed")
     if "#define mt_generic_cmp(a, b) (((b) < (a)) - ((a) < (b)))" not in open(f"{tree}/{F}").read():
