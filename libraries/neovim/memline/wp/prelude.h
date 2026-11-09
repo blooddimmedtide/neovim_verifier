@@ -86,17 +86,22 @@ extern int inhibit_delete_count;
 */
 void *xmalloc(size_t n);
 
+// Ghost "avoid" object: a live object the caller still uses after the call. A real
+// realloc never returns memory overlapping a live object outside the old block, so
+// the contract may promise separation from it. (Used instead of a \forall-over-valid-
+// pointers freshness clause, which is contradictory in WP since it ignores allocates.)
+/*@ ghost buf_T *vp_avoid_buf; */
 /*@ // memory.c xrealloc: n bytes, first bytes kept, never NULL
     requires n >= 1;
+    requires \valid(vp_avoid_buf) && \base_addr(vp_avoid_buf) != \base_addr((char *)p);
     assigns \result \from p, n;
     allocates \result;
     ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
     // realloc keeps the old bytes; stated for the one element type it is used
     // with here (infoptr_T, 24 bytes), which follows from keeping the bytes.
+    ensures \separated((char *)\result + (0 .. n - 1), vp_avoid_buf);
     ensures \forall integer i; 0 <= i && (i + 1) * 24 <= n && \valid_read{Pre}((infoptr_T *)p + i) ==>
               ((infoptr_T *)\result)[i] == \at(((infoptr_T *)p)[i], Pre);
-    ensures \forall char *q; \valid_read{Pre}(q) && \base_addr(q) != \base_addr((char *)p)
-              ==> \base_addr(q) != \base_addr((char *)\result);
 */
 void *xrealloc(void *p, size_t n);
 
@@ -232,6 +237,7 @@ static bhdr_T *ml_new_ptr(memfile_T *mfp);
     requires 0 <= buf->b_ml.ml_stack_top <= buf->b_ml.ml_stack_size <= INT_MAX - STACK_INCR;
     requires \valid(buf->b_ml.ml_stack + (0 .. buf->b_ml.ml_stack_size - 1));
     requires \base_addr(buf) != \base_addr(buf->b_ml.ml_stack);   // the stack is its own allocation
+    requires vp_avoid_buf == buf;   // ghost: realloc result is separate from buf
     assigns buf->b_ml;
     ensures \result == \old(buf->b_ml.ml_stack_top);
     ensures buf->b_ml.ml_stack_top == \old(buf->b_ml.ml_stack_top) + 1;

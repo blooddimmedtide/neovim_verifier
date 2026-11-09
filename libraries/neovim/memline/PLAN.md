@@ -50,9 +50,9 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 - mf_rem_free: free list not empty (documented: "Caller must check").
 - ml_add_deleted_len(_buf): len >= -1 (callers pass -1 or a line length), the counters do not wrap,
   the string is at most PTRDIFF_MAX long. A len below -1 would wrap the counters, but no caller passes one.
-- xrealloc's freshness clause has the same form the coordinator flagged in the garray stub (WP ignores
-  `allocates`). Smoke tests pass for ml_add_stack, but its proof should be redone with ghost "avoid"
-  arguments (typval/wp_blob style) before review.
+- xrealloc: no "fresh w.r.t. every valid pointer" clause (that form is contradictory in WP, which
+  ignores `allocates`; the same problem was found in the garray stub). Instead a ghost avoid object
+  vp_avoid_buf (== buf in ml_add_stack's contract): the result is separate from that live object.
 
 ## Leads for the next session
 
