@@ -658,6 +658,40 @@ const char *tv_get_string_buf_chk(const typval_T *const tv, char *const buf);
       ensures \result != \null && \result != buf && vp_msgs == \old(vp_msgs) + 1 && vp_last == str_errors[tv->v_type];
     complete behaviors; disjoint behaviors; */
 const char *tv_get_string_buf(const typval_T *const tv, char *const buf);
+
+// ---- tv_dict_wrong_func_name: callees in vars.c / userfunc.c, modelled by their results
+#ifndef FUNC_ATTR_CONST
+#define FUNC_ATTR_CONST
+#endif
+//@ ghost dict_T *vp_globvar_dict;
+//@ ghost hashtab_T *vp_funccal_local_ht;
+/*@ logic boolean wrong_fn_name{L}(char *name) reads name[0 ..]; */
+/*@ assigns \nothing; ensures \result == vp_globvar_dict; */
+dict_T *get_globvar_dict(void);
+/*@ assigns \nothing; ensures \result == vp_funccal_local_ht; */
+hashtab_T *get_funccal_local_ht(void);
+/*@ requires is_str((char *)name) && new_var;
+    assigns vp_msgs, vp_last;
+    ensures \result == 0 || \result == 1;
+    ensures \result == 1 <==> wrong_fn_name((char *)name); */
+bool var_wrong_func_name(const char *const name, const bool new_var);
+
+/*@ assigns \nothing;
+    ensures \result == 0 || \result == 1;
+    ensures \result == 1 <==> (tv.v_type == VAR_FUNC || tv.v_type == VAR_PARTIAL); */
+static inline bool tv_is_func(const typval_T tv);
+
+/*@ requires \valid_read(tv) && is_str((char *)name);
+    requires d != \null;
+    assigns vp_msgs, vp_last;
+    ensures \result == 0 || \result == 1;
+    ensures \result == 1 <==>
+      ((d == vp_globvar_dict || &d->dv_hashtab == vp_funccal_local_ht)
+       && (tv->v_type == VAR_FUNC || tv->v_type == VAR_PARTIAL)
+       && wrong_fn_name((char *)name));
+    ensures !((d == vp_globvar_dict || &d->dv_hashtab == vp_funccal_local_ht)
+              && (tv->v_type == VAR_FUNC || tv->v_type == VAR_PARTIAL)) ==> vp_msgs == \old(vp_msgs); */
+int tv_dict_wrong_func_name(dict_T *d, typval_T *tv, const char *name);
 '''
 
 CHECKS = [

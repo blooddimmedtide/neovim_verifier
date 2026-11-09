@@ -119,3 +119,5 @@ src/nvim/eval/typval.h	tv_blob_set	candidate	typval/wp_blob (Frama-C WP), typval
 src/nvim/eval/typval.h	tv_blob_set_ret	candidate	typval/wp_blob (Frama-C WP), typval.h inline	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
 src/nvim/eval/typval.c	tv_get_string_buf_chk	candidate	typval/wp (Frama-C WP), snprintf/strcpy by bounded libc contracts; number text not specified	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
 src/nvim/eval/typval.c	tv_get_string_buf	candidate	typval/wp (Frama-C WP), via tv_get_string_buf_chk	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_is_func	candidate	typval/wp (Frama-C WP), typval.h inline	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_dict_wrong_func_name	candidate	typval/wp (Frama-C WP), modulo get_globvar_dict/get_funccal_local_ht/var_wrong_func_name (modelled by their results)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off

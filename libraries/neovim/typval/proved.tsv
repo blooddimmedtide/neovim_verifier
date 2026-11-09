@@ -61,3 +61,5 @@ tv_blob_set	wp_blob (Frama-C WP), typval.h inline
 tv_blob_set_ret	wp_blob (Frama-C WP), typval.h inline
 tv_get_string_buf_chk	wp (Frama-C WP), snprintf/strcpy by bounded libc contracts; number text not specified
 tv_get_string_buf	wp (Frama-C WP), via tv_get_string_buf_chk
+tv_is_func	wp (Frama-C WP), typval.h inline
+tv_dict_wrong_func_name	wp (Frama-C WP), modulo get_globvar_dict/get_funccal_local_ht/var_wrong_func_name (modelled by their results)

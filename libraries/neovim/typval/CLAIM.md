@@ -58,6 +58,9 @@ texts in `tv_check_str_or_nr`, `tv_get_float`), and the values of format argumen
 | `tv_callback_equal` | true iff same type and equal payload (string equality for Funcref/Expr by `strequal`'s proved contract; pointer/ref equality for Partial/Lua) |
 | `value_check_lock(lock, name, len)` | true iff `lock != VAR_UNLOCKED`, and then exactly one message; `assert(error_message != NULL)` proved |
 | `tv_check_lock(tv, name, len)` | true iff the value's lock or its Blob/List/Dict's lock is set; exactly one message when true |
+| `tv_get_string_buf_chk(tv, buf)` | String: the string itself (NULL string: a non-NULL empty literal); Number/Float/Bool/Special: `buf`, holding a NUL-terminated string within `NUMBUFLEN`; other types: NULL with one message (`str_errors[type]`). The digits written are not specified (snprintf is trusted) |
+| `tv_get_string_buf(tv, buf)` | the same, but never NULL (error: an empty literal, not `buf`) |
+| `tv_dict_wrong_func_name(d, tv, name)` | true iff `d` is g: or the current l: scope, the value is a Funcref/Partial, and `var_wrong_func_name(name)` says the name is wrong; no message otherwise. The three callees are modelled by their results only |
 | 21 `tv_check_for_*_arg(args, idx)` | OK iff `args[idx]` has an accepted type (the `opt_` forms also accept `VAR_UNKNOWN`; `bool` also accepts Number 0/1; `nonempty_string` needs a non-NULL non-empty string; `nonnull_dict` a non-NULL dict); else FAIL with exactly one message |
 
 ## Assumptions (preconditions) and trusted base
@@ -73,6 +76,9 @@ texts in `tv_check_str_or_nr`, `tv_get_float`), and the values of format argumen
 - `vim_str2nr` (charset.c) is modelled by its effect only: it writes `*nptr` with a value that
   depends on the string and the old `*nptr`. Its own proof belongs to the charset.c claim (PR #3).
 - `strequal`: the contract proved in `memory/wp`. `strlen`: the libc contract used in `memory/wp`.
+- `snprintf`/`vim_snprintf` into a `NUMBUFLEN` buffer: write only the buffer and leave a string
+  there; `strcpy` of `encode_bool_var_names`/`encode_special_var_names` (short strings, separate
+  from `buf`): writes only `buf`.
 - `emsg`, `semsg`, `vim_snprintf` are stubs (messages only; `vim_snprintf` writes only `buf`).
 - `struct dictvar_S` is copied up to `dv_hashtab`; later fields (used-list links, watchers)
   are left out because no proved function reads them. `listitem_S.li_tv` is left out for the same reason.
