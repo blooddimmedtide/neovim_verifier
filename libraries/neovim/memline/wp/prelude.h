@@ -175,6 +175,30 @@ static char *ml_get_buf_impl(buf_T *buf, linenr_T lnum, bool will_change);
 */
 colnr_T ml_get_buf_len(buf_T *buf, linenr_T lnum);
 
+// The editing entry points below are not yet verified. vp_world stands for all
+// the state they change; their results are uninterpreted functions of the call.
+// The wrappers are proved to pass the right arguments and return the result.
+/*@ ghost int vp_world; */
+/*@ ghost buf_T *vp_upd_buf; */
+/*@ ghost int vp_upd_what; */
+/*@ logic integer vp_append{L}(integer lnum, char *line, integer len, integer flags);
+    logic integer vp_replace{L}(buf_T *buf, integer lnum, char *line, integer copy, integer noalloc);
+    logic integer vp_replace_len{L}(buf_T *buf, integer lnum, char *line, integer len, integer copy, integer noalloc);
+    logic integer vp_delete{L}(integer lnum, integer flags);
+*/
+#define ML_APPEND_NEW 1
+typedef enum { UB_FNAME = 0, UB_SAME_DIR } upd_block0_T;
+/*@ assigns vp_world; ensures \result == vp_append{Pre}(lnum, line, len, flags); */
+int ml_append_flags(linenr_T lnum, char *line, colnr_T len, int flags);
+/*@ assigns vp_world; ensures \result == vp_replace{Pre}(buf, lnum, line, copy, noalloc); */
+int ml_replace_buf(buf_T *buf, linenr_T lnum, char *line, bool copy, bool noalloc);
+/*@ assigns vp_world; ensures \result == vp_replace_len{Pre}(buf, lnum, line_arg, len_arg, copy, noalloc); */
+int ml_replace_buf_len(buf_T *buf, linenr_T lnum, char *line_arg, size_t len_arg, bool copy, bool noalloc);
+/*@ assigns vp_world; ensures \result == vp_delete{Pre}(lnum, flags); */
+int ml_delete_flags(linenr_T lnum, int flags);
+/*@ assigns vp_world, vp_upd_buf, vp_upd_what; ensures vp_upd_buf == buf && vp_upd_what == what; */
+static void ml_upd_block0(buf_T *buf, upd_block0_T what);
+
 // ---------------------------------------------------------------- proved
 /*@ // proved below with the functions (run label "lemmas"): a product of two
     // unsigned ints never wraps a 64-bit size_t.
@@ -389,3 +413,19 @@ char *ml_get_pos(const pos_T *pos);
     ensures \result == vp_len(curbuf, pos->lnum) - pos->col;
 */
 colnr_T ml_get_pos_len(pos_T *pos);
+
+/*@ assigns vp_world;
+    ensures \result == vp_append{Pre}(lnum, line, len, newfile ? ML_APPEND_NEW : 0); */
+int ml_append(linenr_T lnum, char *line, colnr_T len, bool newfile);
+/*@ assigns vp_world;
+    ensures \result == vp_replace{Pre}(curbuf, lnum, line, copy, 0); */
+int ml_replace(linenr_T lnum, char *line, bool copy);
+/*@ assigns vp_world;
+    ensures \result == vp_replace_len{Pre}(curbuf, lnum, line, len, copy, 0); */
+int ml_replace_len(linenr_T lnum, char *line, size_t len, bool copy);
+/*@ assigns vp_world;
+    ensures \result == vp_delete{Pre}(lnum, 0); */
+int ml_delete(linenr_T lnum);
+/*@ assigns vp_world, vp_upd_buf, vp_upd_what;
+    ensures vp_upd_buf == buf && vp_upd_what == UB_FNAME; */
+void ml_timestamp(buf_T *buf);

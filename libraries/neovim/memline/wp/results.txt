@@ -19,4 +19,9 @@ ml_get_buf: 10 / 10
 ml_get_buf_mut: 10 / 10
 ml_get_pos: 13 / 13
 ml_get_pos_len: 15 / 15
+ml_timestamp: 6 / 6
+ml_append: 14 / 14
+ml_replace: 8 / 8
+ml_replace_len: 8 / 8
+ml_delete: 8 / 8
 

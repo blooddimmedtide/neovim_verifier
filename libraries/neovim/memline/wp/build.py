@@ -32,6 +32,11 @@ PIECES = [  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
     (ML, "ml_get_buf_mut", "425ee1b512741fb254bcc34f87afa4881b947f998cc48f5acc0cbd752f3659f4"),
     (ML, "ml_get_pos", "1edd975894537a7577a977b438b9e3b47e9094dd3fedd4c4540f5634d78a2938"),
     (ML, "ml_get_pos_len", "625a45ec669ac8f72ff128201e13b36d86a67aeedc631586076a1251a415ebfc"),
+    (ML, "ml_timestamp", "ffdb79d158e930fd37d728b3914861674595113e5cac6884786bce44d52005dc"),
+    (ML, "ml_append", "58907eeeaffba1df282085d8a8f3a9906e2e2cabec55e020416e6ae0f8138f15"),
+    (ML, "ml_replace", "50557e15b6746cc4c7844b8fd086e17694a01fb20be6a77863b8efc895015ea3"),
+    (ML, "ml_replace_len", "aa60333f6fffbe8b4086b669f0936ca072fb4ea062eb3add23f8ab40866c1b6b"),
+    (ML, "ml_delete", "c55f30157439395cc6f1a7ac5159cb02ee0bf6035904d65c9b6406e0c7db3985"),
     (ML, "ml_add_stack", "bede1c526990704cf8f0bb5ad43cd5a3107373cc2708b0b68c0fe21458a17cfc"),
 ]
 CHECKS = [
@@ -63,6 +68,8 @@ CHECKS = [
     ("src/nvim/globals.h", "EXTERN int inhibit_delete_count INIT( = 0);"),
     ("src/nvim/pos_defs.h", "typedef int32_t linenr_T;"),
     ("src/nvim/pos_defs.h", "typedef int colnr_T;"),
+    ("src/nvim/memline.h", "  ML_APPEND_NEW = 1,   // starting to edit a new file"),
+    (ML, "  UB_FNAME = 0,         // update timestamp and filename"),
     ("src/nvim/pos_defs.h", "  colnr_T coladd;"),
 ]
 PRELUDE = open(os.path.join(HERE, "prelude.h")).read()

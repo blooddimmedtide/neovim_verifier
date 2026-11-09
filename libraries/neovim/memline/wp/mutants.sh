@@ -28,6 +28,10 @@ M=(
  "ml_get_buf_mut|  return ml_get_buf_impl(buf, lnum, true);|  return ml_get_buf_impl(buf, lnum, false);"
  "ml_get_pos|  return ml_get_buf(curbuf, pos->lnum) + pos->col;|  return ml_get_buf(curbuf, pos->lnum + 1) + pos->col;"
  "ml_get_pos_len|  return ml_get_buf_len(curbuf, pos->lnum) - pos->col;|  return ml_get_buf_len(curbuf, pos->lnum) - pos->col - 1;"
+ "ml_append|  return ml_append_flags(lnum, line, len, newfile ? ML_APPEND_NEW : 0);|  return ml_append_flags(lnum, line, len, newfile ? 0 : ML_APPEND_NEW);"
+ "ml_replace|  return ml_replace_buf(curbuf, lnum, line, copy, false);|  return ml_replace_buf(curbuf, lnum, line, copy, true);"
+ "ml_timestamp|  ml_upd_block0(buf, UB_FNAME);|  ml_upd_block0(buf, UB_SAME_DIR);"
+ "ml_delete|  return ml_delete_flags(lnum, 0);|  return ml_delete_flags(lnum - 1, 0);"
  "ml_line_alloced|  return curbuf->b_ml.ml_flags & ML_LINE_DIRTY;|  return curbuf->b_ml.ml_flags & 0x01;"
 )
 export PATH=$HOME/.vpipe/bin:$PATH

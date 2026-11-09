@@ -4,11 +4,11 @@ Claim: neovim_verifier draft PR #9 (branch claude/project-thread-kiwgsl).
 Pinned upstream: neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. Tool: Frama-C 33 WP
 (z3, cvc5), model Typed+Cast, RTE guards, unsigned-overflow warnings, smoke tests on.
 
-**Not finished.** 25 of 104 functions proved; 79 still unverified (list below).
+**Not finished.** 30 of 104 functions proved; 74 still unverified (list below).
 
 ## Status (2026-11-09, session stopped at the 09:00 UTC deadline)
 
-- Proved with WP, every goal, smoke tests pass (no dead code or vacuous contracts): mf_alloc_bhdr, mf_free_bhdr, mf_free_fnames, mf_ins_free, mf_need_trans, mf_new_page_size, mf_rem_free, mf_set_fnames, ml_add_deleted_len, ml_add_deleted_len_buf, ml_add_stack, ml_flush_deleted_bytes, ml_get, ml_get_buf, ml_get_buf_mut, ml_get_pos, ml_get_pos_len, ml_line_alloced, ml_new_data, ml_new_ptr.
+- Proved with WP, every goal, smoke tests pass (no dead code or vacuous contracts): mf_alloc_bhdr, mf_free_bhdr, mf_free_fnames, mf_ins_free, mf_need_trans, mf_new_page_size, mf_rem_free, mf_set_fnames, ml_add_deleted_len, ml_add_deleted_len_buf, ml_add_stack, ml_append, ml_delete, ml_flush_deleted_bytes, ml_get, ml_get_buf, ml_get_buf_mut, ml_get_pos, ml_get_pos_len, ml_line_alloced, ml_new_data, ml_new_ptr, ml_replace, ml_replace_len, ml_timestamp.
   Results: wp/results.txt (plus one helper lemma, proved). Planted bugs: wp/mutants.sh, 21/21 caught (wp/mutants_results.txt).
 - Proved with CBMC 6.11 (bounds, pointer, overflow and shift checks, unwinding assertions, signed and
   unsigned char): b0_magic_wrong, char_to_long, long_to_char, ml_check_b0_id, ml_check_b0_strings. Specs in cbmc/harness.c and cbmc/harness_b0.c. Planted bugs:
@@ -38,6 +38,8 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 - FullName_save (path.c): a new allocation or NULL.
 - ml_get_buf_impl / ml_get_buf_len (memline.c, not yet proved): return line text vp_line(buf, lnum, will_change)
   (uninterpreted) with vp_len readable bytes before the NUL. The ml_get* wrappers are proved against these.
+- ml_append_flags, ml_replace_buf, ml_replace_buf_len, ml_delete_flags, ml_upd_block0 (not yet proved):
+  results are uninterpreted functions of the arguments. The five wrappers are proved to call them correctly.
 - strlen: C-standard contract from ../memory/wp/stubs/vp_string.h. mb_utflen (mbyte.c): adds uninterpreted
   per-byte-range counts vp_cps / vp_cus (the spec of ml_add_deleted_len_buf is stated in terms of them).
 - Reduced types: memfile_T without its two maps, buf_T with only b_ml.ml_stack/top/size.
@@ -99,7 +101,7 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 | memline.c | ml_close | not started |
 | memline.c | ml_close_all | not started |
 | memline.c | ml_close_notmod | not started |
-| memline.c | ml_timestamp | not started |
+| memline.c | ml_timestamp | proved (WP, wrapper: right arguments to the unverified callee; review pending) |
 | memline.c | ml_check_b0_id | proved (CBMC, both char signednesses, review pending) |
 | memline.c | ml_check_b0_strings | proved (CBMC, both char signednesses, review pending) |
 | memline.c | ml_upd_block0 | not started |
@@ -129,18 +131,18 @@ ACSL contracts are on prototypes in wp/prelude.h; build.py copies each function 
 | memline.c | ml_line_alloced | proved (WP, review pending) |
 | memline.c | ml_append_int | not started |
 | memline.c | ml_append_flush | not started |
-| memline.c | ml_append | not started |
+| memline.c | ml_append | proved (WP, wrapper: right arguments to the unverified callee; review pending) |
 | memline.c | ml_append_flags | not started |
 | memline.c | ml_append_buf | not started |
 | memline.c | ml_add_deleted_len | proved (WP, review pending) |
 | memline.c | ml_add_deleted_len_buf | proved (WP, review pending) |
-| memline.c | ml_replace | not started |
-| memline.c | ml_replace_len | not started |
+| memline.c | ml_replace | proved (WP, wrapper: right arguments to the unverified callee; review pending) |
+| memline.c | ml_replace_len | proved (WP, wrapper: right arguments to the unverified callee; review pending) |
 | memline.c | ml_replace_buf | not started |
 | memline.c | ml_replace_buf_len | not started |
 | memline.c | ml_delete_buf | not started |
 | memline.c | ml_delete_int | not started |
-| memline.c | ml_delete | not started |
+| memline.c | ml_delete | proved (WP, wrapper: right arguments to the unverified callee; review pending) |
 | memline.c | ml_delete_flags | not started |
 | memline.c | ml_setmarked | not started |
 | memline.c | ml_firstmarked | not started |
