@@ -56,3 +56,19 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/ops.c	get_op_type	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/ops.c	op_on_lines	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/ops.c	op_is_change	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/ops.c	op_redoable	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/ops.c	get_op_char	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/ops.c	get_extra_op_char	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/ops.c	get_vts	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/ops.c	get_vts_sum	fixed-candidate	register_ops/wp (Frama-C WP, upstream under int bound, fixed every index)	int overflow (findings/vts-sum-overflow.md); fix verified_neovim 09421b0 proved
+src/nvim/register.c	get_unname_register	candidate	register_ops/cbmc (CBMC, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/register.c	get_y_register	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/register.c	get_y_previous	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/register.c	op_reg_iter	candidate	register_ops/cbmc (CBMC, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/register.c	op_global_reg_iter	candidate	register_ops/cbmc (CBMC, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/register.c	op_reg_amount	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/register.c	op_reg_get	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet
+src/nvim/register.c	op_reg_set_previous	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; no review/mutants yet

@@ -1,6 +1,8 @@
 """Annotated standalone copy of register.c / ops.c helpers for Frama-C WP.
 
-Usage: python3 -I build.py <neovim checkout> <out.c> [--pin]
+Usage: python3 -I build.py <neovim checkout> <out.c> [--pin] [--fixed]
+--fixed: the checkout is the verified_neovim fix branch; pieces in pins_fixed.txt replace
+the upstream pins (and their FIXED contracts are used).
 Every function, type and table is the exact upstream text at the pinned commit, sha256
 pinned (--pin prints the hashes for review). ACSL goes only in /*@ ... */ comments placed
 before a piece; build checks that stripping them gives back the verbatim pieces.
@@ -10,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "..", "tools"))
 from extract_c import find
-from contracts import LOGIC, CONTRACTS, LOOPS
+from contracts import LOGIC, CONTRACTS, LOOPS, FIXED
 
 # (file, kind, name-or-(first line, last line), sha256) in output order.
 # kind "fn": a column-0 function; "span": lines from the first exact line to the next exact line.
@@ -38,6 +40,8 @@ PIECES = [
     ("src/nvim/ops.c", "fn", "op_redoable", None),
     ("src/nvim/ops.c", "fn", "get_op_char", None),
     ("src/nvim/ops.c", "fn", "get_extra_op_char", None),
+    ("src/nvim/ops.c", "fn", "get_vts", None),
+    ("src/nvim/ops.c", "fn", "get_vts_sum", None),
     ("src/nvim/register.c", "fn", "get_unname_register", None),
     ("src/nvim/register.c", "fn", "get_y_register", None),
     ("src/nvim/register.c", "fn", "get_y_previous", None),
@@ -54,6 +58,7 @@ PRELUDE = r"""// Prelude: what the pieces need from Neovim's headers, written as
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 #define NUL '\000'
 #define Ctrl_A          1
 #define Ctrl_X          24
@@ -106,11 +111,16 @@ def main():
     for path, text in CHECKS:
         if text not in open(f"{tree}/{path}").read().split("\n"):
             sys.exit(f"build: {path} no longer contains: {text}")
-    want = {}
+    fixed = "--fixed" in sys.argv
+    want, fixed_keys = {}, set()
     if not pin:
         for l in open(PIN):
             k, h = l.split()
             want[k] = h
+        if fixed:
+            for l in open(os.path.join(HERE, "pins_fixed.txt")):
+                k, h = l.split()
+                want[k] = h; fixed_keys.add(k)
     parts, plain, pins = [PRELUDE], [PRELUDE], []
     for path, kind, name, _ in PIECES:
         s, text = piece(tree, path, kind, name)
@@ -122,6 +132,8 @@ def main():
         if kind == "fn" and LOGIC not in parts:   # reference logic after the types and globals
             parts.append(LOGIC); plain.append(LOGIC)
         c = CONTRACTS.get(name if kind == "fn" else None, "")
+        if fixed and kind == "fn" and name in FIXED:
+            c = FIXED[name]
         atext = text
         for anchor, ann in (LOOPS.get(name, []) if kind == "fn" else []):
             if atext.count(anchor + "\n") != 1:

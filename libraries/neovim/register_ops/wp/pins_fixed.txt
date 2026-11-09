@@ -1,0 +1,1 @@
+src/nvim/ops.c:get_vts_sum 09df7985a67d9e9f66a551fd9dffd40cd87e25d5467aa3d988ca15a2f2c7aff3

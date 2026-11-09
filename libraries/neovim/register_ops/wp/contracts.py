@@ -51,6 +51,14 @@ LOGIC = r"""
   predicate regs_readable{L} = \forall integer k; 0 <= k < NUM_REGISTERS ==> readable(&y_regs[k]);
   logic integer nonempty_count{L}(integer n) =
     n <= 0 ? 0 : nonempty_count(n - 1) + (empty(&y_regs[n - 1]) ? 0 : 1);
+  // 'vartabstop' (:help 'vartabstop'): a[0] = number of tabstops, a[1..a[0]] their widths;
+  // the last width repeats past the end. vts_sum(a, n) = width of the first n tabstops.
+  logic integer vts_at{L}(int *a, integer k) = k < 1 ? 0 : k <= a[0] ? a[k] : a[a[0]];
+  logic integer vts_sum{L}(int *a, integer n) = n <= 0 ? 0 : vts_sum(a, n - 1) + vts_at(a, n);
+  // The option parser guarantees 1 <= a[0] and 1 <= a[k] <= TABSTOP_MAX (indent.c tabstop_set);
+  // shift_line only takes this path when a[0] != 0.
+  predicate vts_ok{L}(int *a) = \valid_read(a) && 1 <= a[0] < 100000 && \valid_read(a + (0 .. a[0])) &&
+    \forall integer k; 1 <= k <= a[0] ==> 1 <= a[k] <= 9999;
   predicate prev_ok{L} = y_previous == \null ||
     \exists integer k; 0 <= k < NUM_REGISTERS && y_previous == &y_regs[k];
 */
@@ -85,6 +93,13 @@ CONTRACTS = {
     ensures \\result == op_c1(optype); */""",
     "get_extra_op_char": """/*@ requires 0 <= optype <= 30; assigns \\nothing;
     ensures \\result == op_c2(optype); */""",
+    "get_vts": """/*@ requires vts_ok(vts_array); assigns \\nothing;
+    ensures \\result == vts_at(vts_array, index); */""",
+    # Upstream: only when the sum fits in int. Callers violate this (see findings/ops-get-vts-sum-overflow.md).
+    "get_vts_sum": """/*@ requires vts_ok(vts_array);
+    requires index <= vts_array[0] || vts_array[vts_array[0]] * (index - vts_array[0]) <= INT_MAX - 9999 * vts_array[0];
+    assigns \\nothing;
+    ensures \\result == vts_sum(vts_array, index); */""",
     "get_unname_register": """/*@ requires prev_ok; assigns \\nothing;
     ensures y_previous == \\null ==> \\result == -1;
     ensures y_previous != \\null ==> 0 <= \\result < NUM_REGISTERS && &y_regs[\\result] == y_previous; */""",
@@ -105,7 +120,20 @@ BITS = " ".join(f"/*@ assert opchars[op][2] == {k} ==> (opchars[op][2] & {m}) ==
                for m in (1, 2) for k in range(4))
 FLAGS = (BITS + " /*@ assert opchars[op][2] == (op_lines(op) ? 1 : 0) + (op_changes(op) ? 2 : 0); */ "
          "/*@ assert opchars[op][2] == 0 || opchars[op][2] == 1 || opchars[op][2] == 2 || opchars[op][2] == 3; */")
+FIXED = {  # the fixed fork's version needs no bound on index
+    "get_vts_sum": """/*@ requires vts_ok(vts_array); assigns \\nothing;
+    ensures \\result == vts_sum(vts_array, index); */""",
+}
+VTS_LOOP = ("/*@ loop invariant 1 <= i <= vts_array[0] + 1; loop invariant i <= index + 1 || index < 1 && i == 1;"
+            " loop invariant sum == vts_sum(vts_array, i - 1); loop invariant 0 <= sum <= 9999 * (i - 1);"
+            " loop assigns i, sum; loop variant vts_array[0] - i; */")
 LOOPS = {
+    "get_vts_sum": [("  for (i = 1; i <= index && i <= vts_array[0]; i++) {", VTS_LOOP),
+        # Ghost induction: past the end every tabstop is the last width.
+        ("  // Add tabstops whose indices exceed the actual array.",
+         "/*@ ghost int k = vts_array[0]; if (i <= index) { /@ loop invariant vts_array[0] <= k <= index;"
+         " loop invariant vts_sum(vts_array, k) == vts_sum(vts_array, vts_array[0]) + vts_array[vts_array[0]] * (k - vts_array[0]);"
+         " loop assigns k; loop variant index - k; @/ while (k < index) { k++; } } */")],
     "op_on_lines": [("  return opchars[op][2] & OPF_LINES;", FLAGS)],
     "op_is_change": [("  return opchars[op][2] & OPF_CHANGE;", FLAGS)],
     "get_op_type": [("  for (i = 0;; i++) {",

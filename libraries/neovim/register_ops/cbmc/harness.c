@@ -53,11 +53,16 @@ void harness_op_reg_iter(void)
   __CPROVER_assume(-1 <= prev && prev < NUM_REGISTERS);
   y_previous = prev == -1 ? NULL : &y_regs[prev];
   char name = 'Q'; yankreg_T reg; bool un = nondet_bool(); bool un0 = un;
-  const void *next = (nondet_bool() ? op_reg_iter(iter, y_regs, &name, &reg, &un)
-                                    : op_global_reg_iter(iter, &name, &reg, &un));
+#ifdef GLOBAL_ITER
+  const void *next = op_global_reg_iter(iter, &name, &reg, &un);
+#else
+  const void *next = op_reg_iter(iter, y_regs, &name, &reg, &un);
+#endif
   int from = start == -1 ? 0 : start;
-  int j = from;
-  while (j < NUM_SAVED_REGISTERS && ref_empty(&y_regs[j])) j++;
+  bool emp[NUM_SAVED_REGISTERS];
+  for (int k = 0; k < NUM_SAVED_REGISTERS; k++) emp[k] = ref_empty(&y_regs[k]);
+  int j = NUM_SAVED_REGISTERS;   // first non-empty register at or after `from`
+  for (int k = NUM_SAVED_REGISTERS - 1; k >= 0; k--) if (k >= from && !emp[k]) j = k;
   if (j == NUM_SAVED_REGISTERS) {
     assert(name == NUL && next == NULL && un == un0);
     return;
@@ -67,7 +72,7 @@ void harness_op_reg_iter(void)
          && reg.y_type == y_regs[j].y_type && reg.y_width == y_regs[j].y_width
          && reg.timestamp == y_regs[j].timestamp && reg.additional_data == y_regs[j].additional_data);
   assert(un == (prev == j));
-  int n = j + 1;
-  while (n < NUM_SAVED_REGISTERS && ref_empty(&y_regs[n])) n++;
+  int n = NUM_SAVED_REGISTERS;   // first non-empty register after j
+  for (int k = NUM_SAVED_REGISTERS - 1; k >= 0; k--) if (k > j && !emp[k]) n = k;
   assert(next == (n == NUM_SAVED_REGISTERS ? NULL : (const void *)&y_regs[n]));
 }
