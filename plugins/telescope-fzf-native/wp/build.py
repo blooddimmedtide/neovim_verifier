@@ -29,6 +29,7 @@ SHA = {
     "resize_pos": None, "unsafe_append_pos": None, "append_pos": None, "insert_range": None,
     "calculate_score": None,
     "fzf_prefix_match": None, "fzf_suffix_match": None, "fzf_equal_match": None,
+    "try_skip": None, "ascii_fuzzy_index": None, "fzf_exact_match_naive": None,
 }
 PINS = os.path.join(HERE, "pins.txt")   # name sha256, reviewed
 PRELUDE = """\

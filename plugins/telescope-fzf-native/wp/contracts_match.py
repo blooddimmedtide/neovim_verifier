@@ -292,3 +292,196 @@ LOOPS["fzf_equal_match"] = [
         loop invariant eq_at(""" + TD + ", " + PD + r""", case_sensitive, trimmed_len, idx);
         loop assigns idx, match; loop variant M - idx;"""),
 ]
+
+# ---------------------------------------------------------------- try_skip, ascii_fuzzy_index, exact
+LOGIC += r"""
+/*@ // try_skip's byte test: b itself, or (case-insensitive, b a lower-case letter) its upper case
+    lemma bonus_range: \forall integer p, c; 0 <= bonus(p, c) <= 8;
+    predicate mm(integer c, integer b, integer cs) = c == b || (cs == 0 && 97 <= b <= 122 && c == b - 32);
+    // pattern bytes p[0..m) matched greedily, one after the other, in t[0..i) (ascii_fuzzy_index)
+    logic integer gm{L}(char *t, char *p, integer cs, integer m, integer i) =
+      i <= 0 ? 0 :
+      gm(t, p, cs, m, i - 1) +
+      ((gm(t, p, cs, m, i - 1) < m && mm(t[i - 1], p[gm(t, p, cs, m, i - 1)], cs)) ? 1 : 0);
+    // an occurrence of the pattern at s, in a text of n bytes
+    predicate occ{L}(char *t, char *p, integer cs, integer n, integer m, integer s) =
+      0 <= s && s + m <= n && eq_at(t, p, cs, s, m);
+*/
+/*@ ghost
+  /@ requires 0 <= a <= b && 0 <= k < m && gm(t, p, cs, m, a) == k;
+     requires \forall integer i; a <= i < b ==> !mm(t[i], p[k], cs);
+     assigns \nothing;
+     ensures gm(t, p, cs, m, b) == k; @/
+  void gm_gap(char *t, char *p, int cs, size_t m, size_t k, size_t a, size_t b) {
+    size_t j = a;
+    /@ loop invariant a <= j <= b && gm(t, p, cs, m, j) == k;
+       loop assigns j; loop variant b - j; @/
+    while (j < b) j++;
+  }
+*/
+/*@ ghost
+  // once every pattern byte is matched, gm stays at m
+  /@ requires 0 <= a <= b;
+     assigns \nothing;
+     ensures gm(t, p, cs, m, a) == m ==> gm(t, p, cs, m, b) == m; @/
+  void gm_full(char *t, char *p, int cs, size_t m, size_t a, size_t b) {
+    size_t j = a;
+    /@ loop invariant a <= j <= b && (gm(t, p, cs, m, a) == m ==> gm(t, p, cs, m, j) == m);
+       loop assigns j; loop variant b - j; @/
+    while (j < b) j++;
+  }
+*/
+/*@ ghost
+  // a case-folded occurrence at s is also a greedy try_skip match: gm reaches m by s + m
+  /@ requires 0 <= s;
+     assigns \nothing;
+     ensures 0 <= gm(t, p, cs, m, s + m) <= m;
+     ensures eq_at(t, p, cs, s, m) ==> gm(t, p, cs, m, s + m) == m; @/
+  void gm_occ(char *t, char *p, int cs, size_t m, size_t s) {
+    size_t j = 0;
+    /@ loop invariant 0 <= j <= s && 0 <= gm(t, p, cs, m, j) <= m;
+       loop assigns j; loop variant s - j; @/
+    while (j < s) j++;
+    size_t k = 0;
+    /@ loop invariant 0 <= k <= m && 0 <= gm(t, p, cs, m, s + k) <= m;
+       loop invariant eq_at(t, p, cs, s, m) ==> gm(t, p, cs, m, s + k) >= k;
+       loop assigns k; loop variant m - k; @/
+    while (k < m) k++;
+  }
+*/
+/*@ ghost
+  // no greedy match of the whole pattern: no occurrence anywhere
+  /@ requires 0 < m && n <= 2147483647 && m <= 2147483647;
+     assigns \nothing;
+     ensures gm(t, p, cs, m, n) < m ==> \forall integer s; !occ(t, p, cs, n, m, s); @/
+  void gm_noocc(char *t, char *p, int cs, size_t n, size_t m) {
+    size_t s = 0;
+    /@ loop invariant 0 <= s && (s <= n || s == 0);
+       loop invariant gm(t, p, cs, m, n) < m ==> \forall integer x; 0 <= x < s ==> !occ(t, p, cs, n, m, x);
+       loop assigns s; loop variant n - s; @/
+    while (s + m <= n) {
+      gm_occ(t, p, cs, m, s);
+      gm_full(t, p, cs, m, s + m, n);
+      s++;
+    }
+  }
+*/
+/*@ ghost
+  // in an occurrence at s, calculate_score's forward pass matches byte k at s + k
+  /@ requires 0 <= s && eq_at(t, p, cs, s, m) && 0 <= m;
+     assigns \nothing;
+     ensures \forall integer x; s <= x <= s + m ==> cs_pidx(t, p, cs, s, x) == x - s; @/
+  void occ_pidx(char *t, char *p, int cs, size_t m, size_t s) {
+    size_t k = 0;
+    /@ loop invariant 0 <= k <= m && cs_pidx(t, p, cs, s, s + k) == k;
+       loop invariant \forall integer x; s <= x <= s + k ==> cs_pidx(t, p, cs, s, x) == x - s;
+       loop assigns k; loop variant m - k; @/
+    while (k < m) k++;
+  }
+*/
+"""
+
+CONTRACTS["try_skip"] = r"""requires \valid_read(input) && \valid_read(input->data + (0 .. input->size - 1));
+    requires input->size <= 2147483647 && 0 <= from <= input->size;
+    assigns \nothing;
+    behavior found:
+      assumes \exists integer j; from <= j < input->size && mm(input->data[j], b, case_sensitive);
+      ensures from <= \result < input->size && mm(input->data[\result], b, case_sensitive);
+      ensures \forall integer j; from <= j < \result ==> !mm(input->data[j], b, case_sensitive);
+    behavior absent:
+      assumes \forall integer j; from <= j < input->size ==> !mm(input->data[j], b, case_sensitive);
+      ensures \result == -1;
+    complete behaviors; disjoint behaviors;"""
+
+CONTRACTS["ascii_fuzzy_index"] = r"""requires \valid_read(input) && \valid_read(input->data + (0 .. input->size - 1));
+    requires \valid_read(pattern + (0 .. size - 1));
+    requires input->size <= 2147483647 && size <= 2147483647;
+    assigns \nothing;
+    ensures \result < 0 <==> gm((char *)input->data, (char *)pattern, case_sensitive, size, input->size) < size;"""
+
+LOOPS["ascii_fuzzy_index"] = [
+    ("  for (size_t pidx = 0; pidx < size; pidx++) {",
+     r"""loop invariant 0 <= pidx <= size && 0 <= idx <= input->size;
+      loop invariant gm((char *)input->data, (char *)pattern, case_sensitive, size, idx) == pidx;
+      loop invariant 0 <= first_idx && (pidx == 0 ==> idx == 0);
+      loop assigns pidx, idx, first_idx; loop variant size - pidx;"""),
+    ("    idx = try_skip(input, case_sensitive, pattern[pidx], idx);",
+     r"""ghost size_t g0 = (size_t)idx;"""),
+    ("    if (idx < 0) {\n      return -1;\n    }\n    if (pidx == 0",
+     r"""ghost if (idx < 0) gm_gap((char *)input->data, (char *)pattern, case_sensitive, size, pidx, g0, input->size);
+                 else gm_gap((char *)input->data, (char *)pattern, case_sensitive, size, pidx, g0, (size_t)idx);"""),
+]
+
+LOOPS["ascii_fuzzy_index"].append(("  return first_idx;",
+    r"""ghost gm_full((char *)input->data, (char *)pattern, case_sensitive, size, (size_t)idx, input->size);"""))
+
+OCC = r"""occ(""" + TD + ", " + PD + r""", case_sensitive, text->size, pattern->size, """
+# fzf's ExactMatchNaive: the occurrence with the largest bonus at its first byte, the
+# earliest among equals (bonus_at = cs_b, 8 at the text start)
+CONTRACTS["fzf_exact_match_naive"] = MATCHPRE + r"""
+    assigns """ + PA("pos->size", "pos->size + pattern->size") + r""";
+    behavior empty:
+      assumes pattern->size == 0;
+      ensures \result.start == 0 && \result.end == 0 && \result.score == 0;""" + NOPOS + r"""
+    behavior match:
+      assumes pattern->size > 0 && \exists integer s; """ + OCC + r"""s);
+      ensures """ + OCC + r"""\result.start);
+      ensures \forall integer s; """ + OCC + r"""s) ==> cs_b(""" + TD + r""", s) <= cs_b(""" + TD + r""", \result.start);
+      ensures \forall integer s; s < \result.start && """ + OCC + r"""s) ==> cs_b(""" + TD + r""", s) < cs_b(""" + TD + r""", \result.start);
+      ensures \result.end == \result.start + pattern->size;
+      ensures \result.score == cs_score(""" + TD + ", " + PD + r""", case_sensitive, \result.start, \result.end);""" + POSRANGE + r"""
+    behavior nomatch:
+      assumes pattern->size > 0 && \forall integer s; !""" + OCC + r"""s);
+      ensures res_none(\result);""" + NOPOS + r"""
+    complete behaviors; disjoint behaviors;"""
+
+LOOPS["fzf_exact_match_naive"] = [
+    ("  if (ascii_fuzzy_index(text, pattern->data, M, case_sensitive) < 0) {",
+     r"""ghost gm_noocc(""" + TD + ", " + PD + r""", case_sensitive, N, M);"""),
+    ("  for (size_t idx = 0; idx < N; idx++) {",
+     r"""loop invariant 0 <= pidx < M && pidx <= idx <= N;
+      loop invariant eq_at(""" + TD + ", " + PD + r""", case_sensitive, idx - pidx, pidx);
+      loop invariant pidx > 0 ==> bonus == cs_b(""" + TD + r""", idx - pidx);
+      loop invariant pidx == 0 ==> bonus == 0;
+      loop invariant 0 <= bonus <= 8 && -1 <= best_bonus <= 8;
+      loop invariant best_pos == -1 <==> best_bonus == -1;
+      loop invariant best_pos == -1 ==> \forall integer s; s < idx - pidx ==> !""" + OCC + r"""s);
+      loop invariant best_pos != -1 ==> M - 1 <= best_pos && best_pos - M + 1 < idx - pidx
+        && """ + OCC + r"""best_pos - M + 1) && best_bonus == cs_b(""" + TD + r""", best_pos - M + 1)
+        && (\forall integer s; s < idx - pidx && """ + OCC + r"""s) ==> cs_b(""" + TD + r""", s) <= best_bonus)
+        && (\forall integer s; s < best_pos - M + 1 && """ + OCC + r"""s) ==> cs_b(""" + TD + r""", s) < best_bonus);
+      loop invariant best_pos != -1 ==> best_bonus != 8;
+      loop assigns idx, pidx, bonus, best_pos, best_bonus;
+      loop variant (N - (idx - pidx)) * 4294967296 + (M - pidx);"""),
+    ("    size_t eidx = bp + 1;",
+     r"""assert sidx == bp - M + 1 && bp + 1 <= N && """ + OCC + r"""sidx)
+      && (\forall integer s; """ + OCC + r"""s) ==> cs_b(""" + TD + r""", s) <= cs_b(""" + TD + r""", sidx))
+      && \forall integer s; s < sidx && """ + OCC + r"""s) ==> cs_b(""" + TD + r""", s) < cs_b(""" + TD + r""", sidx);"""),
+    ("    size_t bp = (size_t)best_pos;",
+     r"""ghost occ_pidx(""" + TD + ", " + PD + r""", case_sensitive, M, (size_t)best_pos - M + 1);"""),
+]
+
+# The slice helpers are generated by fzf.c's gen_slice macros (in the copied header region);
+# a contract is attached by redeclaring them here (C allows a later declaration of a static
+# function; Frama-C joins its contract to the macro-made definition, which WP then proves).
+LOGIC += r"""
+/*@ requires from <= to;
+    assigns \nothing;
+    ensures \result.data == input + from && \result.size == to - from; */
+static str_slice_t slice_str(const char *input, size_t from, size_t to);
+/*@ assigns \nothing;
+    ensures \result.data == input && \result.size == to; */
+static str_slice_t slice_str_right(const char *input, size_t to);
+"""
+
+A_TS = "  if (idx < 0) {\n    return -1;\n  }\n\n  return from + idx;"
+# listed bottom-up: each annotation goes right above the anchor, below the earlier ones
+LOOPS["try_skip"] = [
+    ("  if (idx == 0) {", r"""ghost const char *d0 = byte_array.data;"""),
+    ("  if (idx == 0) {", r"""assert byte_array.data == input->data + from && byte_array.size == input->size - from;"""),
+    (A_TS, r"""assert idx >= 0 ==> \forall integer x; from <= x < from + idx ==> !mm(input->data[x], b, case_sensitive);"""),
+    (A_TS, r"""assert idx >= 0 ==> mm(d0[idx], b, case_sensitive) && from + idx < input->size;"""),
+    (A_TS, r"""assert idx >= 0 && case_sensitive == 0 && 97 <= b <= 122 ==>
+             \forall integer j; 0 <= j < idx ==> d0[j] != b - 32;"""),
+    (A_TS, r"""assert idx >= 0 ==> \forall integer j; 0 <= j < idx ==> d0[j] != b;"""),
+]

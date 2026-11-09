@@ -22,11 +22,15 @@ run() {  # $1 = label, rest = frama-c selection options
   echo "$l: ${r:-no result}"; grep -E '\[(Timeout|Unknown|Failed)\]|error|Error' "$W/wp_$l.log" | head -5 | sed 's/^/   /'
   grep -qE "Proved goals: +([0-9]+) / \1$" "$W/wp_$l.log" || status=1
 }
-NODOWNCAST="calculate_score fzf_prefix_match fzf_suffix_match fzf_equal_match"
+NODOWNCAST="calculate_score fzf_prefix_match fzf_suffix_match fzf_equal_match fzf_exact_match_naive try_skip"
+[ -z "${ONLY:-}" ] || [[ " $ONLY " == *" lemmas "* ]] && run lemmas -wp-prop=@lemma
+ONLY=${ONLY:+$(echo " $ONLY " | sed "s/ lemmas / /")}
 for f in ${ONLY:-index_byte leading_whitespaces trailing_whitespaces copy_runes copy_into_i16 \
          trim_whitespace_left max16 min64u char_class_of_ascii char_class_of bonus_for bonus_at \
          normalize_rune is_ascii resize_pos unsafe_append_pos append_pos insert_range \
-         calculate_score fzf_prefix_match fzf_suffix_match fzf_equal_match}; do
+         calculate_score fzf_prefix_match fzf_suffix_match fzf_equal_match \
+         gm_gap gm_full gm_occ gm_noocc occ_pidx slice_str slice_str_right try_skip ascii_fuzzy_index \
+         fzf_exact_match_naive}; do
   run "$f" -wp-fct "$f"
 done
 echo "logs: $W"; exit $status
