@@ -104,3 +104,8 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.cmdhist_index]
+file = "src/nvim/cmdhist.c"
+functions = ["hist_char2type", "get_history_idx", "calc_hist_idx", "del_history_idx"]
+prove = ["bash cmdhist/cbmc/run.sh", "bash cmdhist/cbmc/run.sh -DFIXED -DCHECK_CHAR -DCHECK_IDX -DCHECK_DEL"]
