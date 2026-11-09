@@ -36,6 +36,7 @@ typedef struct { buf_T *bi_buf; FILE *bi_fp; off_T bi_fsize; } bufinfo_T;   // u
 
 bool nondet_bool(void);
 int corruption_calls;   // counts corruption_error() calls
+const char *corruption_mesg;   // message of the last call
 bool writes_may_fail = true;
 
 static inline int getc(FILE *f) {
@@ -45,6 +46,7 @@ static inline int getc(FILE *f) {
 static inline int feof(FILE *f) { return f->eof; }
 static inline size_t fread(void *buf, size_t size, size_t n, FILE *f) {
   assert(n == 1);   // undo_read always asks for one item
+  if (size == 0) return 0;   // C11 7.21.8.1: zero size returns 0, reads nothing
   size_t left = f->in_len - f->in_pos, k = left < size ? left : size;
   memcpy(buf, f->in + f->in_pos, k);
   f->in_pos += k;
@@ -53,6 +55,7 @@ static inline size_t fread(void *buf, size_t size, size_t n, FILE *f) {
 }
 static inline size_t fwrite(const void *buf, size_t size, size_t n, FILE *f) {
   assert(n == 1);
+  if (size == 0) return 0;   // C11 7.21.8.2: zero size returns 0
   if (writes_may_fail && nondet_bool()) return 0;   // write error
   assert(f->out_len + size <= OUT_CAP);   // harness capacity, not a property of the code
   memcpy(f->out + f->out_len, buf, size);
@@ -62,7 +65,7 @@ static inline size_t fwrite(const void *buf, size_t size, size_t n, FILE *f) {
 static inline off_T vim_ftell(FILE *f) { return f->tell_fails ? -1 : (off_T)f->in_pos; }
 static inline void corruption_error(const char *mesg, const char *file_name) {
   assert(mesg != NULL && file_name != NULL);
-  corruption_calls++;
+  corruption_calls++; corruption_mesg = mesg;
 }
 // nvim/memory.c: xmallocz never returns NULL (it exits on OOM) and NUL-terminates.
 static inline void *xmallocz(size_t size) {

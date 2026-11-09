@@ -90,6 +90,8 @@ void h_read_len(void) {
   bool valid = v >= 0 && !(bi.bi_fsize > 0 && (pos < 0 || v > (i128)bi.bi_fsize - pos));
   assert(r == (valid ? (int)v : -1));
   assert(corruption_calls == (valid ? 0 : 1));
+  // the message names the field, or says "truncated" when the field itself was cut off
+  if (!valid) assert(strcmp(corruption_mesg, len < 4 ? "truncated" : "what") == 0);
 }
 
 // undo_read: true and buffer = next size bytes when that many are left; otherwise false and
@@ -99,7 +101,7 @@ void h_read(void) {
   FILE *f = stream(len); bufinfo_T bi = bi_for(f);
   uint8_t *buf = malloc(size);
   bool ok = undo_read(&bi, buf, size);
-  assert(ok == (len >= size));
+  assert(ok == (size > 0 && len >= size));
   for (size_t k = 0; k < size; k++) assert(buf[k] == (ok ? inbuf[k] : 0));
   free(buf);
 }
@@ -214,7 +216,7 @@ void h_read_any(void) {
   size_t k = nondet_size();
   uint8_t ink = k < len ? in[k] : 0;
   bool ok = undo_read(&bi, buf, size);
-  assert(ok == (len >= size));
+  assert(ok == (size > 0 && len >= size));
   if (k < size) assert(buf[k] == (ok ? ink : 0));
   free(buf); free(in);
 }
