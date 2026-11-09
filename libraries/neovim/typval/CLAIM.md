@@ -11,6 +11,9 @@ platform: x86_64 (machdep x86_64). No proved function reads a plain `char` value
 
 # Claim card: Neovim typval.c (first batch)
 
+Also covered, each with its own RESULTS.md: `wp_blob/` (10 blob functions) and `wp_list/`
+(6 linked-list functions); `wp_lnum/` (the line-number fix, findings/lnum-wraps.md).
+
 `wp/build.py` copies the exact upstream text of each function (sha256 pinned in `wp/pins.txt`)
 from `src/nvim/eval/typval.c` and `typval.h`. Contracts sit on prototypes in the prelude
 (Frama-C joins them to the definition). The one loop annotation is a `/*@ */` comment, and
@@ -21,6 +24,9 @@ are copied from `typval_defs.h` / `hashtab_defs.h`; key lines are checked agains
 
 Run: `bash wp/run_wp.sh <neovim tree at the pinned commit> 20` (all goals proved = exit 0).
 Planted bugs: `python3 -I wp/mutants.py <tree>` (13/13 caught).
+Vacuity check: `SMOKE=1 bash wp/run_wp.sh <tree> 20` (2026-11-09: no contradictory callee
+contract or dead code anywhere, except the `abort()` calls after the type switches, which are
+dead by design). `wp_blob` and `wp_list` run smoke tests too (see their RESULTS.md).
 
 ## What is proved, for every input
 
