@@ -14,4 +14,5 @@ run() { local name=$1; shift
 run align -DH_ALIGN
 run alloc -DH_ALLOC --unwind 70
 run life  -DH_LIFE --unwind 6
+run allocz -DH_ALLOCZ --unwind 6
 for L in 0 1 4 9; do run dup$L -DH_DUP -DLEN=$L --unwind 12; done

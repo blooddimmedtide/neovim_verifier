@@ -14,7 +14,7 @@ memory.c lines alloc_pos+size, size+aligned_hdr_size, and the pointer check on f
 
 Reachability: not shown. Every caller seen so far passes sizes bounded far below this (msgpack
 lengths are 32-bit). Severity: hardening, unless a caller computes a size that can wrap.
-Suggested fix (not yet on a fork branch, not yet proved): test `size > arena->size - alloc_pos`
+Fix (blooddimmedtide/verified_neovim branch `fix-arena-alloc-size-wrap`, proved with CBMC for every size, `H_ALLOC` and `H_ALLOCZ`): test `size > arena->size - alloc_pos`
 instead of `alloc_pos + size > arena->size`, and treat `size > SIZE_MAX - ARENA_BLOCK_SIZE`
 (and `size == SIZE_MAX` in arena_allocz) as out of memory, like xmalloc does.
 

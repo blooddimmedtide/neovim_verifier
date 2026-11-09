@@ -26,11 +26,15 @@ void *xmalloc(size_t size)
   return p;
 }
 void xfree(void *p) { free(p); }
+void preserve_exit(const char *msg) { (void)msg; __CPROVER_assume(0); }  // exit
 
 size_t nondet_size(void);
 bool nondet_bool(void);
 uint64_t nondet_u64(void);
 
+#if defined(NVIM_FIXED_ARENA) && !defined(SIZE_LIMIT)
+# define SIZE_LIMIT SIZE_MAX   // fixed code: no precondition
+#endif
 #ifndef SIZE_LIMIT
 // Upstream precondition needed for S2 (see findings/arena-alloc-size-wrap.md).
 # define SIZE_LIMIT (SIZE_MAX - ARENA_BLOCK_SIZE)
@@ -146,6 +150,22 @@ void harness(void)
   if (!use_arena) { xfree(z); xfree(d); xfree(s); }
   else assert(disjoint(z, LEN + 1, d, LEN + 1) && disjoint(d, LEN + 1, s, LEN + 1));
   free(buf);
+  arena_mem_free(arena_finish(&a));
+  arena_free_reuse_blks();
+}
+#endif
+
+#ifdef H_ALLOCZ
+// S3 for every size (fixed code) or every size <= SIZE_LIMIT (upstream).
+void harness(void)
+{
+  Arena a = ARENA_EMPTY;
+  bool use_arena = nondet_bool();
+  size_t n = nondet_size();
+  __CPROVER_assume(n <= SIZE_LIMIT);
+  char *z = arena_allocz(use_arena ? &a : NULL, n);
+  assert(__CPROVER_w_ok(z, n) && __CPROVER_w_ok(z + n, 1) && z[n] == '\0');
+  if (!use_arena) xfree(z);
   arena_mem_free(arena_finish(&a));
   arena_free_reuse_blks();
 }
