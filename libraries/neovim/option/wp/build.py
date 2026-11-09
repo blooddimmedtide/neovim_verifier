@@ -10,7 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "..", "tools"))
 from extract_c import find
-from contracts import LOGIC, CONTRACTS
+from contracts import LOGIC, CONTRACTS, concat_contract, CONCAT_ANCHORS
 
 F = "src/nvim/option.c"
 SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
@@ -18,19 +18,39 @@ SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
     "remove_comma_item": "bea662804d8907c33b987c125f379acbf7680e79cb47704084bb08aa58294944",
     "append_item": "7ae3f2836992e83927a7a19eaee25bf80ad080e0ea9caacea18a9e22b881260c",
     "prepend_item": "834cbedbdb140eafa9a81c255ffa41caf57ff6c30c08e56777ee9e3821399b17",
+    "stropt_concat_with_comma": "7a9a6491fe0519e74191504c360f2da628f0415b42ad16a2ee0594d206f59985",
 }
+# verified_neovim branch claude/project-thread-33fn39, fix commit 36f4ea6
+FIXED_SHA = {"stropt_concat_with_comma": "1b8956176a636ed2e10821d306924a5f1fef5f5a6bd6afeb9a9542ba09296243"}
 PRELUDE = """\
 // Prelude: types and macros option.c uses here, as Neovim defines them (each line
 // checked against the upstream headers by build.py), and contracts for callees.
 #include <stddef.h>
 #include <stdint.h>
+#include <limits.h>
 #include "vp_option.h"
+typedef enum {
+  OP_NONE = 0,
+  OP_ADDING,      ///< "opt+=arg"
+  OP_PREPENDING,  ///< "opt^=arg"
+  OP_REMOVING,    ///< "opt-=arg"
+} set_op_T;
+enum {
+  kOptFlagComma     = 1 << 10,  ///< Comma-separated list.
+  kOptFlagOneComma  = (1 << 11) | kOptFlagComma,  ///< Comma-separated list that cannot have two consecutive commas.
+};
 #define NUL '\\000'
 #define STRMOVE(d, s)       memmove((d), (s), strlen(s) + 1)
 """
 CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
+          ("src/nvim/option_defs.h", "  OP_NONE = 0,"),
+          ("src/nvim/option_defs.h", "  OP_ADDING,      ///< \"opt+=arg\""),
+          ("src/nvim/option_defs.h", "  OP_PREPENDING,  ///< \"opt^=arg\""),
+          ("src/nvim/option_defs.h", "  OP_REMOVING,    ///< \"opt-=arg\""),
+          ("src/nvim/option_defs.h", "  kOptFlagComma     = 1 << 10,  ///< Comma-separated list."),
+          ("src/nvim/option_defs.h", "  kOptFlagOneComma  = (1 << 11) | kOptFlagComma,  ///< Comma-separated list that cannot have two consecutive commas."),
           ("src/nvim/memory.h", "#define STRMOVE(d, s)       memmove((d), (s), strlen(s) + 1)")]
-COMMENT = re.compile(r"\s*/\*@(?:(?!\*/).)*\*/\s*", re.S)  # one ACSL comment, nothing else
+COMMENT = re.compile(r"(?:\s*/\*@(?:(?!\*/).)*\*/)+\s*", re.S)  # ACSL comments only, no code
 
 
 def main(tree, out):
@@ -43,9 +63,15 @@ def main(tree, out):
         s, e = find(lines, name)
         piece = "\n".join(lines[s:e + 1])
         h = hashlib.sha256(piece.encode()).hexdigest()
-        if h != want:
+        if name == "stropt_concat_with_comma":
+            if h not in (want, FIXED_SHA[name]):
+                sys.exit(f"build: {name} changed: {h}")
+            print(f"{name}: {'upstream' if h == want else 'fixed'} text")
+            contract, anchors = concat_contract(h == want), CONCAT_ANCHORS
+        elif h != want:
             sys.exit(f"build: {name} changed upstream: {h}")
-        contract, anchors = CONTRACTS[name]
+        else:
+            contract, anchors = CONTRACTS[name]
         ann = piece
         for anchor, text, where in anchors:
             if not COMMENT.fullmatch(text):
