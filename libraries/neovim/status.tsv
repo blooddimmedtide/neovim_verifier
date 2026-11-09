@@ -59,3 +59,5 @@ src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memo
 src/nvim/fileio.c	check_for_bom	candidate	fileio/cbmc (CBMC)	BOM detection equals Unicode BOM reference for all buffers size>=2 (caller-enforced) and all flags; both char signednesses; 11/11 mutants; no independent review yet; see fileio/CLAIM.md
 src/nvim/fileio.c	put_bytes	candidate	fileio/cbmc_put (CBMC)	big-endian len bytes, false iff putc fails; 1<=len<=8 (callers pass <=4); putc modelled
 src/nvim/fileio.c	put_time	fixed-candidate	fileio/cbmc_put (CBMC, fixed)	upstream returns FAIL on success (findings/put-time-return.md); fix verified_neovim fix-put-time-return proved
+src/nvim/fileio.c	get_fio_flags	candidate	fileio/cbmc_fio (CBMC)	documented prop->FIO mapping; enc_canon_props modelled (unverified); 8/8 mutants
+src/nvim/fileio.c	need_conversion	candidate	fileio/cbmc_fio (CBMC)	false iff empty/equal/same flags/UTF-8; enc_canon_props modelled; strings <= 3 bytes

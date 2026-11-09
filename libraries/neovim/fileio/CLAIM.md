@@ -23,7 +23,7 @@ file", `if (size < 2 ...) ccname = NULL`). The function always reads `p[0]` and 
 with `size < 2` would read out of bounds; no such call exists.
 
 ## Not yet verified (fileio.c encoding/byte helpers)
-`get_fio_flags`, `need_conversion` (depend on `enc_canon_props` / `p_enc`), `next_fenc`,
+`next_fenc`,
 `set_forced_fenc`, `readfile_charconvert`, `vim_fgets`, `read_string`, `put_bytes`,
 `readfile_linenr`, and the conversion loops inside `readfile`. `get8ctime` was handled by the undo
 thread. The rest of fileio.c (66 functions in inventory.tsv) is also open.
@@ -42,3 +42,14 @@ itself been proved against memory.c.
 - `put_time` (`fixed-candidate`): upstream FAILS its documented contract (FAIL on success, see
   findings/put-time-return.md). The fix on verified_neovim `fix-put-time-return` is proved.
 Mutants: 7/7 non-equivalent caught (`cbmc_put/mutants.txt`). No difftest yet.
+
+## Added: get_fio_flags, need_conversion (CBMC, `cbmc_fio/`)
+- `get_fio_flags` (`candidate`): maps the encoding's properties to FIO flags as documented
+  (Unicode form plus little-endian bit, Latin1, else 0) and uses 'encoding' when the name is empty.
+- `need_conversion` (`candidate`): returns false exactly when fenc is empty, equal to 'encoding',
+  has the same nonzero FIO flags as 'encoding', or is UTF-8.
+Model: `enc_canon_props` (mbyte.c) is an arbitrary function of the string (equal strings give equal
+properties), limited to at most one Unicode width bit, which every `enc_canon_table` entry
+satisfies. That function and its table are not themselves verified. Strings up to 3 bytes; the code
+only compares and passes them on, so length doesn't change the logic, but the bound is a bound.
+'encoding' is assumed non-empty (option invariant). Mutants: 8/8 non-equivalent caught.
