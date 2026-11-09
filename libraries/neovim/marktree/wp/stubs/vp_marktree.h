@@ -8,7 +8,7 @@
 #include "vp_string.h"
 /*@ requires c != 0; assigns \nothing; */
 void vp_assert(int c);
-#define assert(e) vp_assert((e) ? 1 : 0)
+#define assert(e) vp_assert(e)
 #define MT_BRANCH_FACTOR 10  // enum constant in marktree_defs.h
 typedef struct { void *opaque; } DecorInlineData;
 typedef struct mtnode_s MTNode;

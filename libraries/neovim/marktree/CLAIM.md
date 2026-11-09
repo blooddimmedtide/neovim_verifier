@@ -61,3 +61,13 @@ function reads it). The upstream `assert` becomes a call whose precondition is t
 
     bash marktree/wp/run_wp.sh <neovim tree> upstream|fixed 20
     bash marktree/cbmc/run_cbmc.sh <neovim tree> upstream|fixed   # upstream meta_has fails by design (the finding)
+
+## Checks run (2026-11-09)
+
+- WP, upstream and fixed trees: every goal proved, with `-wp-smoke-tests` (no contradictory preconditions found).
+- CBMC: meta_* functions, both char signednesses, fixed tree 8/8; upstream meta_has fails (the finding).
+- Independent review: REVIEW.md, 20/20 non-equivalent planted bugs caught (mutants.toml).
+  Review finding 1 (an annotation holding `*/ ... /*@` could smuggle code past the strip check) is fixed: build.py
+  rejects comment tokens in every contract, annotation and LOGIC. Open: finding 2 (prelude lines are checked one by
+  one, not as ordered blocks), finding 3 (DecorInlineData opaque, MTNode without `s[]`; no proved function depends
+  on layout). The meta_* contracts in contracts.py are not run by WP; their proof is the CBMC harness.

@@ -9,6 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/mark.c | 0 | 4 | 52 | 56 |
 | src/nvim/marktree.c | 0 | 15 | 67 | 82 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
@@ -90,6 +91,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/marktree.c | `meta_describe_key_inc` | candidate | marktree/cbmc (CBMC, all inputs) | per-kind counts of one key added; see marktree/CLAIM.md |
 | src/nvim/marktree.c | `meta_describe_key` | candidate | marktree/cbmc (CBMC, all inputs) | per-kind counts of one key; see marktree/CLAIM.md |
 | src/nvim/marktree.c | `meta_has` | fixed-candidate | marktree/cbmc (CBMC, fixed: all inputs; upstream: counterexample) | upstream sum wraps at 2^32 (findings/marktree-meta-has-wrap.md); fix verified_neovim 5ee8dd2 |
+| src/nvim/mark.c | `mark_view_make` | candidate | mark/wp (Frama-C WP) | view offset from the window top; see mark/CLAIM.md (no review yet) |
+| src/nvim/mark.c | `mark_check_line_bounds` | candidate | mark/wp (Frama-C WP) | E19 iff past last line; see mark/CLAIM.md (no review yet) |
+| src/nvim/mark.c | `next_buffer_mark` | candidate | mark/wp (Frama-C WP) | documented mark-name order; see mark/CLAIM.md (no review yet) |
+| src/nvim/mark.c | `mark_jumplist_iter` | candidate | mark/wp (Frama-C WP) | jump list iteration; see mark/CLAIM.md (no review yet) |
 
 ## All files
 

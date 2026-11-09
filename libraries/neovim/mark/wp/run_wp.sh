@@ -8,7 +8,7 @@ W=$(mktemp -d); mkdir -p "$W/stubs"; cp "$HERE"/stubs/*.h "$W/stubs/"; status=0
 python3 -I "$HERE/build.py" "$NV" "$W/mark.c" || exit 1
 if grep -nE '\b(admit|axiom|check)\b' "$W/mark.c" "$W"/stubs/*.h; then echo "forbidden clause"; exit 1; fi
 for f in $FUNCS; do
-  (cd "$W" && frama-c -machdep x86_64 -cpp-extra-args="-I stubs" mark.c -wp -wp-fct "$f" -wp-rte -warn-signed-downcast \
+  (cd "$W" && frama-c -machdep x86_64 -cpp-extra-args="-I stubs" mark.c -wp -wp-fct "$f" -wp-rte -wp-smoke-tests -warn-signed-downcast \
      -wp-model Typed+Cast -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" -wp-cache none > "wp_$f.log" 2>&1)
   r=$(grep -E "Proved goals" "$W/wp_$f.log" | sed 's/.*goals: *//')
   echo "$f: ${r:-no result}"; grep -E '\[(Timeout|Unknown|Failed)\]|error|Error' "$W/wp_$f.log" | head -20 | sed 's/^/   /'

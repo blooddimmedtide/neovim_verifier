@@ -111,3 +111,9 @@ functions = ["pos_leq", "pos_less", "relative", "unrelative", "compose", "key_cm
 annotate = "marktree/wp/build.py"   # verbatim extraction, sha256 pinned per function; strip check
 prove = ["bash marktree/wp/run_wp.sh {src} upstream", "bash marktree/wp/run_wp.sh {fixed} fixed", "bash marktree/cbmc/run_cbmc.sh {fixed} fixed"]
 # fixed tree: verified_neovim branch claude/project-thread-aeqr1o (5ee8dd2) until it is merged into `verified`
+
+[targets.mark_helpers]
+file = "src/nvim/mark.c"
+functions = ["mark_view_make", "mark_check_line_bounds", "next_buffer_mark", "mark_jumplist_iter"]
+annotate = "mark/wp/build.py"
+prove = ["bash mark/wp/run_wp.sh {src} 60 mark_view_make mark_check_line_bounds next_buffer_mark mark_jumplist_iter"]
