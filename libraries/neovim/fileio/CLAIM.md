@@ -30,3 +30,15 @@ thread. The rest of fileio.c (66 functions in inventory.tsv) is also open.
 
 ## Review
 No independent adversarial review yet (stopped at the 2026-11-09 09:00 UTC deadline).
+
+## Added: put_bytes, put_time (CBMC, `cbmc_put/`)
+Models: `putc` and `fwrite` can each fail, and fwrite can write short, nondeterministically;
+`time_to_bytes` is modelled from its memory.c contract (big-endian 8 bytes). That model has not
+itself been proved against memory.c.
+- `put_bytes` (`candidate`): for every `number` and `1 <= len <= 8`, it writes exactly the low
+  `len` bytes, most significant first, and returns false exactly when a putc fails. Precondition
+  `len <= 8` is not asserted by the function; every caller (spellfile.c) passes 1 to 4. Larger
+  `len` would shift by 64 or more bits (UB).
+- `put_time` (`fixed-candidate`): upstream FAILS its documented contract (FAIL on success, see
+  findings/put-time-return.md). The fix on verified_neovim `fix-put-time-return` is proved.
+No mutants or difftest for these two yet.

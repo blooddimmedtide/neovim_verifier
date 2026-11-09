@@ -9,7 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
-| src/nvim/fileio.c | 0 | 1 | 54 | 55 |
+| src/nvim/fileio.c | 0 | 3 | 52 | 55 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -76,6 +76,8 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/fileio.c | `check_for_bom` | candidate | fileio/cbmc (CBMC) | BOM detection equals Unicode BOM reference for all buffers size>=2 (caller-enforced) and all flags; both char signednesses; 11/11 mutants; no independent review yet; see fileio/CLAIM.md |
+| src/nvim/fileio.c | `put_bytes` | candidate | fileio/cbmc_put (CBMC) | big-endian len bytes, false iff putc fails; 1<=len<=8 (callers pass <=4); putc modelled; no mutants yet |
+| src/nvim/fileio.c | `put_time` | fixed-candidate | fileio/cbmc_put (CBMC, fixed) | upstream returns FAIL on success (findings/put-time-return.md); fix verified_neovim fix-put-time-return proved; no mutants yet |
 
 ## All files
 
