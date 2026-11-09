@@ -21,7 +21,7 @@ Tool: Frama-C WP (Typed+Cast, -wp-rte), Z3 + CVC5.
 | typebuf_changed | proved 13/13 goals (upstream), smoke tests clean |
 | typebuf_typed | proved 4/4 goals (upstream), smoke tests clean |
 | typebuf_maplen | proved 4/4 goals (upstream), smoke tests clean |
-| del_typebuf | open: 76/79 goals; 3 content post-conditions (bytes moved by the two memmoves) time out at 120 s |
+| del_typebuf | open: 78/81 goals; with the moved-bytes asserts after the field writes, 2 of 3 content post-conditions now prove; the first assert (right after the memmoves) and one post-condition still time out at 40 s |
 | alloc_typebuf | proved 25/25 goals (upstream, and fixed), smoke tests clean |
 | free_typebuf | proved 29/29 goals (upstream), smoke tests clean |
 | put_string_in_typebuf | open: contract written, depends on ins_typebuf and del_typebuf; not run |

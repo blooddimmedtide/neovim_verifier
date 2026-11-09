@@ -87,7 +87,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/input.c | `typebuf_changed` | candidate | typebuf/wp (Frama-C WP, 13/13) | see typebuf/CLAIM.md; no mutant review yet |
 | src/nvim/input.c | `typebuf_typed` | candidate | typebuf/wp (Frama-C WP, 4/4) | see typebuf/CLAIM.md; no mutant review yet |
 | src/nvim/input.c | `typebuf_maplen` | candidate | typebuf/wp (Frama-C WP, 4/4) | see typebuf/CLAIM.md; no mutant review yet |
-| src/nvim/input.c | `del_typebuf` | open | typebuf/wp (76/79) | finding typebuf-change-cnt-overflow; fix 4c11bf5 (proof pending) |
+| src/nvim/input.c | `del_typebuf` | open | typebuf/wp (78/81) | finding typebuf-change-cnt-overflow; fix 4c11bf5 (proof pending) |
 | src/nvim/input.c | `alloc_typebuf` | candidate | typebuf/wp (Frama-C WP, 25/25) | see typebuf/CLAIM.md; no mutant review yet |
 | src/nvim/input.c | `free_typebuf` | candidate | typebuf/wp (Frama-C WP, 29/29) | see typebuf/CLAIM.md; no mutant review yet |
 | src/nvim/input.c | `put_string_in_typebuf` | open | typebuf/wp | open: contract written, depends on ins_typebuf and del_typebuf; not run |

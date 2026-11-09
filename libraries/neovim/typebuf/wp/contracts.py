@@ -287,6 +287,16 @@ def contracts(fixed):
     return C
 
 
+FACTS = r"""assert len > 0 ==> ((\forall integer i; 0 <= i < offset ==>
+          ((char *)typebuf.tb_buf)[typebuf.tb_off + i] == \at(((char *)typebuf.tb_buf)[typebuf.tb_off + i], Pre)
+          && ((char *)typebuf.tb_noremap)[typebuf.tb_off + i] == \at(((char *)typebuf.tb_noremap)[typebuf.tb_off + i], Pre))
+        && (\forall integer i; offset <= i < typebuf.tb_len ==>
+          ((char *)typebuf.tb_buf)[typebuf.tb_off + i] == \at(((char *)typebuf.tb_buf)[typebuf.tb_off + i + len], Pre)
+          && ((char *)typebuf.tb_noremap)[typebuf.tb_off + i] == \at(((char *)typebuf.tb_noremap)[typebuf.tb_off + i + len], Pre))
+        && ((char *)typebuf.tb_buf)[typebuf.tb_off + typebuf.tb_len]
+          == \at(((char *)typebuf.tb_buf)[typebuf.tb_off + typebuf.tb_len], Pre));"""
+
+
 def annotations(fixed):
     A = {}
     A["ins_typebuf"] = [
@@ -298,6 +308,10 @@ def annotations(fixed):
           typebuf.tb_noremap[typebuf.tb_off + k + offset] == nr_flag(noremap, addlen, k);
         loop assigns i, nrm, typebuf.tb_noremap[typebuf.tb_off + offset .. typebuf.tb_off + offset + addlen - 1];
         loop variant addlen - i;"""),
+    ]
+    A["del_typebuf"] = [
+        ("before", "  if (typebuf.tb_maplen > offset) {             // adjust tb_maplen", FACTS),
+        ("before", "  typebuf_was_filled = false;", FACTS),
     ]
     A["alloc_typebuf"] = [
         ("after", "  typebuf.tb_buf = xmalloc(TYPELEN_INIT)", "ghost (&typebuf, &typebuf_init[0], &noremapbuf_init[0], &typebuf)"),
