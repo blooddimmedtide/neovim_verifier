@@ -349,25 +349,25 @@ LOGIC += r"""
       \forall integer k; j <= k ==> (\forall integer m; j <= m <= k ==> av(ml, m) && is_digit(s[m])) ==> s[k] <= 55;
     predicate c0{L}(char *s, integer ml, integer what) =
       (what & 15) != 0 && av(ml, a0(s) + 1) && s[a0(s)] == 48 && s[a0(s) + 1] != 56 && s[a0(s) + 1] != 57;
-    predicate hx{L}(char *s, integer ml, integer what) = c0(s, ml, what) && (what & 4) != 0 && pfx(s, ml, 120, 88, 16);
-    predicate bn{L}(char *s, integer ml, integer what) =
-      c0(s, ml, what) && !hx(s, ml, what) && (what & 1) != 0 && pfx(s, ml, 98, 66, 2);
-    predicate oo{L}(char *s, integer ml, integer what) =
-      c0(s, ml, what) && !hx(s, ml, what) && !bn(s, ml, what) && (what & 8) != 0 && pfx(s, ml, 111, 79, 8);
-    predicate oc{L}(char *s, integer ml, integer what) =
-      c0(s, ml, what) && !hx(s, ml, what) && !bn(s, ml, what) && !oo(s, ml, what) && (what & 2) != 0
-      && is_odigit(s[a0(s) + 1]) && oct_ok(s, ml, a0(s) + 2);
+    // unforced prefix detection, in the code's order: 16 = 0x, 2 = 0b, 9 = 0o, 8 = old octal, 10 = none.
+    // One flat if-chain (no predicate refers to another): nested definitions blow up WP's simplifier.
+    logic integer cls{L}(char *s, integer ml, integer what) =
+      !c0(s, ml, what) ? 10 :
+      (((what & 4) != 0 && pfx(s, ml, 120, 88, 16)) ? 16 :
+      (((what & 1) != 0 && pfx(s, ml, 98, 66, 2)) ? 2 :
+      (((what & 8) != 0 && pfx(s, ml, 111, 79, 8)) ? 9 :
+      (((what & 2) != 0 && is_odigit(s[a0(s) + 1]) && oct_ok(s, ml, a0(s) + 2)) ? 8 : 10))));
     logic integer nbase{L}(char *s, integer ml, integer what) =
       forced(what) ? (kind(what) == 4 ? 16 : (kind(what) == 1 ? 2 : (kind(what) == 0 ? 10 : 8)))
-      : (hx(s, ml, what) ? 16 : (bn(s, ml, what) ? 2 : ((oo(s, ml, what) || oc(s, ml, what)) ? 8 : 10)));
+      : (cls(s, ml, what) == 9 ? 8 : cls(s, ml, what));
     logic integer nskip{L}(char *s, integer ml, integer what) =
       forced(what) ?
         (((kind(what) == 4 && pfx(s, ml, 120, 88, 16)) || (kind(what) == 1 && pfx(s, ml, 98, 66, 2))
           || ((kind(what) == 2 || kind(what) == 8 || kind(what) == 10) && pfx(s, ml, 111, 79, 8))) ? 2 : 0)
-      : ((hx(s, ml, what) || bn(s, ml, what) || oo(s, ml, what)) ? 2 : 0);
+      : ((cls(s, ml, what) == 16 || cls(s, ml, what) == 2 || cls(s, ml, what) == 9) ? 2 : 0);
     logic integer npre{L}(char *s, integer ml, integer what) =
-      forced(what) ? 0 : ((hx(s, ml, what) || bn(s, ml, what) || oo(s, ml, what)) ? (unsigned char)s[a0(s) + 1]
-                          : (oc(s, ml, what) ? 48 : 0));
+      forced(what) ? 0 : ((cls(s, ml, what) == 16 || cls(s, ml, what) == 2 || cls(s, ml, what) == 9) ? (unsigned char)s[a0(s) + 1]
+                          : (cls(s, ml, what) == 8 ? 48 : 0));
 
     // digit positions from p0, skipping a quote that sits between two digits (q != 0)
     predicate qskip{L}(char *s, integer ml, integer q, integer b, integer p0, integer k) =

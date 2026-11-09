@@ -1,5 +1,5 @@
 ---
-entry: neovim/src/nvim/charset.c (19 of 57 functions so far: skip/scan helpers, hex helpers, backslash halving; plus the 4 ascii_defs.h helpers they call)
+entry: neovim/src/nvim/charset.c (24 of 57 functions so far: skip/scan helpers, hex helpers, backslash halving, the getdigits family; plus the 5 ascii_defs.h helpers they call)
 upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: none needed so far (no bug found in these functions)
@@ -12,7 +12,7 @@ platform: Linux x86_64 (machdep x86_64, BACKSLASH_IN_FILENAME undefined); signed
 
 # Claim card: Neovim charset.c string helpers (work in progress)
 
-charset.c has 57 functions. This card covers the 19 below; the other 38 are open (list at the end).
+charset.c has 57 functions. This card covers the 24 below; the other 33 are open (list at the end).
 
 `wp/build.py` copies the exact upstream text of each function (sha256 pinned) and adds ACSL
 as comments only: contracts, loop invariants, assertions, ghost statements and, for 13
@@ -27,7 +27,7 @@ the comments gives back the upstream (or patched) text. Nothing is admitted; no 
 
 | Function | Property |
 |---|---|
-| `ascii_iswhite/isdigit/isxdigit/isbdigit(c)` (ascii_defs.h) | true exactly for space/TAB, `0`-`9`, hex digits, `0`/`1`; every int |
+| `ascii_iswhite/isdigit/isxdigit/isbdigit/isodigit(c)` (ascii_defs.h) | true exactly for space/TAB, `0`-`9`, hex digits, `0`/`1`, `0`-`7`; every int |
 | `nr2hex(n)` | the lower-case hex digit of `n % 16`; every unsigned |
 | `skipwhite(p)` | pointer past the leading run of white bytes |
 | `skipwhite_len(p, len)` | pointer past the leading white run, at most `len` bytes; reads nothing past the first non-white byte or `p[len-1]` |
@@ -43,6 +43,9 @@ the comments gives back the upstream (or patched) text. Nothing is admitted; no 
 | `rem_backslash(str)` | true iff `str[0]` is a backslash and `str[1]` is not NUL (Unix build) |
 | `backslash_halve(p)` | rewrites the string in place: a backslash followed by a non-NUL byte becomes that byte, everything else is kept, then NUL (`bpos`/`bchar` define output byte k); writes only `p[0..n]` |
 | `backslash_halve_save(p)` | same output in a new allocation of `n + 1` bytes; input unchanged; exactly one allocation (ghost counter) |
+| `try_getdigits(pp, nr)` | the C standard's `strtoimax(*pp, pp, 10)` subject sequence (leading white space, optional sign, decimal digits): with no digits `*nr = 0`, `*pp` unchanged, true; else `*pp` moves past the digits, `*nr` is the value clamped to `intmax_t`, and the result is false exactly when it was clamped |
+| `getdigits(pp, strict, def)` | the number, 0 without digits, `def` when out of range; `*pp` as above |
+| `getdigits_int` / `getdigits_long` / `getdigits_int32` | as `getdigits`, with `def` also when the value is outside `int` / `long` / `int32_t` |
 
 All functions: no undefined behavior (`-wp-rte`: every memory access valid, no signed
 overflow, no invalid conversion) and they terminate (loop variants).
@@ -70,6 +73,11 @@ overflow, no invalid conversion) and they terminate (loop variants).
    readable up to the first non-white byte; `hexhex2nr` / `rem_backslash` need `p[0]`, and
    `p[1]` when the first byte asks for it; `hex2nr`: `c >= INT_MIN + 48`;
    `backslash_halve_save`: `n < PTRDIFF_MAX` (no larger object exists on x86_64).
+   getdigits family with `strict`: the number is in range (otherwise the code calls `abort()`,
+   or `assert` for the narrow variants; see the observation below).
+9. **strtoimax meets `wp/stubs/vp_strtoimax.h`** (base 10 only): the C standard's description,
+   written as logic (`subj`, `sdigits`, `svalue`): `*endptr`, the clamped value and `ERANGE`.
+   errno is modelled as one global (`vp_errno`).
 8. **Ghost length parameters** (13 functions): notation for "for every string of length n"
    (a string has one length, `str_len_unique`); callers pass nothing.
 
@@ -81,16 +89,29 @@ overflow, no invalid conversion) and they terminate (loop variants).
 `transchar_hex`, `rl_mirror_ascii`, `char2cells`, `vim_strsize`, `vim_strnsize`, `vim_isIDc`,
 `vim_iswordc`, `vim_iswordc_tab`, `vim_iswordc_buf`, `vim_iswordp`, `vim_iswordp_buf`,
 `vim_isfilec`, `vim_is_fname_char`, `vim_isfilec_or_wc`, `vim_isprintc`,
-`getwhitecols_curline`, `try_getdigits`, `getdigits`, `getdigits_int`, `getdigits_long`,
-`getdigits_int32`, `vim_str2nr` (in progress), plus the Windows variant of `rem_backslash`.
+`getwhitecols_curline`, `vim_str2nr` (in progress; bug found, see below), plus the Windows
+variant of `rem_backslash`.
 Independent review and planted bugs: pending. Owner sign-off: pending.
+
+## Findings
+
+- **Bug, `vim_str2nr`**: with no `maxlen`, a number of 2^31 characters or more gives a negative
+  or too short `*len`, and the old-octal check overflows `int i` (undefined behavior).
+  `eval_number` then moves the parse pointer backwards. Write-up and reproducer:
+  `../findings/str2nr-over-2gib.md`. Fix on the fork (`verified_neovim`).
+
+Observations (behavior as written, not bugs):
+
+- `getdigits_int` / `getdigits_int32` with `strict` and an out-of-range value: the range
+  check is an `assert`, so in Release builds (`NDEBUG`) the value is silently truncated
+  instead of aborting. The contract makes "in range" a precondition for `strict`.
 
 ## Evidence
 
 | Check | Command | Result |
 |---|---|---|
 | Bit lemmas | `python3 -I wp/lemmas.py` | 2/2 proved (Z3 bit-vectors) |
-| WP, upstream | `bash wp/run_wp.sh <nvim> 60` | every goal proved, 19 functions + 4 ascii_defs.h helpers, one run each (416 goals) |
+| WP, upstream | `bash wp/run_wp.sh <nvim> 60` | every goal proved, 24 functions + 5 ascii_defs.h helpers, one run each |
 | Tool patch equivalence | `bash equiv/run_equiv.sh <nvim> 12` | VERIFICATION SUCCESSFUL, signed and unsigned char |
 | Differential test (gcc -O2, glibc, ASan/UBSan, signed and unsigned char) | `bash difftest/run_difftest.sh <nvim> 2000000` | 34,012,119 checks each, 0 mismatches |
 | Independent review | | pending |
