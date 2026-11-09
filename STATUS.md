@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/msgpack_rpc/unpacker.c | 0 | 8 | 8 | 16 |
 
 ## Function details
 
@@ -74,6 +75,22 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/msgpack_rpc/unpacker.c | `unpack_string` | candidate | unpacker/cbmc (CBMC, real mpack reader, all lengths < 2^48) | str/bin header + payload per msgpack spec; data/size untouched on failure |
+| src/nvim/msgpack_rpc/unpacker.c | `unpack_array` | candidate | unpacker/cbmc (CBMC) | array count, consumes exactly the header; -1 otherwise |
+| src/nvim/msgpack_rpc/unpacker.c | `unpack_integer` | candidate | unpacker/cbmc (CBMC) | integer value per msgpack spec; uint64 >= 2^63 wraps to negative (stated) |
+| src/nvim/msgpack_rpc/unpacker.c | `unpack_uint_or_sint` | candidate | unpacker/cbmc (CBMC) | value of UINT/SINT tokens from the real reader |
+| src/nvim/msgpack_rpc/unpacker.c | `parse_nop` | candidate | unpacker/cbmc (CBMC) | empty |
+| src/nvim/msgpack_rpc/unpacker.c | `push_additional_data` | fixed-candidate | unpacker/cbmc/harness_ad.c (CBMC, upstream fails, fixed proved) | nbytes wraps at 4 GiB (findings/additional-data-over-4gib.md); fix verified_neovim 76c51e8 |
+| src/nvim/msgpack_rpc/unpacker.c | `unpack` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `api_parse_enter` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `api_parse_exit` | candidate | unpacker/cbmc (CBMC) | empty |
+| src/nvim/msgpack_rpc/unpacker.c | `unpacker_init` | candidate | unpacker/cbmc/harness_init.c (CBMC, real object.c) | empty parser (depth 32) pointing back at p, empty readers, no error, empty arena; other fields unchanged. Not in the independent review |
+| src/nvim/msgpack_rpc/unpacker.c | `unpacker_teardown` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `unpacker_parse_header` | open | unpacker/cbmc/harness_hdr.c (CBMC, not completed: out of memory) | finding: type/msgid narrowed to 32 bits before the check (findings/rpc-header-uint32-truncation.md); fix verified_neovim 695ee31 tested, not proved |
+| src/nvim/msgpack_rpc/unpacker.c | `unpacker_advance` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `unpacker_parse_redraw` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `unpack_skip` | open |  | not started (needs WP with callee contracts) |
+| src/nvim/msgpack_rpc/unpacker.c | `unpack_keydict` | open |  | not started (needs WP with callee contracts) |
 
 ## All files
 

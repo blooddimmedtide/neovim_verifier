@@ -1,0 +1,304 @@
+# Planted bugs chosen by the independent reviewer (see ../REVIEW.md).
+# Each mutant is an exact text replacement on the file build.py extracts
+# (upstream mode from the pinned Neovim, fixed mode from verified_neovim 76c51e8).
+# Run: ONLY='^<harness>$' [MODE=fixed] bash run_cbmc.sh <tree> <mutated.c>
+# result = what the shipped proof does (both char signednesses).
+
+[[mutant]]
+id = "m01"
+harness = "h_unpack_string"
+mode = "upstream"
+description = "success: data not advanced past payload"
+old = """
+  (*data) = data2 + tok.length;"""
+new = """
+  (*data) = data2;"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m02"
+harness = "h_unpack_string"
+mode = "upstream"
+description = "bin8/16/32 rejected"
+old = """
+tok.type != MPACK_TOKEN_STR && tok.type != MPACK_TOKEN_BIN"""
+new = """
+tok.type != MPACK_TOKEN_STR"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m03"
+harness = "h_unpack_string"
+mode = "upstream"
+description = "EOF from reader not treated as failure"
+old = """
+  int result = mpack_rtoken(&data2, &size2, &tok);
+  if (result ||"""
+new = """
+  int result = mpack_rtoken(&data2, &size2, &tok);
+  if (result == MPACK_ERROR ||"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m04"
+harness = "h_unpack_string"
+mode = "upstream"
+description = "payload-fits check off by one (reads one byte past end)"
+old = """
+  if (size2 < tok.length) {"""
+new = """
+  if (size2 + 1 < tok.length) {"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m05"
+harness = "h_unpack_string"
+mode = "upstream"
+description = "returned size is remaining buffer, not payload length"
+old = """
+  return cbuf_as_string((char *)data2, tok.length);"""
+new = """
+  return cbuf_as_string((char *)data2, size2);"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m06"
+harness = "h_unpack_array"
+mode = "upstream"
+description = "array count truncated to int16"
+old = """
+  return tok.length;
+}
+
+// src/nvim/msgpack_rpc/unpacker.c:570"""
+new = """
+  return (ssize_t)(int16_t)tok.length;
+}
+
+// src/nvim/msgpack_rpc/unpacker.c:570"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m07"
+harness = "h_unpack_array"
+mode = "upstream"
+description = "array: EOF result ignored (uses unset token)"
+old = """
+  int result = mpack_rtoken(data, size, &tok);
+  if (result || tok.type != MPACK_TOKEN_ARRAY)"""
+new = """
+  int result = mpack_rtoken(data, size, &tok);
+  if (result == MPACK_ERROR || tok.type != MPACK_TOKEN_ARRAY)"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m08"
+harness = "h_unpack_integer"
+mode = "upstream"
+description = "integer: EOF result ignored"
+old = """
+  if (result) {
+    return false;"""
+new = """
+  if (result == MPACK_ERROR) {
+    return false;"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m09"
+harness = "h_unpack_uint_or_sint"
+mode = "upstream"
+description = "uint value truncated to 32 bits"
+old = """
+*res = (Integer)mpack_unpack_uint(tok);"""
+new = """
+*res = (Integer)(uint32_t)mpack_unpack_uint(tok);"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m10"
+harness = "h_unpack_uint_or_sint"
+mode = "upstream"
+description = "sint value truncated to 32 bits"
+old = """
+*res = (Integer)mpack_unpack_sint(tok);"""
+new = """
+*res = (Integer)(int32_t)mpack_unpack_sint(tok);"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m11"
+harness = "h_unpack_uint_or_sint"
+mode = "upstream"
+description = "res clobbered on non-integer token"
+old = """
+    return true;
+  }
+  return false;"""
+new = """
+    return true;
+  }
+  *res = 0;
+  return false;"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m12"
+harness = "h_unpack_integer"
+mode = "upstream"
+description = "float token accepted as integer (via unpack_integer)"
+old = """
+  if (tok.type == MPACK_TOKEN_UINT) {"""
+new = """
+  if (tok.type == MPACK_TOKEN_UINT || tok.type == MPACK_TOKEN_FLOAT) {"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m13"
+harness = "h_push_additional_data"
+mode = "fixed"
+description = "push of empty data not counted"
+old = """
+  a->nitems++;"""
+new = """
+  a->nitems += (size != 0);"""
+expected = "caught"
+result = "survived"
+note = "survives the shipped harness_ad.c (weakness, REVIEW issue 2/3); caught by the strengthened harness in REVIEW.md"
+
+[[mutant]]
+id = "m14"
+harness = "h_push_additional_data"
+mode = "fixed"
+description = "header created only when capacity is 0"
+old = """
+  if (kv_size(*ad) == 0) {"""
+new = """
+  if (kv_max(*ad) == 0) {"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m15"
+harness = "h_push_additional_data"
+mode = "fixed"
+description = "nbytes overwritten instead of accumulated"
+old = """
+  a->nbytes += size;"""
+new = """
+  a->nbytes = size;"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m16"
+harness = "h_push_additional_data"
+mode = "fixed"
+description = "header appended 4 bytes short"
+old = """
+    kv_concat_len(*ad, &init, sizeof(init));"""
+new = """
+    kv_concat_len(*ad, &init, sizeof(init) - 4);"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m17"
+harness = "h_push_additional_data"
+mode = "fixed"
+description = "previously stored item bytes zeroed (frame violation)"
+old = """
+  kv_concat_len(*ad, data, size);
+}"""
+new = """
+  if (kv_size(*ad) > sizeof(AdditionalData)) memset(ad->items + sizeof(AdditionalData), 0, kv_size(*ad) - sizeof(AdditionalData));
+  kv_concat_len(*ad, data, size);
+}"""
+expected = "caught"
+result = "survived"
+note = "survives the shipped harness_ad.c (weakness, REVIEW issue 2/3); caught by the strengthened harness in REVIEW.md"
+
+[[mutant]]
+id = "m18"
+harness = "h_push_additional_data"
+mode = "fixed"
+description = "first byte of a pushed item corrupted"
+old = """
+  kv_concat_len(*ad, data, size);
+}"""
+new = """
+  kv_concat_len(*ad, data, size);
+  if (size > 1) ad->items[kv_size(*ad) - size] ^= 1;
+}"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m19"
+harness = "h_unpack_string"
+mode = "upstream"
+description = "EQUIVALENT: STRING_INIT spelled out"
+old = """
+  if (size2 < tok.length) {
+    // result = MPACK_EOF;
+    return (String)STRING_INIT;"""
+new = """
+  if (size2 < tok.length) {
+    // result = MPACK_EOF;
+    return cbuf_as_string(NULL, 0);"""
+expected = "survive (equivalent)"
+result = "survived"
+
+[[mutant]]
+id = "m20"
+harness = "h_unpack_array"
+mode = "upstream"
+description = "array failure returns -2 instead of -1"
+old = """
+  if (result || tok.type != MPACK_TOKEN_ARRAY) {
+    return -1;"""
+new = """
+  if (result || tok.type != MPACK_TOKEN_ARRAY) {
+    return -2;"""
+expected = "caught"
+result = "caught"
+
+[[mutant]]
+id = "m21"
+harness = "h_unpack_array"
+mode = "upstream"
+description = "on failure, skip to end of buffer (consumption on failure is undocumented)"
+old = """
+  if (result || tok.type != MPACK_TOKEN_ARRAY) {
+    return -1;"""
+new = """
+  if (result || tok.type != MPACK_TOKEN_ARRAY) {
+    *data += *size; *size = 0;
+    return -1;"""
+expected = "survive (failure consumption is not specified by the upstream doc or the claim)"
+result = "survived"
+
+[[mutant]]
+id = "m22"
+harness = "h_unpack_string"
+mode = "upstream"
+description = "bin payload pointer off by one"
+old = """
+  (*size) = size2 - tok.length;"""
+new = """
+  (*size) = size2 - tok.length;
+  if (tok.type == MPACK_TOKEN_BIN) data2++;"""
+expected = "caught"
+result = "caught"
