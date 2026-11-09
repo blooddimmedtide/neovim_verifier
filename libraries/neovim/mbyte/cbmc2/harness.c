@@ -76,3 +76,4 @@ void h_safe_read(void) {
   if (ok) __CPROVER_assert(r == (int)spec_value(u, L) && s == buf + L && m == n - (size_t)L, "complete");
   else __CPROVER_assert(r == -1 && s == buf && m == n, "bad: -1, unchanged");
 }
+

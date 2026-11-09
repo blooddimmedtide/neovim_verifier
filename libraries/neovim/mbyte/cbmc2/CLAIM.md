@@ -10,10 +10,11 @@ Run: `bash run_cbmc.sh <neovim checkout>`.
 |---|---|---|
 | utf_ptr2CharInfo_impl | proved (candidate) | with its caller's preconditions (NUL-terminated p, p[0] >= 0x80, len = utf8len_tab[p[0]]): value of a complete sequence, negative otherwise; never reads past NUL |
 | mb_cptr2char_adv | proved (candidate) | returns utf_ptr2char meaning, advances by the sequence length (0 for "") |
-| utf_safe_read_char_adv | FAILS the spec on overlong forms only | memory safe (never reads past n). Returns -1 for an overlong sequence whose value equals its first byte, e.g. FC 80 80 80 83 BC (value 0xFC) or E0 83 A0 (0xE0); see ../../findings/safe-read-overlong.md. No fix proved yet |
+| utf_safe_read_char_adv | upstream: memory safe, fails the spec on overlong forms; fixed: proved (fixed-candidate) | upstream returns -1 for an overlong sequence whose value equals its first byte, e.g. FC 80 80 80 83 BC or E0 83 A0; see ../../findings/safe-read-overlong.md. Fix: verified_neovim branch claude/project-thread-s2rcie (13c7bc1), full spec proved (build.py accepts the fixed piece by sha256) |
 
-Preconditions used: the ones above for utf_ptr2CharInfo_impl (both callers in mbyte.h establish
-them for the NUL-terminated case). Not yet checked: the `utf_ptr2CharInfo_len` caller with
-size == 1 and a lone continuation byte (len 1 <= size, impl reads p[1] past size). Open question.
+Preconditions used: the ones above for utf_ptr2CharInfo_impl (its NUL-terminated caller in mbyte.h
+establishes them).
+
+Upstream run: 8/10 harness runs proved (h_safe_read fails, both signednesses). Fixed fork: 10/10.
 
 Not done (deadline 2026-11-09 09:00 UTC): differential test, adversarial review + mutants, CI.

@@ -10,7 +10,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
-| src/nvim/mbyte.c | 0 | 10 | 80 | 90 |
+| src/nvim/mbyte.c | 0 | 11 | 79 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
 
 ## Function details
@@ -76,7 +76,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/mbyte.c | `utf_ptr2CharInfo_impl` | candidate | mbyte/cbmc2 (CBMC, all inputs, caller preconditions) | value or negative; never reads past NUL. Review/mutants/difftest to do |
 | src/nvim/mbyte.c | `mb_cptr2char_adv` | candidate | mbyte/cbmc2 (CBMC, all inputs) | char + advance by sequence length. Review/mutants/difftest to do |
-| src/nvim/mbyte.c | `utf_safe_read_char_adv` | open | mbyte/cbmc2 (CBMC: memory safe; spec fails on overlong forms) | findings/safe-read-overlong.md; fix not proved |
+| src/nvim/mbyte.c | `utf_safe_read_char_adv` | fixed-candidate | mbyte/cbmc2 (CBMC, all inputs, fixed fork; upstream memory safe only) | findings/safe-read-overlong.md; fix 13c7bc1 in verified_neovim. Review/mutants/difftest to do |
 
 ## All files
 
