@@ -65,6 +65,13 @@ CHECKS = [("src/nvim/api/private/defs.h", "typedef int64_t Integer;"),
           ("src/nvim/api/private/helpers.h", "#define cbuf_as_string(d, s) ((String) { .data = d, .size = s })")]
 
 
+def BLOCKS(fixed):
+    nb = "size_t" if fixed else "uint32_t"
+    return [("src/nvim/api/private/defs.h", "typedef struct {\n  char *data;\n  size_t size;\n} String;\n"),
+            ("src/nvim/types_defs.h",
+             f"typedef struct {{\n  uint32_t nitems;\n  {nb} nbytes;\n  char data[];\n}} AdditionalData;\n")]
+
+
 def pins(path=None):
     d = {}
     path = path or PIN
@@ -85,6 +92,9 @@ def main(tree, out, mode="upstream", pin=False):
     for path, text in CHECKS:
         if text not in open(f"{tree}/{path}").read().split("\n"):
             sys.exit(f"build: {path} no longer contains: {text}")
+    for path, block in BLOCKS(fixed):  # whole structs, so no field can slip in unseen
+        if block not in open(f"{tree}/{path}").read():
+            sys.exit(f"build: {path} no longer contains the block:\n{block}")
     want = pins(); got = {}
     for path in FILES:
         got[path] = hashlib.sha256(open(f"{tree}/{path}", "rb").read()).hexdigest()

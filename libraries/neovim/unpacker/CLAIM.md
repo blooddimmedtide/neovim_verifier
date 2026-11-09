@@ -69,8 +69,8 @@ is defined only while generated key sets have at most 64 fields (to check).
 
 Author: 7 planted bugs, 7 caught (`cbmc/mutants_result.tsv`). Independent review (`REVIEW.md`,
 accept with changes): 22 more mutants (`cbmc/mutants.toml`); 20 non-equivalent ones in scope,
-18 caught by the first harness, 20/20 after its issues 1-3 were applied. Issue 7 (prelude
-checked line by line, not per struct) is still open; the reviewer checked the structs by hand.
+18 caught by the first harness, 20/20 after its issues 1-3 were applied. Issue 7 is applied too:
+build.py now checks the String and AdditionalData structs as whole blocks.
 
 ## Reproduce
 
