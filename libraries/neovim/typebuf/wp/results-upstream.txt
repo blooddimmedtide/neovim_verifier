@@ -1,0 +1,13 @@
+free_buff: 21 / 21
+read_readbuf: 50 / 50
+read_readbuffers: 22 / 22
+start_stuff: 5 / 5
+stuff_empty: 10 / 10
+readbuf1_empty: 4 / 4
+init_typebuf: 14 / 14
+typebuf_changed: 13 / 13
+typebuf_typed: 4 / 4
+typebuf_maplen: 4 / 4
+free_typebuf: 29 / 29
+alloc_typebuf: 25 / 25
+logs: /tmp/tmp.vSEeoo1FvQ

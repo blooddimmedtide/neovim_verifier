@@ -9,6 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/input.c | 0 | 12 | 88 | 100 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -74,6 +75,22 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/input.c | `free_buff` | candidate | typebuf/wp (Frama-C WP, 21/21) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `add_buff` | open | typebuf/wp | open: 87/94 goals; memmove/memcpy ranges after kv_ensure_space time out (the xrealloc result needs separation facts the kv_resize macro cannot pass as ghost arguments) |
+| src/nvim/input.c | `read_readbuf` | candidate | typebuf/wp (Frama-C WP, 50/50) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `read_readbuffers` | candidate | typebuf/wp (Frama-C WP, 22/22) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `start_stuff` | candidate | typebuf/wp (Frama-C WP, 5/5) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `stuff_empty` | candidate | typebuf/wp (Frama-C WP, 10/10) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `readbuf1_empty` | candidate | typebuf/wp (Frama-C WP, 4/4) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `init_typebuf` | candidate | typebuf/wp (Frama-C WP, 14/14) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `ins_typebuf` | open | typebuf/wp (not finished) | findings ins-typebuf-strlen-truncation, typebuf-change-cnt-overflow; fix verified_neovim 4c11bf5 (proof pending) |
+| src/nvim/input.c | `typebuf_changed` | candidate | typebuf/wp (Frama-C WP, 13/13) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `typebuf_typed` | candidate | typebuf/wp (Frama-C WP, 4/4) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `typebuf_maplen` | candidate | typebuf/wp (Frama-C WP, 4/4) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `del_typebuf` | open | typebuf/wp (78/81) | finding typebuf-change-cnt-overflow; fix 4c11bf5 (proof pending) |
+| src/nvim/input.c | `alloc_typebuf` | candidate | typebuf/wp (Frama-C WP, 25/25) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `free_typebuf` | candidate | typebuf/wp (Frama-C WP, 29/29) | see typebuf/CLAIM.md; no mutant review yet |
+| src/nvim/input.c | `put_string_in_typebuf` | open | typebuf/wp | open: contract written, depends on ins_typebuf and del_typebuf; not run |
 
 ## All files
 

@@ -45,6 +45,12 @@ annotate = "memory/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as 
 prove = ["bash memory/wp/run_wp.sh {src} 120"]
 check = ["bash memory/difftest/run_difftest.sh {src} 1000000"]
 
+[targets.input_typebuf]
+file = "src/nvim/input.c"
+functions = ["free_buff", "read_readbuf", "read_readbuffers", "start_stuff", "stuff_empty", "readbuf1_empty", "init_typebuf", "typebuf_changed", "typebuf_typed", "typebuf_maplen", "free_typebuf", "alloc_typebuf"]
+annotate = "typebuf/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL as comments only
+prove = ["bash typebuf/wp/run_wp.sh {src} upstream 30 free_buff read_readbuf read_readbuffers start_stuff stuff_empty readbuf1_empty init_typebuf typebuf_changed typebuf_typed typebuf_maplen free_typebuf alloc_typebuf"]
+
 [framac]
 per_function = true
 
