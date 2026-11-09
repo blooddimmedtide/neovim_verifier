@@ -34,3 +34,5 @@ bugs for the proved set.
 - Note for later (not a bug in these two): extmark undo records are the raw in-memory struct
   bytes (host byte order and layout), and unserialize_extmark accepts any row/col/byte values.
   Whatever applies them later (extmark_apply_undo) must not trust them; not checked yet.
+- 08:45: read the code that applies the extmark records; suspected UB/DoS written up in
+  `../findings/undo-extmark-unchecked-SUSPECTED.md` (not reproduced; needs an ASan build).
