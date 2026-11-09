@@ -1,3 +1,3 @@
 # src/nvim/message.c string helpers (claimed)
 
-Work in progress: trunc_string and msg_strtrunc. See CLAIM.md when present.
+Work in progress (deadline stop 2026-11-09 09:00 UTC). See CLAIM.md and cbmc/run.sh.
