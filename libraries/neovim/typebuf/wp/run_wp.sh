@@ -12,7 +12,7 @@ FNS=${*:-free_buff add_buff read_readbuf read_readbuffers start_stuff stuff_empt
 run() {
   local f=$1
   (cd "$W" && timeout "${WP_WALL:-600}" frama-c -machdep x86_64 -cpp-extra-args="-I stubs" tb.c -wp -wp-fct "$f" -wp-rte \
-     -wp-model Typed+Cast -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" -wp-cache none -wp-smoke-tests > "wp_$f.log" 2>&1)
+     -wp-model Typed+Cast -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" -wp-cache none -wp-smoke-tests ${WP_EXTRA:-} > "wp_$f.log" 2>&1)
   local r; r=$(grep -E "Proved goals" "$W/wp_$f.log" | sed 's/.*goals: *//')
   echo "$f: ${r:-no result}"; grep -E '\[(Timeout|Unknown|Failed)\]|^\[kernel\].*[Ee]rror|User Error' "$W/wp_$f.log" | head -12 | sed 's/^/   /'
   grep -qE "Proved goals: +([0-9]+) / \1$" "$W/wp_$f.log" || status=1

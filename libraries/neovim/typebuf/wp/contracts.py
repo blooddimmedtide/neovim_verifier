@@ -193,9 +193,10 @@ def contracts(fixed):
     exits vp_oom;
     assigns typebuf, typebuf_was_filled, vp_live;
     ensures typebuf.tb_buf != \null && typebuf.tb_noremap != \null;
-    ensures \valid(typebuf.tb_buf + (0 .. TYPELEN_INIT - 1)) && \valid(typebuf.tb_noremap + (0 .. TYPELEN_INIT - 1));
-    ensures \base_addr(typebuf.tb_buf) != \base_addr(typebuf.tb_noremap);
-    ensures \fresh{Old, Here}((char *)typebuf.tb_buf, TYPELEN_INIT) && \fresh{Old, Here}((char *)typebuf.tb_noremap, TYPELEN_INIT);
+    ensures \valid((char *)typebuf.tb_buf + (0 .. TYPELEN_INIT - 1)) && \valid((char *)typebuf.tb_noremap + (0 .. TYPELEN_INIT - 1));
+    ensures \base_addr((char *)typebuf.tb_buf) != \base_addr((char *)typebuf.tb_noremap);
+    ensures \base_addr((char *)typebuf.tb_buf) != \base_addr(&typebuf) && \base_addr((char *)typebuf.tb_noremap) != \base_addr(&typebuf);
+    ensures \base_addr((char *)typebuf.tb_buf) != \base_addr(&typebuf_init[0]) && \base_addr((char *)typebuf.tb_noremap) != \base_addr(&noremapbuf_init[0]);
     ensures typebuf.tb_buflen == TYPELEN_INIT && typebuf.tb_off == MAXMAPLEN + 4 && typebuf.tb_len == 0;
     ensures typebuf.tb_maplen == 0 && typebuf.tb_silent == 0 && typebuf.tb_no_abbr_cnt == 0;
     ensures typebuf.tb_change_cnt == """ + NC + r"""(\old(typebuf.tb_change_cnt));
@@ -297,6 +298,14 @@ def annotations(fixed):
           typebuf.tb_noremap[typebuf.tb_off + k + offset] == nr_flag(noremap, addlen, k);
         loop assigns i, nrm, typebuf.tb_noremap[typebuf.tb_off + offset .. typebuf.tb_off + offset + addlen - 1];
         loop variant addlen - i;"""),
+    ]
+    A["alloc_typebuf"] = [
+        ("after", "  typebuf.tb_buf = xmalloc(TYPELEN_INIT)", "ghost (&typebuf, &typebuf_init[0], &noremapbuf_init[0], &typebuf)"),
+        ("after", "  typebuf.tb_noremap = xmalloc(TYPELEN_INIT)", "ghost (&typebuf, typebuf.tb_buf, &noremapbuf_init[0], &typebuf_init[0])"),
+    ]
+    A["ins_typebuf"] += [
+        ("after", "    uint8_t *s1 = xmalloc((size_t)newlen)", "ghost (&typebuf, str, typebuf.tb_buf, typebuf.tb_noremap)"),
+        ("after", "    uint8_t *s2 = xmalloc((size_t)newlen)", "ghost (s1, &typebuf, str, typebuf.tb_buf)"),
     ]
     A["put_string_in_typebuf"] = [
         ("after", "(char *)string + slen, REMAP_YES, offset, false, false)", "ghost ((size_t)(new_slen - slen))"),

@@ -16,11 +16,15 @@
     assigns \result \from n;
     assigns vp_live;
     allocates \result;
-    ensures \result != \null && \fresh{Old, Here}((char *)\result, n);
+    ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
+    // a new block: not one of the blocks the caller names (ghost "avoid" arguments;
+    // WP does not implement \fresh)
+    ensures \base_addr((char *)\result) != \base_addr((char *)a1) && \base_addr((char *)\result) != \base_addr((char *)a2)
+            && \base_addr((char *)\result) != \base_addr((char *)a3) && \base_addr((char *)\result) != \base_addr((char *)a4);
     ensures vp_live == \old(vp_live) + 1;
     exits vp_oom;
 */
-void *xmalloc(size_t n);
+void *xmalloc(size_t n) /*@ ghost (void *a1, void *a2, void *a3, void *a4) */;
 
 /*@ // xrealloc (memory.c): the bytes of p that are in range are kept
     requires n > 0;
@@ -31,8 +35,6 @@ void *xmalloc(size_t n);
     ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
     ensures \forall integer i; 0 <= i < n && p != \null && \at(\valid_read((char *)p + i), Pre) ==>
               ((char *)\result)[i] == \old(((char *)p)[i]);
-    // the same block, or a new one
-    ensures (p != \null && \base_addr((char *)\result) == \base_addr((char *)p)) || \fresh{Old, Here}((char *)\result, n);
     ensures vp_live == \old(vp_live) + (p == \null ? 1 : 0);
     exits vp_oom;
 */
