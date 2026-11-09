@@ -9,7 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
-| src/nvim/grid.c | 0 | 9 | 39 | 48 |
+| src/nvim/grid.c | 0 | 13 | 35 | 48 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -84,6 +84,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/grid.c | `schar_get_first_byte` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | first byte of text; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
 | src/nvim/grid.c | `schar_in_arabic_block` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | first byte 0xD8/0xD9; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
 | src/nvim/grid.c | `schar_from_char` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | UTF-8 of c zero padded; >= 0x200000 gives U+FFFD; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `grid_invalid_row` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | row's first-cell attr < 0; 17/17 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `grid_getchar` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | cell + attr or NUL; under undocumented row,col >= 0 (callers check; latent OOB without it); 17/17 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `grid_line_getchar` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | on-screen cell or space; under undocumented col >= 0; 17/17 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `grid_line_put_schar` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | writes only cell col, updates first/last; under undocumented col >= 0; 17/17 planted bugs; see grid/CLAIM.md. No review yet |
 
 ## All files
 

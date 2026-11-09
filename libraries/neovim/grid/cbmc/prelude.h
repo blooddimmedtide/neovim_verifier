@@ -8,8 +8,10 @@
 typedef uint32_t schar_T;              // types_defs.h
 #define MAX_SCHAR_SIZE 32              // types_defs.h
 #define NUL '\0'
-// grid_defs.h types, reduced to the fields grid_adjust touches.
-typedef struct { int dummy; } ScreenGrid;
+typedef int32_t sattr_T;               // types_defs.h
+typedef int colnr_T;                   // pos_defs.h
+// grid_defs.h ScreenGrid, reduced to the fields these functions touch.
+typedef struct { schar_T *chars; sattr_T *attrs; colnr_T *vcols; size_t *line_offset; int rows; int cols; } ScreenGrid;
 typedef struct { int row_offset, col_offset; ScreenGrid *target; } GridView;
 // Model of the glyph cache (map_defs.h Set(glyph)): keys is a flat byte array of n_keys bytes
 // holding NUL-terminated glyphs (mh_put_glyph), each shorter than MAX_SCHAR_SIZE (grid.c comment).
@@ -18,3 +20,9 @@ int utf_char2bytes(const int c, char *const buf);
 #include <limits.h>
 // POSIX strnlen (CBMC has no body for it): number of bytes before the first NUL, at most n.
 static size_t strnlen(const char *s, size_t n) { size_t i = 0; while (i < n && s[i]) i++; return i; }
+#define MIN(a, b) ((a) < (b) ? (a) : (b))   // macros.h
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define schar_from_ascii(x) ((schar_T)(x))   // grid.h, little-endian
+// globals.h line buffer (allocated by grid_alloc to linebuf_size cells).
+schar_T *linebuf_char; sattr_T *linebuf_attr; colnr_T *linebuf_vcol;
+static size_t linebuf_size;

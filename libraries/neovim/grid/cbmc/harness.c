@@ -77,3 +77,75 @@ void h_grid_adjust(void) {
   ScreenGrid *res = grid_adjust(&v, &r, &c);
   assert(res == &g && (long)r == (long)r0 + v.row_offset && (long)c == (long)c0 + v.col_offset);
 }
+// Grid model (grid_defs.h comment): rows*cols cells in chars/attrs, line_offset[r] is where row r
+// starts, and the whole row fits: line_offset[r] + cols <= rows*cols (grid_alloc's layout; rows are
+// rotated by scrolling, never shortened). Only the accessed row's entry is constrained.
+static void setup_grid(ScreenGrid *g, int row) {
+  g->rows = nondet_int(); g->cols = nondet_int();
+  __CPROVER_assume(g->rows >= 1 && g->cols >= 1 && g->rows <= 65535 && g->cols <= 65535);
+  size_t n = (size_t)g->rows * (size_t)g->cols;
+  g->chars = malloc(n * sizeof(schar_T)); g->attrs = malloc(n * sizeof(sattr_T));
+  g->vcols = malloc(n * sizeof(colnr_T)); g->line_offset = malloc((size_t)g->rows * sizeof(size_t));
+  if (row >= 0 && row < g->rows) __CPROVER_assume(g->line_offset[row] <= n - (size_t)g->cols);
+}
+void h_grid_invalid_row(void) {
+  ScreenGrid g; int row = nondet_int(); setup_grid(&g, row);
+  __CPROVER_assume(row >= 0 && row < g.rows);   // static; every caller passes a grid row
+  assert(grid_invalid_row(&g, row) == (g.attrs[g.line_offset[row]] < 0));
+}
+void h_grid_getchar(void) {
+  ScreenGrid g; int row = nondet_int(), col = nondet_int(); setup_grid(&g, row);
+  if (nondet_int()) g.chars = NULL;
+#ifndef NO_NEG_PRE
+  // Caller precondition (NOT documented, checked by all 3 callers in eval/funcs.c): row, col >= 0.
+  __CPROVER_assume(row >= 0 && col >= 0);
+#endif
+  int attr = nondet_int(), a0 = attr; bool want_attr = nondet_int() != 0;
+  schar_T r = grid_getchar(&g, row, col, want_attr ? &attr : NULL);
+  if (g.chars == NULL || row >= g.rows || col >= g.cols) { assert(r == 0 && attr == a0); }
+  else {
+    size_t off = g.line_offset[row] + (size_t)col;
+    assert(r == g.chars[off]);
+    assert(attr == (want_attr ? g.attrs[off] : a0));
+  }
+}
+// State left by screengrid_line_start (its assignments and asserts): a grid with a valid row,
+// 0 <= coloff, maxcol = MIN(cols, cols - coloff) <= linebuf_size, linebuf_* of linebuf_size cells.
+static void setup_line(ScreenGrid *g) {
+  int row = nondet_int(); setup_grid(g, row); __CPROVER_assume(row >= 0 && row < g->rows);
+  int coloff = nondet_int(); __CPROVER_assume(coloff >= 0 && coloff < g->cols);
+  linebuf_size = nondet_unsigned(); __CPROVER_assume(linebuf_size <= 65535);
+  grid_line_grid = g; grid_line_row = row; grid_line_coloff = coloff;
+  grid_line_maxcol = MIN(g->cols, g->cols - coloff);
+  __CPROVER_assume((size_t)grid_line_maxcol <= linebuf_size);
+  linebuf_char = malloc(linebuf_size * sizeof(schar_T)); linebuf_attr = malloc(linebuf_size * sizeof(sattr_T));
+  linebuf_vcol = malloc(linebuf_size * sizeof(colnr_T));
+  grid_line_first = nondet_int(); grid_line_last = nondet_int();
+}
+void h_grid_line_getchar(void) {
+  ScreenGrid g; setup_line(&g);
+  int col = nondet_int();
+  __CPROVER_assume(col >= 0);   // NOT documented; every caller passes a column >= 0
+  int attr = nondet_int(), a0 = attr; bool want = nondet_int() != 0;
+  schar_T r = grid_line_getchar(col, want ? &attr : NULL);
+  if (col >= grid_line_maxcol) { assert(r == ' ' && attr == a0); }   // "space if out of bounds"
+  else {
+    size_t off = g.line_offset[grid_line_row] + (size_t)(col + grid_line_coloff);
+    assert(r == g.chars[off] && attr == (want ? g.attrs[off] : a0));
+  }
+}
+void h_grid_line_put_schar(void) {
+  ScreenGrid g; setup_line(&g);
+  int col = nondet_int(); __CPROVER_assume(col >= 0);   // NOT documented, as above
+  schar_T sc = nondet_unsigned(); int attr = nondet_int();
+  int f0 = grid_line_first, l0 = grid_line_last;
+  size_t k = nondet_unsigned(); __CPROVER_assume(k < linebuf_size && k != (size_t)col);
+  schar_T ck = linebuf_char[k]; sattr_T ak = linebuf_attr[k]; colnr_T vk = linebuf_vcol[k];
+  grid_line_put_schar(col, sc, attr);
+  if (col >= grid_line_maxcol) { assert(grid_line_first == f0 && grid_line_last == l0); }
+  else {
+    assert(linebuf_char[col] == sc && linebuf_attr[col] == attr && linebuf_vcol[col] == -1);
+    assert(grid_line_first == MIN(f0, col) && grid_line_last == MAX(l0, col + 1));
+  }
+  assert(linebuf_char[k] == ck && linebuf_attr[k] == ak && linebuf_vcol[k] == vk);  // nothing else written
+}

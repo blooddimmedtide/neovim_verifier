@@ -19,4 +19,11 @@ run arabic-mask h_schar_in_arabic_block 's/\& 0xFE) == 0xD8;/\& 0xFC) == 0xD8;/'
 run fromchar-limit h_schar_from_char 's/if (c >= 0x200000) {/if (c > 0x200000) {/' schar_from_char
 run fromchar-repl h_schar_from_char 's/    c = 0xFFFD;/    c = 0xFFFE;/' schar_from_char
 run adjust-swap h_grid_adjust 's/\*col_off += grid->col_offset;/*col_off += grid->row_offset;/' grid_adjust
+run invalid-le h_grid_invalid_row 's/return grid->attrs\[grid->line_offset\[row\]\] < 0;/return grid->attrs[grid->line_offset[row]] <= 0;/' grid_invalid_row
+run getchar-ge h_grid_getchar 's/row >= grid->rows || col >= grid->cols) {/row > grid->rows || col >= grid->cols) {/' grid_getchar
+run getchar-attr h_grid_getchar 's/    \*attrp = grid->attrs\[off\];/    *attrp = grid->attrs[off - (off > 0)];/' grid_getchar
+run lgetchar-le h_grid_line_getchar 's/  if (col < grid_line_maxcol) {/  if (col <= grid_line_maxcol) {/' grid_line_getchar
+run lgetchar-nooff h_grid_line_getchar 's/    col += grid_line_coloff;/    col += 0;/' grid_line_getchar
+run put-last h_grid_line_put_schar 's/grid_line_last = MAX(grid_line_last, col + 1);/grid_line_last = MAX(grid_line_last, col);/' grid_line_put_schar
+run put-novcol h_grid_line_put_schar 's/  linebuf_vcol\[col\] = -1;/  linebuf_vcol[col] = 0;/' grid_line_put_schar
 echo "caught $caught/$total"

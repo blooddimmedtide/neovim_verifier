@@ -15,6 +15,10 @@ FUNCS = [
     ("schar_in_arabic_block", "src/nvim/grid.c"),
     ("schar_from_char", "src/nvim/grid.c"),
     ("grid_adjust", "src/nvim/grid.c"),
+    ("grid_invalid_row", "src/nvim/grid.c"),
+    ("grid_getchar", "src/nvim/grid.c"),
+    ("grid_line_getchar", "src/nvim/grid.c"),
+    ("grid_line_put_schar", "src/nvim/grid.c"),
 ]
 PINS = {}
 try:
@@ -38,6 +42,12 @@ out, newpins, bad = [], [], False
 MACRO = "# define schar_idx(sc) (sc >> 8)"
 if MACRO not in open(f"{NV}/src/nvim/grid.c").read(): sys.exit("schar_idx macro changed")
 out.append(MACRO.replace("# define", "#define"))
+# grid_line_* state (static globals), copied verbatim as one block.
+_g = open(f"{NV}/src/nvim/grid.c").read()
+_i = _g.index("static ScreenGrid *grid_line_grid = NULL;"); _j = _g.index("static int grid_line_flags = 0;") + len("static int grid_line_flags = 0;")
+out.append(_g[_i:_j]); newpins.append("grid_line_state " + hashlib.sha256(_g[_i:_j].encode()).hexdigest())
+if PINS and PINS.get("grid_line_state") != hashlib.sha256(_g[_i:_j].encode()).hexdigest() and "grid_line_state" not in sys.argv[3:]:
+    print("grid_line_state differs from pin", file=sys.stderr); bad = True
 for name, f in FUNCS:
     t = extract(open(f"{NV}/{f}").read(), name)
     h = hashlib.sha256(t.encode()).hexdigest()

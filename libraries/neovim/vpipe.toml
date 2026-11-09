@@ -107,7 +107,7 @@ assumptions = [
 
 [targets.grid_schar]
 file = "src/nvim/grid.c"
-functions = ["schar_high", "schar_get_ascii", "schar_len", "schar_get_adv", "schar_get", "schar_get_first_byte", "schar_in_arabic_block", "schar_from_char", "grid_adjust"]
+functions = ["schar_high", "schar_get_ascii", "schar_len", "schar_get_adv", "schar_get", "schar_get_first_byte", "schar_in_arabic_block", "schar_from_char", "grid_adjust", "grid_invalid_row", "grid_getchar", "grid_line_getchar", "grid_line_put_schar"]
 annotate = "grid/cbmc/build.py"   # verbatim extraction, sha256 pinned per function
 prove = ["bash grid/cbmc/run_cbmc.sh {src}"]
 mutants = "bash grid/cbmc/mutants.sh {src}"
