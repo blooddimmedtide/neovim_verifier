@@ -104,3 +104,10 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.grid_schar]
+file = "src/nvim/grid.c"
+functions = ["schar_high", "schar_get_ascii", "schar_len", "schar_get_adv", "schar_get", "schar_get_first_byte", "schar_in_arabic_block", "schar_from_char", "grid_adjust", "grid_invalid_row", "grid_getchar", "grid_line_getchar", "grid_line_put_schar", "grid_line_cursor_goto"]
+annotate = "grid/cbmc/build.py"   # verbatim extraction, sha256 pinned per function
+prove = ["bash grid/cbmc/run_cbmc.sh {src}"]
+mutants = "bash grid/cbmc/mutants.sh {src}"
