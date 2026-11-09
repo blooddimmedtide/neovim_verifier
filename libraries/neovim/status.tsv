@@ -76,3 +76,4 @@ src/nvim/undo.c	get_undolevel	candidate	undo/cbmc/run_small.sh (CBMC)	buffer 'un
 src/nvim/undo.c	zero_fmark_additional_data	candidate	undo/cbmc/run_small.sh (CBMC)	frees and NULLs all 26 marks' data, nothing else touched, no leak; no independent review yet
 src/nvim/undo.c	u_get_headentry	candidate	undo/cbmc/run_head.sh (CBMC)	newest entry or NULL + one internal error; no independent review yet
 src/nvim/undo.c	u_getbot	candidate	undo/cbmc/run_head.sh (CBMC)	ue_bot recomputed or reset with error; line counts below MAXLNUM (int overflow at exactly MAXLNUM lines, unconfirmed); 5 own planted bugs caught; no independent review yet
+src/nvim/undo.c	u_update_save_nr	candidate	undo/cbmc/run_save.sh (CBMC)	counter +1, stored in the header u would undo next; counter below INT_MAX; 3 own planted bugs caught; no independent review yet
