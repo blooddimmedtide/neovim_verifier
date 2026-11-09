@@ -30,13 +30,21 @@ structural dependency, not a time problem:
   the `Map`/khash machinery (`pmap_put_ref`, `pmap_del`, `map_destroy`) and `shada_free_shada_entry`.
 - `shada_removable` depends on `p_shada` option parsing and path/home-replace machinery.
 
-## Next step (unblocks shada_read_next_item)
-1. The unpacker thread verifies the small decoders `unpack_array`, `unpack_integer`,
-   `unpack_string`, `unpack_skip` against a MessagePack-spec reference (they are self-contained over
-   `mpack_rtoken`, so each is a bounded CBMC target much like the primitives proved here).
-2. Build those proved contracts into a model (`cbmc/unpacker_model.h`) and extend `cbmc/build.py`
-   to extract `shada_read_next_item`, then prove: no out-of-bounds read of the item buffer for any
-   `length`/content, the `length_u64 > PTRDIFF_MAX` and the new additional-item guards hold, and
-   every `goto ..._error` path frees what was allocated (no leak / no double free).
+## Next step (unblocks shada_read_next_item) — UPDATED 2026-11-09 08:31
 
-Until step 1 lands, `shada_read_next_item` stays `unverified` and the file is **not** finished.
+1. DONE: the unpacker thread (neovim_verifier#14, branch claude/project-thread-3l219g) proved
+   `unpack_string`, `unpack_array`, `unpack_integer` with CBMC (candidate; every byte content,
+   buffer length < 2^48, both char signednesses) and sent the contracts. They are captured as
+   ready-to-use CBMC stubs in `cbmc/unpacker_contracts.h`, reproducing exactly those proved
+   post-conditions. `unpack_skip` is NOT proved (it wraps `mpack_parse`, an unbounded loop that
+   needs Frama-C WP) and is marked in that header as the one assumed contract.
+2. TODO: extend `cbmc/build.py` to verbatim-extract `shada_read_next_item` (sha-pinned) and prove,
+   on top of `unpacker_contracts.h`: no out-of-bounds read of the item buffer for any
+   `length`/content, the `length_u64 > PTRDIFF_MAX` and the new additional-item guards hold, and
+   every `goto ..._error` path frees what was allocated (no leak / no double free). Any run that
+   exercises the trailing-items / unknown-key / verify_but_ignore paths relies on the assumed
+   `unpack_skip`; mark those runs as such until #14 closes `unpack_skip` with WP.
+
+Blockers remaining: `unpack_skip` (WP, owned by the unpacker thread) and the verbatim extraction +
+proof of `shada_read_next_item` itself. Until both land, `shada_read_next_item` stays `unverified`
+and the file is **not** finished.
