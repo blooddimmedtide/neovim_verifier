@@ -31,7 +31,7 @@ for bytes 128..255 depends on the locale (modelled as an unknown but fixed set).
 | `xdl_emit_diffrec` | proved | CBMC | one `out_line` call with {pre, line} and git's "No newline" marker iff the line does not end in `\n`; -1 iff the callback fails |
 | `xdl_mmfile_first`, `xdl_mmfile_size` | proved | CBMC, WP | the buffer and its size |
 | `xdl_cha_init` | proved | WP | an empty store, `nsize = icount * isize` |
-| `xdl_cha_free` | proved | WP | frees every block of the list exactly once, in order, nothing else |
+| `xdl_cha_free` | OPEN (WP proves the free order, but the model keeps a block valid after its free, so a use-after-free mutant still proves: REVIEW.md F1) | WP | frees every block of the list exactly once, in order, nothing else, and reads no block after freeing it |
 | `xdl_cha_alloc` | proved | CBMC + WP lemma | isize fresh writable bytes after every earlier item (next slot, or first slot of a new block appended to the list); NULL with the store unchanged only when a new block was needed and malloc failed |
 | `xdl_guess_lines` | proved | WP | size / (mean length of the first `sample` lines) + 1 |
 | `xdl_blankline` | proved | WP | with a whitespace flag: only whitespace; without: `""` or `"\n"` (upstream: any line of 1 byte, a bug) |
@@ -51,11 +51,21 @@ for bytes 128..255 depends on the locale (modelled as an unknown but fixed set).
 - `xdl_cha_alloc`: the store came from `xdl_cha_init` and `xdl_cha_alloc`.
 - `xdl_emit_hunk_hdr` text path: `func` has `funclen >= 0` readable bytes; `s - 1` must not overflow
   for an empty side (`s == LONG_MIN`).
-- `xdl_fall_back_diff`: the ranges are within the files, and a file has fewer than `INT_MAX`
+- `xdl_fall_back_diff`: the ranges are within the files and not empty (`line >= 1`, `count >= 1` on both sides; the callers xpatience.c and xhistogram.c guarantee it), and a file has fewer than `INT_MAX`
   records (`line1 + count1 - 2` is computed in int). xdl_do_diff (xdiffi.c) is used by its
   contract: it fails, or gives one `rchg` byte per record of each file.
 
 ## What the proofs rely on
+- Bounds of the proofs (REVIEW.md F4): `h_cha_alloc` takes `nsize + 16 <= 2^50` (the xmalloc model returns NULL above);
+  the WP proof of `xdl_cha_free` takes fewer than 10^6 blocks (size of the ghost log); the `xdl_emit_hunk_hdr`
+  callback row is for `s >= 1`, `c >= 0`.
+- `xdl_cha_alloc` is proved for one call from the store shape (`ancur == tail`, `tail->next == NULL`, the SLOTS
+  condition); that init and a sequence of allocs keep this shape, and keep the list that `xdl_cha_free` needs, is
+  argued on paper only (REVIEW.md F3, open).
+- Frees: since the review, `cbmc/memory.h` and the `xdl_free_env` stub deallocate, so CBMC checks use after free
+  and double free. The WP model of `xdl_free` does not (F1, open for `xdl_cha_free`).
+- The ACSL lemmas need their own `-wp-prop` run (a `-wp-fct` run skips them); the WP prelude does not yet pin the
+  hashes of the xdiff headers (F5, F6).
 - CBMC 6.4.1, Frama-C 33 WP / Why3 / Z3 / CVC5. The xmalloc model in `cbmc/memory.h`.
 - Declared tool patches (text only), in `wp/build_wp.py`: the headers are replaced by the same
   types and macros; `XDL_ISSPACE` calls a model of `isspace((unsigned char)c)`; `xdl_free` calls a

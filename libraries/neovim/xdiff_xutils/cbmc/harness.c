@@ -241,8 +241,8 @@ int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp, xdfenv_t *xe
   xe->xdf1.rchg = __CPROVER_allocate(a, 0); xe->xdf2.rchg = __CPROVER_allocate(b, 0);
   return 0;
 }
-static char *fe_r1, *fe_r2;
-void xdl_free_env(xdfenv_t *xe) { fe_calls++; fe_env = xe; fe_r1 = xe->xdf1.rchg; fe_r2 = xe->xdf2.rchg; }
+static char *fe_r1, *fe_r2; static long g_k1 = -1, g_k2 = -1; static char fe_v1, fe_v2;
+void xdl_free_env(xdfenv_t *xe) { fe_calls++; fe_env = xe; fe_r1 = xe->xdf1.rchg; fe_r2 = xe->xdf2.rchg; if (g_k1 >= 0) fe_v1 = fe_r1[g_k1]; if (g_k2 >= 0) fe_v2 = fe_r2[g_k2]; __CPROVER_deallocate(xe->xdf1.rchg); __CPROVER_deallocate(xe->xdf2.rchg); }
 
 static char *range_file(xdfile_t *x, int line, int count, char **start, long *size) {
   long nrec = nondet_long();
@@ -271,6 +271,8 @@ void h_fall_back_diff(void) {
   long j = nondet_long(), i = nondet_long();
   __CPROVER_assume(0 <= j && (size_t)j < __CPROVER_OBJECT_SIZE(rc1) && 0 <= i && (size_t)i < __CPROVER_OBJECT_SIZE(rc2));
   char o1 = rc1[j], o2 = rc2[i];
+  if (j >= line1 - 1 && j < (long)line1 - 1 + count1) g_k1 = j - (line1 - 1);
+  if (i >= line2 - 1 && i < (long)line2 - 1 + count2) g_k2 = i - (line2 - 1);
   int r = xdl_fall_back_diff(&e, &xpp, line1, count1, line2, count2);
   __CPROVER_assert(dd_calls == 1 && dd_xpp == &xpp && dd_env != &e, "one diff into a fresh environment");
   __CPROVER_assert(dd_m1.ptr == p1 && dd_m1.size == z1 && dd_m2.ptr == p2 && dd_m2.size == z2, "the two ranges as files");
@@ -280,8 +282,8 @@ void h_fall_back_diff(void) {
     return;
   }
   __CPROVER_assert(r == 0 && fe_calls == 1 && fe_env == dd_env, "success frees the temporary environment");
-  if (j >= line1 - 1 && j < (long)line1 - 1 + count1) __CPROVER_assert(rc1[j] == fe_r1[j - (line1 - 1)], "file 1 range copied");
+  if (j >= line1 - 1 && j < (long)line1 - 1 + count1) __CPROVER_assert(rc1[j] == fe_v1, "file 1 range copied");
   else __CPROVER_assert(rc1[j] == o1, "file 1 outside the range kept");
-  if (i >= line2 - 1 && i < (long)line2 - 1 + count2) __CPROVER_assert(rc2[i] == fe_r2[i - (line2 - 1)], "file 2 range copied");
+  if (i >= line2 - 1 && i < (long)line2 - 1 + count2) __CPROVER_assert(rc2[i] == fe_v2, "file 2 range copied");
   else __CPROVER_assert(rc2[i] == o2, "file 2 outside the range kept");
 }

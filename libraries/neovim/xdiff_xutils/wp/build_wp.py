@@ -328,7 +328,7 @@ f = f.replace("\t} else if (flags & XDF_IGNORE_WHITESPACE_CHANGE) {", """\t\t//@
 # -b: in step (same counted bytes so far, i1 and i2 not inside a run of whitespace), or
 # already known to differ with one side at its end and the other at a non-space
 L1, L2 = '(char *)l1', '(char *)l2'
-SB = SYNC.replace('MODE', '2')
+SB = '(' + SYNC.replace('MODE', '2') + ')'   # parenthesised: the \forall in SYNC would take in what follows
 BOUND = f"(i1 == 0 || i1 == s1 || !S({L1}, i1 - 1) || !S({L1}, i1)) && (i2 == 0 || i2 == s2 || !S({L2}, i2 - 1) || !S({L2}, i2))"
 MATCH = f"match({L1}, s1, {L2}, s2, flags)"
 DOOM = f"!{MATCH} && ((i1 == s1 && i2 < s2 && !S({L2}, i2)) || (i2 == s2 && i1 < s1 && !S({L1}, i1)))"

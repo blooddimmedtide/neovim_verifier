@@ -10,6 +10,6 @@ static void *xmalloc(size_t n) {
   if (n > ((size_t)1 << 50) || nondet_bool()) return NULL;
   return __CPROVER_allocate(n, 0);
 }
-static void xfree(void *p) { if (n_free < 4) freed[n_free] = p; n_free++; }
+static void xfree(void *p) { if (n_free < 4) freed[n_free] = p; n_free++; __CPROVER_deallocate(p); }
 static void *xcalloc(size_t a, size_t b) { (void)a; (void)b; __CPROVER_assert(0, "not used"); return NULL; }
 static void *xrealloc(void *p, size_t n) { (void)p; (void)n; __CPROVER_assert(0, "not used"); return NULL; }

@@ -1,0 +1,405 @@
+# Planted bugs for the src/xdiff/xutils.c proofs, chosen by the independent adversarial
+# reviewer (see REVIEW.md). Applied to the FIXED code (/tmp/claude-0/xd/xutils_fixed.c,
+# the fork's xdiff-fixed-local merge), only in functions CLAIM.md marks "proved".
+#
+# Keys: id, function, tool (cbmc: harness name | wp: function name for -wp-fct),
+# original (must occur exactly once in xutils.c; run_mutants.py refuses otherwise),
+# mutated, why, expect:
+#   expect = "caught"             a real bug: the proof CLAIM.md lists must fail
+#   expect = "equivalent: <why>"  same behaviour on every input the claim covers
+# A survivor of an expect = "caught" mutant is a proof gap; REVIEW.md explains each.
+
+# ---------------- xdl_bogosqrt (CBMC h_bogosqrt) ----------------
+[[mutant]]
+id = "bogosqrt-n-gt-1"
+function = "xdl_bogosqrt"
+cbmc = "h_bogosqrt"
+original = "for (i = 1; n > 0; n >>= 2)"
+mutated = "for (i = 1; n > 1; n >>= 2)"
+why = "n = 1 gives 1, not 2 (1*1 > 1 fails)"
+expect = "caught"
+
+[[mutant]]
+id = "bogosqrt-shift1"
+function = "xdl_bogosqrt"
+cbmc = "h_bogosqrt"
+original = "for (i = 1; n > 0; n >>= 2)"
+mutated = "for (i = 1; n > 0; n >>= 1)"
+why = "one doubling per bit: 2^bits(n), overflows for large n"
+expect = "caught"
+
+[[mutant]]
+id = "bogosqrt-add"
+function = "xdl_bogosqrt"
+cbmc = "h_bogosqrt"
+original = "\t\ti <<= 1;\n\n\treturn i;"
+mutated = "\t\ti += i;\n\n\treturn i;"
+why = "i += i is i <<= 1 (i <= 2^32, no overflow)"
+expect = "equivalent: doubling written as an addition"
+
+# ---------------- xdl_hashbits (CBMC h_hashbits) ----------------
+[[mutant]]
+id = "hashbits-le"
+function = "xdl_hashbits"
+cbmc = "h_hashbits"
+original = "for (; val < size && bits"
+mutated = "for (; val <= size && bits"
+why = "size 2 gives 2 bits; any power of two gets one bit too many"
+expect = "caught"
+
+[[mutant]]
+id = "hashbits-cap31"
+function = "xdl_hashbits"
+cbmc = "h_hashbits"
+original = "bits < CHAR_BIT * sizeof(unsigned int);"
+mutated = "bits < CHAR_BIT * sizeof(unsigned int) - 1;"
+why = "sizes above 2^31 get 31 bits: the table is too small"
+expect = "caught"
+
+[[mutant]]
+id = "hashbits-zero"
+function = "xdl_hashbits"
+cbmc = "h_hashbits"
+original = "return bits ? bits: 1;"
+mutated = "return bits;"
+why = "size 0 or 1 gives 0 bits"
+expect = "caught"
+
+# ---------------- xdl_emit_diffrec (CBMC h_emit_diffrec) ----------------
+[[mutant]]
+id = "diffrec-cr"
+function = "xdl_emit_diffrec"
+cbmc = "h_emit_diffrec"
+original = "rec[size - 1] != '\\n'"
+mutated = "rec[size - 1] != '\\r'"
+why = "marker on complete lines, none on incomplete ones"
+expect = "caught"
+
+[[mutant]]
+id = "diffrec-size1"
+function = "xdl_emit_diffrec"
+cbmc = "h_emit_diffrec"
+original = "if (size > 0 && rec"
+mutated = "if (size > 1 && rec"
+why = "a one-byte incomplete last line ('x') gets no 'No newline' marker"
+expect = "caught"
+
+[[mutant]]
+id = "diffrec-marker-len"
+function = "xdl_emit_diffrec"
+cbmc = "h_emit_diffrec"
+original = "mb[2].size = (long)strlen(mb[2].ptr);"
+mutated = "mb[2].size = (long)strlen(mb[2].ptr) - 1;"
+why = "the marker loses its final newline"
+expect = "caught"
+
+[[mutant]]
+id = "diffrec-marker-text"
+function = "xdl_emit_diffrec"
+cbmc = "h_emit_diffrec"
+original = "No newline at end of file"
+mutated = "No newline at end of File"
+why = "marker text differs from git's (same length)"
+expect = "caught"
+
+[[mutant]]
+id = "diffrec-ret-le0"
+function = "xdl_emit_diffrec"
+cbmc = "h_emit_diffrec"
+original = "if (ecb->out_line(ecb->priv, mb, i) < 0) {"
+mutated = "if (ecb->out_line(ecb->priv, mb, i) <= 0) {"
+why = "a callback returning 0 (success) is reported as failure"
+expect = "caught"
+
+[[mutant]]
+id = "diffrec-psize"
+function = "xdl_emit_diffrec"
+cbmc = "h_emit_diffrec"
+original = "mb[0].size = psize;"
+mutated = "mb[0].size = size;"
+why = "prefix gets the line's size"
+expect = "caught"
+
+# ---------------- xdl_mmfile_first / size (CBMC h_mmfile; WP too) ----------------
+[[mutant]]
+id = "mmfile-first-size"
+function = "xdl_mmfile_first"
+cbmc = "h_mmfile"
+original = "\t*size = mmf->size;"
+mutated = "\t*size = mmf->size - (mmf->size > 0);"
+why = "first buffer one byte short"
+expect = "caught"
+
+[[mutant]]
+id = "mmfile-size"
+function = "xdl_mmfile_size"
+cbmc = "h_mmfile"
+original = "\treturn mmf->size;\n}"
+mutated = "\treturn mmf->size + (mmf->ptr == 0);\n}"
+why = "size wrong when ptr is NULL"
+expect = "caught"
+
+# ---------------- xdl_cha_alloc (CBMC h_cha_alloc) ----------------
+[[mutant]]
+id = "cha-alloc-ge"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "ancur->icurr == cha->nsize) {"
+mutated = "ancur->icurr >= cha->nsize) {"
+why = "icurr never exceeds nsize (store invariant)"
+expect = "equivalent: icurr <= nsize in every store"
+
+[[mutant]]
+id = "cha-alloc-tail"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "if (!(ancur = cha->ancur) ||"
+mutated = "if (!(ancur = cha->tail) ||"
+why = "ancur is always the tail in this xdiff (no xdl_cha_first/next)"
+expect = "equivalent: ancur == tail in every store xdl_cha_init/alloc make"
+
+[[mutant]]
+id = "cha-alloc-step1"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "ancur->icurr += cha->isize;"
+mutated = "ancur->icurr += 1;"
+why = "items of isize > 1 overlap"
+expect = "caught"
+
+[[mutant]]
+id = "cha-alloc-head"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "\t\tif (!cha->head)\n\t\t\tcha->head = ancur;"
+mutated = "\t\tcha->head = ancur;"
+why = "each new block becomes the head: earlier blocks leak (xdl_cha_free misses them)"
+expect = "caught"
+
+[[mutant]]
+id = "cha-alloc-nolink"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "\t\tif (cha->tail)\n\t\t\tcha->tail->next = ancur;\n"
+mutated = ""
+why = "new block not linked: leaks"
+expect = "caught"
+
+[[mutant]]
+id = "cha-alloc-nonext"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "\t\tancur->next = NULL;\n"
+mutated = ""
+why = "list end left uninitialised"
+expect = "caught"
+
+[[mutant]]
+id = "cha-alloc-nocheck"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "if (!(ancur = (chanode_t *) xdl_malloc(sizeof(chanode_t) + cha->nsize))) {"
+mutated = "if (!(ancur = (chanode_t *) xdl_malloc(sizeof(chanode_t) + cha->nsize)) && 0) {"
+why = "malloc failure dereferences NULL"
+expect = "caught"
+
+[[mutant]]
+id = "cha-alloc-short-block"
+function = "xdl_cha_alloc"
+cbmc = "h_cha_alloc"
+original = "xdl_malloc(sizeof(chanode_t) + cha->nsize)"
+mutated = "xdl_malloc(sizeof(chanode_t) + cha->nsize - 1)"
+why = "the last slot of a block is one byte short"
+expect = "caught"
+
+# ---------------- xdl_emit_hunk_hdr callback path (CBMC h_emit_hunk_hdr_cb) ----------------
+[[mutant]]
+id = "hunk-cb-empty-start"
+function = "xdl_emit_hunk_hdr"
+cbmc = "h_emit_hunk_hdr_cb"
+original = "c1 ? s1 : s1 - 1, c1,"
+mutated = "c1 ? s1 : s1, c1,"
+why = "empty old side starts at s1, not s1 - 1"
+expect = "caught"
+
+[[mutant]]
+id = "hunk-cb-funclen"
+function = "xdl_emit_hunk_hdr"
+cbmc = "h_emit_hunk_hdr_cb"
+original = "func, funclen) < 0)"
+mutated = "func, funclen - (funclen > 0)) < 0)"
+why = "function name cut by one"
+expect = "caught"
+
+[[mutant]]
+id = "hunk-cb-gt0"
+function = "xdl_emit_hunk_hdr"
+cbmc = "h_emit_hunk_hdr_cb"
+original = "c2 ? s2 : s2 - 1, c2,"
+mutated = "c2 > 0 ? s2 : s2 - 1, c2,"
+why = "differs only for c2 < 0, which xemit.c never passes"
+expect = "equivalent: counts are >= 0 (harness range = callers' range)"
+
+# ---------------- xdl_fall_back_diff (CBMC h_fall_back_diff) ----------------
+[[mutant]]
+id = "fbd-count-short"
+function = "xdl_fall_back_diff"
+cbmc = "h_fall_back_diff"
+original = "env.xdf1.rchg, count1);"
+mutated = "env.xdf1.rchg, count1 - 1);"
+why = "last change flag of range 1 not copied"
+expect = "caught"
+
+[[mutant]]
+id = "fbd-offset"
+function = "xdl_fall_back_diff"
+cbmc = "h_fall_back_diff"
+original = "memcpy(diff_env->xdf2.rchg + line2 - 1,"
+mutated = "memcpy(diff_env->xdf2.rchg + line2,"
+why = "range 2 copied one line too late"
+expect = "caught"
+
+[[mutant]]
+id = "fbd-no-free"
+function = "xdl_fall_back_diff"
+cbmc = "h_fall_back_diff"
+original = "\txdl_free_env(&env);\n"
+mutated = ""
+why = "temporary environment leaks"
+expect = "caught"
+
+[[mutant]]
+id = "fbd-size-first-rec"
+function = "xdl_fall_back_diff"
+cbmc = "h_fall_back_diff"
+original = "diff_env->xdf1.recs[line1 + count1 - 2]->size - subfile1.ptr;"
+mutated = "diff_env->xdf1.recs[line1 - 1]->size - subfile1.ptr;"
+why = "file 1 ends at its last record plus the first record's size"
+expect = "caught"
+
+[[mutant]]
+id = "fbd-ret-le0"
+function = "xdl_fall_back_diff"
+cbmc = "h_fall_back_diff"
+original = "if (xdl_do_diff(&subfile1, &subfile2, xpp, &env) < 0)"
+mutated = "if (xdl_do_diff(&subfile1, &subfile2, xpp, &env) <= 0)"
+why = "success (0) reported as failure"
+expect = "caught"
+
+[[mutant]]
+id = "fbd-free-before-copy"
+function = "xdl_fall_back_diff"
+cbmc = "h_fall_back_diff"
+original = "\tmemcpy(diff_env->xdf1.rchg + line1 - 1, env.xdf1.rchg, count1);\n\tmemcpy(diff_env->xdf2.rchg + line2 - 1, env.xdf2.rchg, count2);\n\n\txdl_free_env(&env);\n"
+mutated = "\txdl_free_env(&env);\n\tmemcpy(diff_env->xdf1.rchg + line1 - 1, env.xdf1.rchg, count1);\n\tmemcpy(diff_env->xdf2.rchg + line2 - 1, env.xdf2.rchg, count2);\n"
+why = "use after free: copies from the freed temporary rchg arrays"
+expect = "caught"
+
+[[mutant]]
+id = "fbd-free-on-failure"
+function = "xdl_fall_back_diff"
+cbmc = "h_fall_back_diff"
+original = "if (xdl_do_diff(&subfile1, &subfile2, xpp, &env) < 0)\n\t\treturn -1;"
+mutated = "if (xdl_do_diff(&subfile1, &subfile2, xpp, &env) < 0) {\n\t\txdl_free_env(&env);\n\t\treturn -1;\n\t}"
+why = "frees an environment xdl_do_diff already freed on failure (double free)"
+expect = "caught"
+
+# ---------------- WP functions ----------------
+[[mutant]]
+id = "cha-init-sum"
+function = "xdl_cha_init"
+wp = "xdl_cha_init"
+original = "cha->nsize = icount * isize;"
+mutated = "cha->nsize = icount + isize;"
+why = "block size wrong"
+expect = "caught"
+
+[[mutant]]
+id = "cha-init-scurr"
+function = "xdl_cha_init"
+wp = "xdl_cha_init"
+original = "\tcha->scurr = 0;\n"
+mutated = ""
+why = "scurr left uninitialised"
+expect = "caught"
+
+[[mutant]]
+id = "cha-free-uaf"
+function = "xdl_cha_free"
+wp = "xdl_cha_free"
+original = "\t\tcur = cur->next;\n\t\txdl_free(tmp);"
+mutated = "\t\txdl_free(tmp);\n\t\tcur = cur->next;"
+why = "reads cur->next after freeing cur (use after free)"
+expect = "caught"
+
+[[mutant]]
+id = "guess-lines-tsize"
+function = "xdl_guess_lines"
+wp = "xdl_guess_lines"
+original = "tsize += (long) (cur - data);"
+mutated = "tsize += (long) (cur - data) + 1;"
+why = "mean line length one too large"
+expect = "caught"
+
+[[mutant]]
+id = "guess-lines-no-tsize-test"
+function = "xdl_guess_lines"
+wp = "xdl_guess_lines"
+original = "if (nl && tsize)"
+mutated = "if (nl)"
+why = "every line has at least one byte, so nl > 0 implies tsize >= nl > 0"
+expect = "equivalent: tsize >= nl"
+
+[[mutant]]
+id = "guess-lines-div1"
+function = "xdl_guess_lines"
+wp = "xdl_guess_lines"
+original = "nl = xdl_mmfile_size(mf) / (tsize / nl);"
+mutated = "nl = xdl_mmfile_size(mf) / (tsize / nl + 1);"
+why = "estimate too low"
+expect = "caught"
+
+[[mutant]]
+id = "blankline-upstream"
+function = "xdl_blankline"
+wp = "xdl_blankline"
+original = "return size == 0 || (size == 1 && line[0] == '\\n');"
+mutated = "return size <= 1;"
+why = "the upstream bug: a one-character last line counts as blank"
+expect = "caught"
+
+[[mutant]]
+id = "blankline-ge"
+function = "xdl_blankline"
+wp = "xdl_blankline"
+original = "return (i == size);"
+mutated = "return (i >= size);"
+why = "i never exceeds size"
+expect = "equivalent: i <= size"
+
+[[mutant]]
+id = "blankline-skip-first"
+function = "xdl_blankline"
+wp = "xdl_blankline"
+original = "return (i == size);"
+mutated = "return (i == size || i == 0);"
+why = "a line starting with a non-space counts as blank"
+expect = "caught"
+
+[[mutant]]
+id = "eol-cr-gt1"
+function = "len_without_eol"
+wp = "len_without_eol"
+original = "if (s && l[s-1] == '\\r')"
+mutated = "if (s > 1 && l[s-1] == '\\r')"
+why = "the line \"\\r\\n\" keeps its CR"
+expect = "caught"
+
+[[mutant]]
+id = "eol-lone-cr"
+function = "len_without_eol"
+wp = "len_without_eol"
+original = "\t\ts--;\n\t\tif (s && l[s-1] == '\\r')\n\t\t\ts--;\n\t}"
+mutated = "\t\ts--;\n\t\tif (s && l[s-1] == '\\r')\n\t\t\ts--;\n\t} else if (s && l[s-1] == '\\r')\n\t\ts--;"
+why = "drops the CR at the end of an incomplete line (the code's comment says it stays)"
+expect = "caught"
