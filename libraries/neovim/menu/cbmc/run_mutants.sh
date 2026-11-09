@@ -1,11 +1,12 @@
 #!/bin/bash
 # Usage: bash run_mutants.sh <neovim checkout>. Each mutant must make run_cbmc.sh fail.
 HERE=$(cd "$(dirname "$0")" && pwd); W=$(mktemp -d); caught=0; total=0
-while IFS=$'\t' read -r from to; do
+while IFS=$'\t' read -r from to anchor; do
   [ -z "$from" ] && continue; total=$((total+1))
-  mkdir -p "$W/nv/src/nvim"; python3 -I - "$1/src/nvim/menu.c" "$W/nv/src/nvim/menu.c" "$from" "$to" <<'PY'
-import sys; s=open(sys.argv[1]).read(); assert s.count(sys.argv[3])>=1, sys.argv[3]
-open(sys.argv[2],"w").write(s.replace(sys.argv[3], sys.argv[4], 1))
+  mkdir -p "$W/nv/src/nvim"; python3 -I - "$1/src/nvim/menu.c" "$W/nv/src/nvim/menu.c" "$from" "$to" "${anchor:-}" <<'PY'
+import sys; s=open(sys.argv[1]).read(); a=s.find(sys.argv[5]) if sys.argv[5] else 0
+assert a>=0; i=s.find(sys.argv[3], a); assert i>=0, sys.argv[3]
+open(sys.argv[2],"w").write(s[:i]+sys.argv[4]+s[i+len(sys.argv[3]):])
 PY
   # pins would reject the mutant, so rebuild pins for it in a copy of this dir
   cp -r "$HERE" "$W/h"; python3 -I "$W/h/build.py" "$W/nv" /dev/null --print-pins > "$W/h/pins.txt"

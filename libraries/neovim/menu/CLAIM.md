@@ -34,6 +34,7 @@ No undefined behaviour, no out-of-bounds read, no overflow for these inputs.
   `menu_is_separator` loop over unbounded data; a WP proof (or a CBMC proof with a larger N
   plus an argument) is still needed for full correctness. The `ToolBar`/8 mutant shows the bound
   matters: it differs only on strings of 8+ bytes.
+- Planted bugs: 10/10 caught at N = 12 (menu/cbmc/mutants_result.txt; self-written, not an independent review).
 - No differential test and no independent adversarial review yet (stopped at the 09:00 UTC
   deadline on 2026-11-09).
 - No bug found in these 8 functions.

@@ -7,4 +7,4 @@ name[strlen(name) - 1] == '-'	name[1] == '-'
 for (i = 0; name[i] != NUL && name[i] != TAB; i++) {	for (i = 0; name[i] != NUL; i++) {
 && (mname[i] == NUL || mname[i] == TAB)	&& (mname[i] == NUL)
 while (*p != NUL && *p != '.' && !ascii_iswhite(*p)) {	while (*p != NUL && *p != '.' && *p != ' ') {
-if ((*p == '\\' || *p == Ctrl_V) && p[1] != NUL) {	if ((*p == '\\' || *p == Ctrl_V)) {
+if ((*p == '\\' || *p == Ctrl_V) && p[1] != NUL) {	if ((*p == '\\' || *p == Ctrl_V)) {	static char *menu_skip_part(char *p)

@@ -1,0 +1,11 @@
+caught: strncmp(name, "WinBar", 6) -> strncmp(name, "WinBar", 5)
+caught: strncmp(name, "PopUp", 5) -> strncmp(name, "Popup", 5)
+caught: strncmp(name, "ToolBar", 7) -> strncmp(name, "ToolBar", 8)
+caught: && *name != MNU_HIDDEN_CHAR; -> ;
+caught: name[strlen(name) - 1] == '-' -> name[1] == '-'
+caught: && name[5] != NUL) -> && name[4] != NUL)
+caught: for (i = 0; name[i] != NUL && name[i] != TAB; i++) { -> for (i = 0; name[i] != NUL; i++) {
+caught: && (mname[i] == NUL || mname[i] == TAB) -> && (mname[i] == NUL)
+caught: while (*p != NUL && *p != '.' && !ascii_iswhite(*p)) { -> while (*p != NUL && *p != '.' && *p != ' ') {
+caught: if ((*p == '\\' || *p == Ctrl_V) && p[1] != NUL) { -> if ((*p == '\\' || *p == Ctrl_V)) {   (rerun with anchor; first run mutated an identical line at menu.c:943 outside the extracted code)
+10/10 caught (N = 12)
