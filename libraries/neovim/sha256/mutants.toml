@@ -120,7 +120,7 @@ original2 = "static uint8_t sha256_padding[SHA256_BUFFER_SIZE] = {"
 mutated2 = "#undef S3\n#define S3(x) (ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25))\nstatic uint8_t sha256_padding[SHA256_BUFFER_SIZE] = {"
 why = "adversarial: the body uses a wrong Sigma1, a correct S3 is re-#defined after the function; h_prims sees only the last definition and check_structure drops #define lines unread"
 checks = ["structure", "cbmc", "difftest"]
-expect = "survives"
+expect = "caught"
 result = "survives check_structure and all of run_cbmc.sh [difftest: caught, self-test fails]"
 
 [[mutant]]
@@ -130,7 +130,7 @@ original = "  ctx->state[6] += G;\n  ctx->state[7] += H;"
 mutated = "  ctx->state[6] += G;  // and H, below: \\\n  ctx->state[7] += H;"
 why = "adversarial: a // comment ending in a backslash swallows the next line in C (translation phase 2); check_structure strips // comments before splicing lines, so it still sees state[7] += H"
 checks = ["structure", "cbmc", "difftest"]
-expect = "survives"
+expect = "caught"
 result = "survives check_structure and all of run_cbmc.sh [difftest: caught, self-test fails]"
 
 # ---------------- sha256_update ----------------
@@ -197,7 +197,7 @@ mutated = "size_t fill = SHA256_BUFFER_SIZE - left;\n  ctx->state[7] += left;"
 why = "gap probe: update changes the chaining state outside sha256_process; no harness asserts anything about ctx->state"
 checks = ["stream", "difftest"]
 extra = "-DNO_BLOCK_CHECK -DNO_TAIL_CHECK"   # the dropped asserts only read bytes, which this mutant does not change
-expect = "survives"
+expect = "caught"
 result = "survives h_update (proved) [-DNO_BLOCK_CHECK -DNO_TAIL_CHECK] [difftest: caught, self-test fails]"
 
 # ---------------- sha256_finish ----------------
@@ -258,7 +258,7 @@ original = "  uint32_t last = ctx->total[0] & 0x3F;"
 mutated = "  uint32_t last = ctx->total[0] & 0x3F;\n  ctx->state[0] ^= last;"
 why = "gap probe: finish changes the chaining state before padding; the recorder never compares the state it is handed with the state before"
 checks = ["finish", "difftest"]
-expect = "survives"
+expect = "caught"
 result = "survives h_finish (proved) [difftest: caught, self-test fails]"
 
 # ---------------- sha256_bytes ----------------
@@ -309,7 +309,7 @@ original = "  uint8_t sha256sum[SHA256_SUM_SIZE];\n  sha256_finish(&ctx, sha256s
 mutated = "  uint8_t sha256sum[SHA256_SUM_SIZE];\n  ctx.total[0] = (uint32_t)buf_len;\n  sha256_finish(&ctx, sha256sum);"
 why = "gap probe: the byte count is reset between the updates and finish; the recorders track only which context pointer is passed, not its contents"
 checks = ["bytes", "difftest"]
-expect = "survives"
+expect = "caught"
 result = "survives h_bytes (proved) [difftest: caught, 608 of 4000 digests wrong]"
 
 # ---------------- sha256_self_test ----------------
