@@ -107,7 +107,7 @@ assumptions = [
 
 [targets.undo_io]
 file = "src/nvim/undo.c"
-functions = ["undo_write", "undo_write_bytes", "put_header_ptr", "serialize_pos", "serialize_visualinfo", "undo_read_4c", "undo_read_2c", "undo_read_byte", "undo_read_time", "undo_read_len", "undo_read", "undo_read_string", "unserialize_pos", "unserialize_visualinfo", "uhp_seq_cmp", "uhp_table_find"]
+functions = ["undo_write", "undo_write_bytes", "put_header_ptr", "serialize_pos", "serialize_visualinfo", "undo_read_4c", "undo_read_2c", "undo_read_byte", "undo_read_time", "undo_read_len", "undo_read", "undo_read_string", "unserialize_pos", "unserialize_visualinfo", "uhp_seq_cmp", "uhp_table_find", "get_undolevel", "zero_fmark_additional_data"]
 annotate = "undo/cbmc/build.py"   # verbatim extraction (undo.c + get2c/get4c/get8ctime of fileio.c), sha256 pinned
-prove = ["bash undo/cbmc/run_cbmc.sh {fixed}", "bash undo/wp/run_wp.sh {src}"]   # upstream fails h_read_time (findings/get8ctime-shift-overflow.md)
+prove = ["bash undo/cbmc/run_cbmc.sh {fixed}", "bash undo/wp/run_wp.sh {src}", "bash undo/cbmc/run_small.sh {src}"]   # upstream fails h_read_time (findings/get8ctime-shift-overflow.md)
 check = ["ONLY=h_table_find bash undo/cbmc/run_cbmc.sh {src}"]

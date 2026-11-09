@@ -30,6 +30,8 @@ and back. The undo file is untrusted input, so these are the first layer of its 
 | `unserialize_visualinfo` | two such positions, then vi_mode and vi_curswant as read | CBMC, every 0..33 byte stream |
 | `uhp_seq_cmp` | -1 / 0 / 1 as the first header's uh_seq is below / equal to / above the second's | CBMC, every pair |
 | `uhp_table_find(t, n, seq)` | on a table sorted on uh_seq: an index i < n with `t[i]->uh_seq == seq` when one exists, else -1; reads nothing outside `t[0..n-1]` and the headers; terminates | Frama-C WP, any n (33/33 goals, plus 8/8 smoke tests: the preconditions are not contradictory); CBMC n <= 4 as a cross-check |
+| `get_undolevel(buf)` | `buf->b_p_ul`, or the global `p_ul` when it is `NO_LOCAL_UNDOLEVEL` | CBMC (`run_small.sh`), every value; not yet in the independent review |
+| `zero_fmark_additional_data(m)` | frees `m[0..25].additional_data` and sets each to NULL; touches nothing past entry 25; no leak | CBMC (`run_small.sh`); not yet in the independent review |
 | `undo_read(bi, buf, size)` | for size > 0: true and buf = the next size bytes when that many are left, else false and buf all zeros; for size 0: false (C's fread returns 0), which no caller passes | CBMC, every stream length and size below 2^40 (callers pass at most a few hundred bytes or an int length); size <= 5 also checked index by index |
 | `undo_read_string(bi, len)` | NULL (nothing leaked) when fewer than len bytes are left, else a len+1 block with those bytes and a NUL | CBMC, every stream length and len below 2^40 (callers pass a non-negative int) |
 
