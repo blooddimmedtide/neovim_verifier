@@ -9,7 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
-| src/nvim/keycodes.c | 0 | 4 | 13 | 17 |
+| src/nvim/keycodes.c | 0 | 9 | 8 | 17 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -79,6 +79,11 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/keycodes.c | `handle_x_keys` | candidate | keycodes/wp (Frama-C WP, all inputs) | 16 xterm keys to plain keys, rest unchanged. No review yet |
 | src/nvim/keycodes.c | `get_mouse_button` | candidate | keycodes/wp (Frama-C WP, all inputs) | first mouse-table entry or 0. No review yet |
 | src/nvim/keycodes.c | `extract_modifiers` | candidate | keycodes/wp (Frama-C WP, all inputs) | Shift/Ctrl folding into the key. No review yet |
+| src/nvim/keycodes.c | `simplify_key` | candidate | keycodes/cbmc (CBMC, every int) | first shifted-key table entry; needs key != INT_MIN (findings/keycodes-char-int-min.md). No review yet |
+| src/nvim/keycodes.c | `unsimplify_key` | candidate | keycodes/cbmc (CBMC, every int) | inverse lookup; needs c != INT_MIN. No review yet |
+| src/nvim/keycodes.c | `add_char2buf` | candidate | keycodes/cbmc (CBMC, every int) | escaped UTF-8 bytes. No review yet |
+| src/nvim/keycodes.c | `special_to_buf` | candidate | keycodes/cbmc (CBMC, every int) | modifier/special/char byte sequence; needs key != INT_MIN. No review yet |
+| src/nvim/keycodes.c | `find_special_key_in_table` | candidate | keycodes/table (CBMC, every int, generated table) | first preferred entry or -1. No review yet |
 
 ## All files
 

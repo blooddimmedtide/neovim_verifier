@@ -13,6 +13,7 @@ STUBS = r"""
     ensures \forall integer i; 0 <= i < \result ==> c >= 0x80 ==> ((uint8_t)buf[i] != 0x80 || i > 0);
 */
 int utf_char2bytes(const int c, char *const buf);
+char *add_char2buf(int c, char *s);
 """
 
 LOGIC = r"""
@@ -195,32 +196,7 @@ CONTRACTS = {
 */
 """,
 
-"add_char2buf": r"""/*@ requires \valid(s + (0 .. 3*6 - 1));
-    assigns s[0 .. 3*6 - 1];
-    ensures s <= \result <= s + 3*6;
-    ensures c >= 0 && c < 0x80 && c != 0x80 ==> \result == s + 1 && s[0] == (char)c;
-*/
-""",
-"add_char2buf.body": {
-"  for (int i = 0; i < len; i++) {":
-"""  /*@ loop invariant 0 <= i <= len;
-      loop invariant s == \\at(s, Pre) + 3*i || (\\at(s, Pre) + i <= s <= \\at(s, Pre) + 3*i);
-      loop invariant c >= 0 && \\at(c, Pre) < 0x80 ==> (i == 0 ==> s == \\at(s, Pre)) && (i == 1 ==> s == \\at(s, Pre) + 1);
-      loop assigns i, c, s, \\at(s, Pre)[0 .. 3*6 - 1];
-      loop variant len - i; */
-"""},
 
-"special_to_buf": r"""/*@ requires \valid(dst + (0 .. 3 + 3*6 - 1));
-    requires key != INT_MIN;  // see findings/keycodes-char-int-min.md
-    assigns dst[0 .. 3 + 3*6 - 1];
-    ensures \result <= 3 + 3*6;
-    ensures modifiers != 0 ==> (uint8_t)dst[0] == K_SPECIAL && (uint8_t)dst[1] == KS_MODIFIER
-                               && dst[2] == (char)(uint8_t)modifiers;
-    ensures key < 0 ==> \let o = (modifiers != 0 ? 3 : 0);
-        \result == o + 3 && (uint8_t)dst[o] == K_SPECIAL
-        && (uint8_t)dst[o+1] == tc0(key) && (uint8_t)dst[o+2] == tc1(key);
-*/
-""",
 
 "vim_unescape_ks": r"""/*@ requires \valid(p + (0 .. n)) && p[n] == 0;
     requires \forall integer k; 0 <= k < n ==> p[k] != 0;

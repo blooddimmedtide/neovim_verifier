@@ -32,5 +32,5 @@ m extract_modifiers "    if (key == NUL) {  // <C-@> is <Nul>" "    if (key == 1
 m extract_modifiers "      && ((key >= '?' && key <= '_') || ASCII_ISALPHA(key))) {" "      && ((key >= '@' && key <= '_') || ASCII_ISALPHA(key))) {"
 m extract_modifiers "    if (did_simplify != NULL) {
       *did_simplify = true;" "    if (did_simplify != NULL) {
-      *did_simplify = simplify;"
+      *did_simplify = false;"  # "= simplify" is equivalent: simplify is true here
 echo "caught $caught / $total"; [ $caught = $total ]

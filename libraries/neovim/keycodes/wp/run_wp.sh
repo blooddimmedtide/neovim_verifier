@@ -12,12 +12,16 @@ for chr in signed unsigned; do
   md="-machdep x86_64"; [ $chr = unsigned ] && md="-machdep $HERE/machdep_x86_64_uchar.yaml"
   for f in $FUNCS; do
     (cd "$W" && frama-c $md kc.c -wp -wp-fct "$f" -wp-rte -warn-signed-downcast \
-       -wp-init-const -wp-model Typed+Cast -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" \
+       -wp-init-const -wp-smoke-tests -wp-model Typed+Cast -wp-prover z3,cvc5 -wp-timeout "$T" -wp-par "$(nproc)" \
        -wp-cache none > "wp_${chr}_$f.log" 2>&1)
     r=$(grep -E "Proved goals" "$W/wp_${chr}_$f.log" | sed 's/.*goals: *//')
     echo "$chr $f: ${r:-no result}"
     grep -E '\[(Timeout|Unknown|Failed)\]|[Ee]rror' "$W/wp_${chr}_$f.log" | grep -v Wno | head -8 | sed 's/^/   /'
-    grep -qE "Proved goals: +([0-9]+) / \1$" "$W/wp_${chr}_$f.log" || status=1
+    # Smoke tests are on: a failed one means WP found the statement unreachable. The only
+    # ones allowed are the dead branches of TOUPPER_ASC inside extract_modifiers (key is
+    # already known to be a letter / upper case there), listed in ../CLAIM.md.
+    bad=$(grep -E '\[(Timeout|Unknown|Failed)\]' "$W/wp_${chr}_$f.log" | grep -vE "extract_modifiers_wp_smoke_dead_code_s(120|144|174|175) " | wc -l)
+    [ "$bad" = 0 ] && [ -n "$r" ] || status=1
   done
 done
 echo "logs: $W"; exit $status

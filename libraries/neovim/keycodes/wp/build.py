@@ -22,8 +22,8 @@ SHA = {
     "handle_x_keys": "e94c97bf377277c1b851cf6ed3044bcc0afa5a5f177f3bf1bcf3edfdc736af12",
     "extract_modifiers": "6955f1261b06222b6eecdcd860334935e818dc57fcdd41d7cdd148f6da9985db",
     "get_mouse_button": "4febfd94433064504e4136ba9ac682ec15153c223a057686600a8f2f10a9834c",
-    # "add_char2buf": "",
-    # "special_to_buf": "",
+    "add_char2buf": "c7075950f608a4f1371431a6187ff9422ebe8676ff4c64818ce5c54ef60b1127",
+    "special_to_buf": "52258c3201b74c39ba0f2a5fc899f475a5fee2734b834fd66ac32cc292ea8ccf",
     "vim_unescape_ks": "31aa926b8cd3871e2a64eb7daa129f6e34cadeb907468dd2be837256376d56e6",
 }
 TABLES = {  # first line, sha256 of the block up to the closing "};"
