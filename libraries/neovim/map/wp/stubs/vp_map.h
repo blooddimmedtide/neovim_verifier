@@ -16,16 +16,18 @@ void xfree(void *p);
 
 /*@ // Neovim's xcalloc (memory.c) never returns NULL: on failure, including
     // count * size overflowing, it calls preserve_exit(). Used here for uint32_t buckets.
+    // The ghost argument names a live block the new one must not overlap (true of any
+    // allocator); no "for all pointers" clause, which made an earlier stub contradictory.
     requires size == sizeof(uint32_t);
+    requires a1 == \null || \valid_read(a1);
     assigns \result \from count, size;
-    allocates \result;
     exits vp_oom || count * size > SIZE_MAX;
     ensures count * size <= SIZE_MAX;
     ensures \result != \null && \valid((uint32_t *)\result + (0 .. count - 1));
     ensures \forall integer i; 0 <= i < count ==> ((uint32_t *)\result)[i] == 0;
-    ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr((char *)\result);
+    ensures \base_addr((char *)\result) != \base_addr(a1);
 */
-void *xcalloc(size_t count, size_t size);
+void *xcalloc(size_t count, size_t size) /*@ ghost (char *a1) */;
 
 /*@ // xrealloc to n bytes of int keys: keeps the first `old` ints, never returns NULL.
     requires p == \null || \valid((int *)p + (0 .. old - 1));

@@ -87,11 +87,20 @@ static const ptr_t value_init_ptr_t = NULL;
   @/
   void mask_lemma(uint64_t x, uint64_t n);
 */
-/*@ // Integer facts, proved by WP from the definition of %.
-    lemma mod_add: \forall integer x, y, n; n > 0 && x >= 0 && y >= 0 ==> ((x % n) + y) % n == (x + y) % n;
-    lemma mod_wrap: \forall integer x, n; n > 0 && 4294967296 % n == 0 && x >= 0 ==> (x % 4294967296) % n == x % n;
-    lemma mod_mul: \forall integer a, k, n; n > 0 && 0 <= a < n && k >= 0 ==> (a + k * n) % n == a;
+/*@ ghost
+  /@ // One quadratic probe step from step p to p + 1. Checked with Z3 on bit-vectors
+     // by lemmas_probe.smt2 (s = p + 1 there).
+     requires 1 <= n <= 2147483648 && (n & (n - 1)) == 0;
+     requires i0 < n && last < n && 0 <= p <= 2 * n - 2;
+     requires i0 == ((last + p * (p + 1) / 2) & (n - 1));
+     assigns \nothing;
+     ensures (((i0 + (p + 1) % 4294967296) % 4294967296) & (n - 1)) == ((last + (p + 1) * (p + 2) / 2) & (n - 1));
+     ensures p + 1 == 2 * n - 1 ==> ((last + (p + 1) * (p + 2) / 2) & (n - 1)) == last;
+  @/
+  void probe_lemma(uint64_t i0, uint64_t p, uint64_t last, uint64_t n);
 */
+
+/*@ ghost uint32_t vp_slot[4294967295]; */  // ghost: slot found for each rehashed key
 
 // ---- upstream map.c ----
 
@@ -117,9 +126,12 @@ void mh_realloc(MapHash *h, uint32_t n_min_buckets)
   /*@ assert n_buckets == ru(x0); */
   /*@ ghost roundup_lemma(x0); */
   // sets all buckets to EMPTY
-  h->hash = xcalloc(n_buckets, sizeof *h->hash);
+  h->hash = xcalloc(n_buckets, sizeof *h->hash) /*@ ghost ((char *)h) */;
+  /*@ assert \base_addr(h->hash) != \base_addr(h) && \separated(h, h->hash + (0 .. n_buckets - 1)) && \forall integer i; 0 <= i < n_buckets ==> h->hash[i] == 0; */
   h->n_occupied = h->size = 0;
+  /*@ assert \forall integer i; 0 <= i < n_buckets ==> h->hash[i] == 0; */
   h->n_buckets = n_buckets;
+  /*@ assert \forall integer i; 0 <= i < h->n_buckets ==> h->hash[i] == 0; */
   h->upper_bound = (uint32_t)(h->n_buckets * UPPER_FILL + 0.5);
 }
 
@@ -170,7 +182,7 @@ uint32_t KEY_NAME(mh_find_bucket_)(SET_TYPE *set, KEY_TYPE key, bool put)
   uint32_t site = put ? last : MH_TOMBSTONE;
   /*@ loop invariant i <= mask && last <= mask && mask == h->n_buckets - 1;
       loop invariant 0 <= step <= 2 * h->n_buckets - 2;
-      loop invariant i == (last + step * (step + 1) / 2) % h->n_buckets;
+      loop invariant i == ((last + step * (step + 1) / 2) & mask);
       loop invariant put ==> (site == last || (site <= mask && h->hash[site] == MH_TOMBSTONE));
       loop invariant !put ==> site == MH_TOMBSTONE;
       loop assigns i, step, site;
@@ -185,11 +197,9 @@ uint32_t KEY_NAME(mh_find_bucket_)(SET_TYPE *set, KEY_TYPE key, bool put)
       return i;
     }
     /*@ ghost uint32_t i0 = i; */
+    /*@ ghost probe_lemma(i, step, last, h->n_buckets); */
     i = (i + (++step)) & mask;
     /*@ ghost mask_lemma((uint32_t)(i0 + step), h->n_buckets); */
-    /*@ assert i == (last + step * (step + 1) / 2) % h->n_buckets; */
-    /*@ assert step == 2 * h->n_buckets - 1 ==> step * (step + 1) / 2 == (2 * h->n_buckets - 1) * h->n_buckets; */
-    /*@ assert step == 2 * h->n_buckets - 1 ==> i == last; */
     if (i == last) {
       abort();
     }
@@ -214,6 +224,41 @@ uint32_t KEY_NAME(mh_get_)(SET_TYPE *set, KEY_TYPE key)
   }
   uint32_t idx = KEY_NAME(mh_find_bucket_)(set, key, false);
   return (idx != MH_TOMBSTONE) ? set->h.hash[idx] - 1 : MH_TOMBSTONE;
+}
+
+/*@ requires \valid(set) && wf_hash(set);
+    requires \forall integer i; 0 <= i < set->h.n_buckets ==> set->h.hash[i] == 0;
+    requires \separated(vp_slot + (0 .. set->h.n_keys - 1), set, set->h.hash + (0 .. set->h.n_buckets - 1), set->keys + (0 .. set->h.n_keys - 1));
+    assigns set->h.hash[0 .. set->h.n_buckets - 1], set->h.n_occupied, set->h.size, vp_slot[0 .. set->h.n_keys - 1];
+    exits \true;   // abort() if a probe lands on a used slot (only with duplicate keys)
+    ensures wf_hash(set);
+    ensures set->h.n_occupied == set->h.n_keys && set->h.size == set->h.n_keys;
+    // no tombstones, and every key k is indexed by some slot holding k + 1
+    ensures \forall integer i; 0 <= i < set->h.n_buckets ==> set->h.hash[i] <= set->h.n_keys;
+    ensures \forall integer j; 0 <= j < set->h.n_keys ==>
+              \exists integer i; 0 <= i < set->h.n_buckets && set->h.hash[i] == j + 1;
+*/
+void KEY_NAME(mh_rehash_)(SET_TYPE *set)
+{
+  /*@ loop invariant 0 <= k <= set->h.n_keys;
+      loop invariant \forall integer j; 0 <= j < k ==>
+                       vp_slot[j] < set->h.n_buckets && set->h.hash[vp_slot[j]] == j + 1;
+      loop invariant wf_hash(set);
+      loop invariant \forall integer i; 0 <= i < set->h.n_buckets ==> set->h.hash[i] <= k;
+      loop assigns k, set->h.hash[0 .. set->h.n_buckets - 1], vp_slot[0 .. set->h.n_keys - 1];
+      loop variant set->h.n_keys - k;
+  */
+  for (uint32_t k = 0; k < set->h.n_keys; k++) {
+    uint32_t idx = KEY_NAME(mh_find_bucket_)(set, set->keys[k], true);
+    // there must be tombstones when we do a rehash
+    if (!mh_is_empty((&set->h), idx)) {
+      abort();
+    }
+    /*@ assert idx < set->h.n_buckets && set->h.hash[idx] == 0; */
+    set->h.hash[idx] = k + 1;
+    /*@ ghost vp_slot[k] = idx; */
+  }
+  set->h.n_occupied = set->h.size = set->h.n_keys;
 }
 
 // ---- upstream map_value_impl.c.h, VAL_NAME = ptr_t ----
