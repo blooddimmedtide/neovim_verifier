@@ -19,3 +19,11 @@ Still unverified (67 of 83): u_check_tree, u_check, u_save_cursor, u_save, u_sav
 Next: the record readers that use these helpers (unserialize_extmark, unserialize_uep,
 unserialize_uhp, then u_read_undo), then the matching serializers. Independent review + planted
 bugs for the proved set.
+
+## Stopped 2026-11-09 08:35 UTC (usage deadline)
+
+- Review done (REVIEW.md, accept with changes; fixes applied), 22/22 planted bugs caught.
+- Work in progress, NOT counted: `cbmc/harness_uep.c` + `run_uep.sh` (bounded unserialize_uep /
+  serialize_uep incl. a round trip). The round-trip harness proved once (unsigned char); the
+  reader harness ran out of memory (exit 137) even at UEP_MAX=1. Next: split the reader harness
+  per error path, or do unserialize_uep in WP using the proved helper contracts.
