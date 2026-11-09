@@ -9,9 +9,11 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/fileio.c | 0 | 1 | 54 | 55 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/spellfile.c | 0 | 3 | 75 | 78 |
 
 ## Function details
 
@@ -74,6 +76,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/spellfile.c | `spell_check_magic_string` | candidate | spellfile/cbmc (CBMC) | full correctness for every file (reads at most 8 bytes); see spellfile/CLAIM.md |
+| src/nvim/spellfile.c | `read_region_section` | candidate | spellfile/cbmc (CBMC) | full correctness for every file and len >= 0; see spellfile/CLAIM.md |
+| src/nvim/spellfile.c | `read_cnt_string` | partial | spellfile/cbmc (CBMC, bounded) | proved for files up to 20 bytes only; full proof needs WP invariant for read_string |
+| src/nvim/fileio.c | `read_string` | partial | spellfile/cbmc (CBMC, bounded) | proved as read_cnt_string callee, files up to 20 bytes only |
 
 ## All files
 
