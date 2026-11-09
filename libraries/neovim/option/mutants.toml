@@ -1,0 +1,186 @@
+# Planted bugs chosen by an independent adversarial reviewer (see REVIEW.md).
+# Each must make the WP proof of its function fail: python3 -I wp/run_mutants.py <tree> 20
+
+[[mutant]]
+id = "fki-1"
+function = "find_key_item"
+file = "src/nvim/option.c"
+old = "(p == src || *(p - 1) == ',') && strncmp"
+new = "strncmp"
+note = "drops the item-start check: matches the key in the middle of an item (\"xa:1\" found for key \"a:\")"
+
+[[mutant]]
+id = "fki-2"
+function = "find_key_item"
+file = "src/nvim/option.c"
+old = "strncmp(p, key, (size_t)keylen)"
+new = "strncmp(p, key, (size_t)keylen - 1)"
+note = "off-by-one: compares without the ':' so key \"ab:\" matches item \"abc:1\""
+
+[[mutant]]
+id = "fki-3"
+function = "find_key_item"
+file = "src/nvim/option.c"
+old = "end = p + strlen(p);"
+new = "end = p + strlen(p) - 1;"
+note = "off-by-one length for the last item (no ',' after it)"
+
+[[mutant]]
+id = "rci-1"
+function = "remove_comma_item"
+file = "src/nvim/option.c"
+old = "STRMOVE(item - 1, item + itemlen);"
+new = "STRMOVE(item - 1, item + itemlen + 1);"
+note = "last item: skips the NUL too, copies bytes past the end of the string"
+
+[[mutant]]
+id = "rci-2"
+function = "remove_comma_item"
+file = "src/nvim/option.c"
+old = "} else if (item > str && *(item - 1) == ',') {"
+new = "} else if (*(item - 1) == ',') {"
+note = "reads str[-1] when the item is the first one"
+
+[[mutant]]
+id = "rci-3"
+function = "remove_comma_item"
+file = "src/nvim/option.c"
+old = "*item = NUL;"
+new = "item[itemlen] = NUL;"
+note = "only item: truncates after the item instead of before it, item is kept"
+
+[[mutant]]
+id = "ai-1"
+function = "append_item"
+file = "src/nvim/option.c"
+old = "if (len > 0) {"
+new = "if (len >= 0) {"
+note = "adds a leading ',' to an empty list"
+
+[[mutant]]
+id = "ai-2"
+function = "append_item"
+file = "src/nvim/option.c"
+old = "memmove(str + len, item, (size_t)item_len);"
+new = "memmove(str + len, item, (size_t)item_len - 1);"
+note = "off-by-one: drops the last byte of the item"
+
+[[mutant]]
+id = "ai-3"
+function = "append_item"
+file = "src/nvim/option.c"
+old = "str[len++] = ',';"
+new = "str[++len] = ',';"
+note = "comma written one byte late; the old NUL stays and hides the item"
+
+[[mutant]]
+id = "pi-1"
+function = "prepend_item"
+file = "src/nvim/option.c"
+old = "(size_t)len + 1);"
+new = "(size_t)len);"
+note = "moves the old value without its NUL"
+
+[[mutant]]
+id = "pi-2"
+function = "prepend_item"
+file = "src/nvim/option.c"
+old = "str[item_len] = ',';"
+new = "str[item_len + 1] = ',';"
+note = "comma overwrites the first byte of the old value"
+
+[[mutant]]
+id = "pi-3"
+function = "prepend_item"
+file = "src/nvim/option.c"
+old = "int comma = (len > 0) ? 1 : 0;"
+new = "int comma = 1;"
+note = "adds a trailing ',' (and writes past the buffer) when the list is empty"
+
+[[mutant]]
+id = "sc-1"
+function = "stropt_concat_with_comma"
+file = "src/nvim/option.c"
+old = "== ','\n        && origval[len - 2] != '\\\\') {"
+new = "== ',') {"
+note = "strips an escaped trailing comma (\"a\\\\,\" loses its ',')"
+
+[[mutant]]
+id = "sc-2"
+function = "stropt_concat_with_comma"
+file = "src/nvim/option.c"
+old = "newval, strlen(newval) + 1);"
+new = "newval, strlen(newval));"
+note = "OP_ADDING: newval moved without its NUL"
+
+[[mutant]]
+id = "sc-3"
+function = "stropt_concat_with_comma"
+file = "src/nvim/option.c"
+old = "STRMOVE(newval + len + comma, origval);"
+new = "STRMOVE(newval + len + 1, origval);"
+note = "OP_PREPENDING: leaves a gap byte when no comma is added"
+
+[[mutant]]
+id = "sc-4"
+function = "stropt_concat_with_comma"
+file = "src/nvim/option.c"
+old = " && *newval != NUL);"
+new = ");"
+note = "adds a ',' when the new value is empty (\"a\" += \"\" gives \"a,\")"
+
+[[mutant]]
+id = "sc-5"
+function = "stropt_concat_with_comma"
+file = "src/nvim/option.c"
+old = "comma && len > 1"
+new = "comma && len > 0"
+note = "origval \",\": reads origval[-1]"
+
+[[mutant]]
+id = "vn-1"
+function = "valid_name"
+file = "src/nvim/option.c"
+old = "!ASCII_ISALNUM(*s)"
+new = "!ASCII_ISALPHA(*s)"
+note = "rejects digits (\"utf-8\" with allowed \"-\" is valid only if 8 is allowed)"
+
+[[mutant]]
+id = "vn-2"
+function = "valid_name"
+file = "src/nvim/option.c"
+old = "(uint8_t)(*s)) == NULL) {"
+new = "(uint8_t)(*s)) != NULL) {"
+note = "inverted lookup: allowed punctuation rejected, other punctuation accepted"
+
+[[mutant]]
+id = "vn-3"
+function = "valid_name"
+file = "src/nvim/option.c"
+old = "return true;"
+new = "return *val != NUL;"
+note = "empty name reported invalid (the doc comment makes it valid)"
+
+[[mutant]]
+id = "col-1"
+function = "check_option_listflag"
+file = "src/nvim/optionstr.c"
+old = "(uint8_t)(*s)) == NULL) {"
+new = "(uint8_t)(*s)) != NULL) {"
+note = "inverted: valid flags reported illegal"
+
+[[mutant]]
+id = "col-2"
+function = "check_option_listflag"
+file = "src/nvim/optionstr.c"
+old = "vim_strchr(flags, "
+new = "vim_strchr(flags + 1, "
+note = "skips the first allowed flag"
+
+[[mutant]]
+id = "col-3"
+function = "check_option_listflag"
+file = "src/nvim/optionstr.c"
+old = "== NULL) {"
+new = "== NULL && s != val) {"
+note = "first byte of the value is never checked"

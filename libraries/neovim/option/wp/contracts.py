@@ -84,6 +84,7 @@ REMOVE_COMMA_ITEM = r"""
     requires \base_addr(item) == \base_addr((char *)str) && (char *)str <= item;
     requires 0 <= itemlen && item + itemlen <= (char *)str + n;
     requires item_end(item, 0, itemlen);   // the item is the whole item, up to ',' or NUL
+    requires item == (char *)str || *(item - 1) == ',';   // and it starts where an item starts
     assigns ((char *)str)[0 .. n];
     behavior inner:   // a ',' follows: drop the item and that comma
       assumes item[itemlen] == ',';
@@ -234,7 +235,7 @@ LISTFLAG = r"""
 /*@ requires str_len(val, n) && n < PTRDIFF_MAX;
     requires str_len(flags, m) && ascii_str(flags);
     requires errbuf == \null || (\valid_read(errbuf) && \valid(errbuf->data + (0 .. errbuf->size - 1)));
-    assigns errbuf->data[0 .. errbuf->size - 1];
+    assigns errbuf->data[0 .. errbuf->size - 1], vp_transchar_buf;
     ensures \result == \null <==> \forall integer j; 0 <= j < n ==> \at(in_str2(flags, m, val[j]), Pre);
 */
 """

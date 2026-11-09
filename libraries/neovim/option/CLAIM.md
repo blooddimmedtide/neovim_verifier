@@ -4,7 +4,7 @@ upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: https://github.com/blooddimmedtide/verified_neovim (branch claude/project-thread-33fn39: 36f4ea6 size_t lengths, 61856f2 string_to_key)
 toolchain: Frama-C 33.0 (Arsenic) WP, Z3 + CVC5 via Why3 (Nix, tools/install.sh)
-strength: in progress   # not a candidate yet: no mutants, no review, no unsigned-char run
+strength: in progress   # not a candidate yet: no unsigned-char run, no CI target, owner sign-off pending
 platform: x86_64, char signed (Neovim's build). Unsigned-char run not done yet.
 ---
 
@@ -36,10 +36,29 @@ contradictory). The stubs here are new; the garray allocation stubs are not used
 - C library: `strlen`, `strncmp`, `memmove` contracts from C11 (`memory/wp/stubs/vp_string.h`).
 - `vim_strchr` (strings.c): strchr for ASCII c; for c >= 0x80, "not found" in an all-ASCII string
   (it searches for the UTF-8 encoding of c, whose lead byte is >= 0xC2). Not proved here.
-- `illegal_char` (optionstr.c): returns non-NULL, writes only `errbuf->data`.
+- `illegal_char` (optionstr.c): returns non-NULL, writes only `errbuf->data` and transchar's static
+  buffer (ghost `vp_transchar_buf`).
 - Preconditions each caller meets: strings are NUL-terminated; `key` has no NUL in its first
   `keylen` bytes; the item passed to append/prepend does not overlap the target buffer (callers
   pass a copy, `newval_copy`); the buffer has room (stropt_get_newval allocates origval + arg).
+
+## Limits of the spec
+
+- Escaped commas (`\,`) are not modelled: `find_key_item` and `remove_comma_item` split on every
+  `,` (as their code does), while `find_dup_item` skips `\,`, so the two paths of
+  `stropt_handle_keymatch` can see different item boundaries. Not yet checked for a bug.
+- `kept_len` (stropt_concat_with_comma) states the same one-backslash rule as the code
+  ("a trailing `,` not preceded by `\`"); it is not an independent reference.
+- The buffer-room preconditions of `append_item` / `prepend_item` hold only if
+  `stropt_handle_keymatch` keeps the result within origval + arg; that function is not proved
+  (checked by hand by the reviewer).
+
+## Review and planted bugs
+
+Independent review (`REVIEW.md`): accept with changes; the illegal_char write and the
+item-start precondition of `remove_comma_item` are fixed, the limits above are recorded.
+Planted bugs (`mutants.toml`, chosen by the reviewer): 23 of 23 caught
+(`python3 -I wp/run_mutants.py <tree> 20`).
 
 ## Findings
 
@@ -52,5 +71,4 @@ contradictory). The stubs here are new; the garray allocation stubs are not used
 
 ## Not done yet
 
-Mutants, adversarial review, unsigned-char run, differential test, CI target, end-to-end
-reproduction in a built nvim.
+Unsigned-char run, differential test, CI target, end-to-end reproduction in a built nvim.

@@ -9,7 +9,8 @@ is not claimed by this PR and stays open for other agents.
 
 Status as of 2026-11-09 08:20 UTC. "proved" = every WP goal proved locally (Frama-C 33, Z3 + CVC5,
 `-wp-rte -warn-signed-downcast`, no admits, smoke tests pass) with `bash option/wp/run_wp.sh <tree>`.
-None is a `candidate` yet: mutants, adversarial review, unsigned-char run and CI are not done.
+Review done (accept with changes, applied) and 23/23 planted bugs caught. None is a `candidate`
+yet: unsigned-char run and CI are not done.
 
 | Function | File | Tool | Status |
 |---|---|---|---|

@@ -32,10 +32,13 @@ typedef struct {
   size_t size;  ///< Total writable bytes, including any space for a terminating NUL.
 } CharBuf;
 
+// transchar() (charset.c) writes its static transchar_charbuf; this ghost stands for it.
+/*@ ghost int vp_transchar_buf; */
 /*@ // illegal_char (optionstr.c): "" when errbuf is NULL, else the formatted E539 message
-    // in errbuf->data (opt_error). Only "never NULL" and what it may write are used.
+    // in errbuf->data (opt_error), built with transchar(c). Only "never NULL" and what it may
+    // write are used.
     requires errbuf == \null || (\valid_read(errbuf) && \valid(errbuf->data + (0 .. errbuf->size - 1)));
-    assigns errbuf->data[0 .. errbuf->size - 1];
+    assigns errbuf->data[0 .. errbuf->size - 1], vp_transchar_buf;
     ensures \result != \null; */
 const char *illegal_char(const CharBuf *errbuf, int c);
 #endif
