@@ -14,7 +14,7 @@ overflow, undefined behavior in C. With the usual wrapping it goes to INT_MIN an
 back through 0, so in practice the visible effect is small; with an optimizer that uses the
 UB it may drop the `== 0` test. It needs about 2^31 typeahead changes (each typed or fed key
 is one or more), so it is reachable in a long session or with a large `feedkeys()` loop, but
-we did not reproduce it in a running Nvim.
+we did not reproduce it in a running Nvim. UBSan on the extracted upstream `del_typebuf` (`typebuf/difftest/run_ubsan.sh`) reports "signed integer overflow: 2147483647 + 1"; the fixed code passes (counter becomes 1).
 
 The upstream proof requires `typebuf.tb_change_cnt != INT_MAX`.
 
