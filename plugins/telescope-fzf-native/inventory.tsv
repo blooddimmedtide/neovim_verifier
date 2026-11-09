@@ -1,0 +1,47 @@
+function	kind	plan	status
+index_byte	static helper (loop)	WP full contract (unbounded) + CBMC h_index_byte	proved-full
+leading_whitespaces	static helper (loop)	WP full (unbounded) + CBMC h_whitespaces	proved-full
+trailing_whitespaces	static helper (loop; fixed form)	WP full (unbounded) + CBMC h_whitespaces	proved-full (fixed); upstream OOB caught
+copy_runes	static helper (loop)	WP full (unbounded) + CBMC h_copy	proved-full
+copy_into_i16	static helper (loop)	WP full (unbounded) + CBMC h_copy	proved-full
+trim_whitespace_left	static helper (loop)	WP full (actual behaviour; defect noted) + CBMC h_trim_left	proved-full (of actual behaviour; finding: trims at most ceil(len/2))
+has_prefix	static helper (strncmp)	CBMC h_prefix_suffix, all inputs up to bound	TBD
+has_suffix	static helper (strncmp)	CBMC h_prefix_suffix	TBD
+str_replace_char	static helper (loop)	CBMC h_replace_char (domain f!=0, w!=0, f!=w)	TBD
+str_replace	static helper (alloc)	CBMC h_str_replace	TBD
+str_tolower	static helper (alloc)	CBMC h_str_tolower	TBD
+max16	static helper	WP full + CBMC h_small	proved-full
+min64u	static helper	WP full + CBMC h_small	proved-full
+fzf_pos_array	public (alloc)	CBMC h_pos_array	TBD
+resize_pos	static helper (realloc)	CBMC via h_append_pos/h_insert_range	TBD
+unsafe_append_pos	static helper	CBMC h_append_pos	TBD
+append_pos	static helper	CBMC h_append_pos	TBD
+insert_range	static helper	CBMC h_insert_range	TBD
+alloc16	static helper (slab/alloc)	CBMC h_alloc	TBD
+alloc32	static helper (slab/alloc)	CBMC h_alloc	TBD
+char_class_of_ascii	static helper	WP full + CBMC h_char_class (all 256)	proved-full
+char_class_of	static helper	WP full + CBMC h_char_class	proved-full
+bonus_for	static helper	WP full + CBMC h_bonus_for	proved-full
+bonus_at	static helper	WP full + CBMC h_bonus_at	proved-full
+normalize_rune	static helper (identity)	WP full + CBMC h_small	proved-full
+is_ascii	static helper (always true)	WP full + CBMC h_small	proved-full
+try_skip	static helper	CBMC h_try_skip	TBD
+ascii_fuzzy_index	static helper	CBMC h_ascii_fuzzy_index	TBD
+calculate_score	static helper	CBMC h_calculate_score vs r_score	TBD
+fzf_fuzzy_match_v1	public algorithm	CBMC h_v1 vs ref_v1 (full)	TBD
+fzf_fuzzy_match_v2	public algorithm	CBMC h_v2 (safety + properties; full for 1-byte patterns and fallback) + h_v2_slab_independent	TBD
+fzf_exact_match_naive	public algorithm	CBMC h_exact vs ref_exact (full)	TBD
+fzf_prefix_match	public algorithm	CBMC h_prefix vs ref_prefix (full)	TBD
+fzf_suffix_match	public algorithm (fixed form)	CBMC h_suffix vs ref_suffix (full)	TBD
+fzf_equal_match	public algorithm	CBMC h_equal vs ref_equal (full)	TBD
+append_set	static helper (realloc)	CBMC via h_parse	TBD
+append_pattern	static helper (realloc)	CBMC via h_parse	TBD
+fzf_parse_pattern	public	CBMC h_parse vs ref_parse + leak check	TBD
+fzf_free_pattern	public	CBMC h_parse (leak check)	TBD
+fzf_get_score	public	CBMC h_score_positions (combination of term results)	TBD
+fzf_get_positions	public	CBMC h_score_positions	TBD
+fzf_free_positions	public	CBMC h_pos_array, h_score_positions (leak check)	TBD
+fzf_make_slab	public (alloc)	CBMC h_score_positions (small configs)	TBD
+fzf_make_default_slab	public	difftest only (100K-element memset, beyond CBMC unwinding)	difftest
+fzf_free_slab	public	CBMC h_score_positions (leak check)	TBD
+slice_i16/slice_i16_right/slice_i32/slice_str/slice_str_right	macro-generated	inlined into callers' proofs	via callers

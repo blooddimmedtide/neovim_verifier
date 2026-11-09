@@ -1,0 +1,5 @@
+id	caught_by
+v2-boundary-reset	difftest
+v2-gap-choice	difftest
+v2-h-left-not-cleared	cbmc:h_v2_full
+v2-consecutive-start	difftest

@@ -1,0 +1,118 @@
+# Planted bugs for fzf.c (fixed copy + stale-slab fix). Chosen by the prover
+# (NOT yet by an independent reviewer: that review is still to do).
+# Each: exact text in fzf.c (must occur once), replacement, and the checks
+# that should catch it ("difftest", "wp:<function>", "cbmc:<harness>").
+
+[[mutant]]
+id = "index_byte-skip-first"
+old = "if (string->data[i] == b)"
+new = "if (string->data[i] == b && i > 0)"
+checks = ["wp:index_byte", "cbmc:h_index_byte", "difftest"]
+
+[[mutant]]
+id = "class-z-not-lower"
+old = "ch >= 'a' && ch <= 'z'"
+new = "ch >= 'a' && ch < 'z'"
+checks = ["wp:char_class_of_ascii", "cbmc:h_char_class", "difftest"]
+
+[[mutant]]
+id = "camel-as-boundary"
+old = "return BonusCamel123;"
+new = "return BonusBoundary;"
+checks = ["wp:bonus_for", "cbmc:h_bonus_for", "difftest"]
+
+[[mutant]]
+id = "gap-extension-as-start"
+old = "score += ScoreGapExtention;"
+new = "score += ScoreGapStart;"
+checks = ["difftest", "cbmc:h_calculate_score"]
+
+[[mutant]]
+id = "chunk-forgets-first-bonus"
+old = "bonus = max16(max16(bonus, first_bonus), BonusConsecutive);"
+new = "bonus = max16(bonus, BonusConsecutive);"
+checks = ["difftest", "cbmc:h_calculate_score"]
+
+[[mutant]]
+id = "exact-latest-tie"
+old = "if (bonus > best_bonus)"
+new = "if (bonus >= best_bonus)"
+checks = ["difftest", "cbmc:h_exact"]
+
+[[mutant]]
+id = "prefix-off-by-one"
+old = "if (text->size - trimmed_len < M)"
+new = "if (text->size - trimmed_len <= M)"
+checks = ["difftest", "cbmc:h_prefix"]
+
+[[mutant]]
+id = "suffix-reintroduce-oob"
+old = "if (trimmed_len < M) {"
+new = "if (trimmed_len + 1 < M) {"
+checks = ["difftest", "cbmc:h_suffix"]
+
+[[mutant]]
+id = "equal-score"
+old = "(BonusFirstCharMultiplier - 1) * BonusBoundary"
+new = "BonusFirstCharMultiplier * BonusBoundary"
+checks = ["difftest", "cbmc:h_equal"]
+
+[[mutant]]
+id = "v1-backward-stops-early"
+old = "if (pidx < 0) {"
+new = "if (pidx <= 0) {"
+checks = ["difftest", "cbmc:h_v1"]
+
+[[mutant]]
+id = "v2-boundary-reset"
+old = "if (b == BonusBoundary) {"
+new = "if (b == BonusCamel123) {"
+checks = ["difftest", "cbmc:h_v2_full"]
+
+[[mutant]]
+id = "v2-gap-choice"
+old = "if (s1 + b < s2) {"
+new = "if (s1 + b <= s2) {"
+checks = ["difftest", "cbmc:h_v2_full"]
+
+[[mutant]]
+id = "ascii-index-not-before"
+old = "first_idx = idx - 1;"
+new = "first_idx = idx;"
+checks = ["cbmc:h_ascii_fuzzy_index", "difftest"]
+
+[[mutant]]
+id = "try-skip-ignores-upper"
+old = "uidx >= 0"
+new = "uidx > 0"
+checks = ["cbmc:h_try_skip", "difftest"]
+
+[[mutant]]
+id = "insert-range-one-more"
+old = "for (size_t k = start; k < end; k++)"
+new = "for (size_t k = start; k <= end; k++)"
+checks = ["cbmc:h_insert_range", "difftest"]
+
+[[mutant]]
+id = "parse-equal-as-prefix"
+old = "fn = fzf_equal_match;"
+new = "fn = fzf_prefix_match;"
+checks = ["difftest", "cbmc:h_parse"]
+
+[[mutant]]
+id = "parse-bar-inverted"
+old = "strcmp(text, \"|\") == 0"
+new = "strcmp(text, \"|\") != 0"
+checks = ["difftest", "cbmc:h_parse"]
+
+[[mutant]]
+id = "v2-h-left-not-cleared"
+old = "h_left.data[0] = 0;"
+new = "h_left.data[0] = 5;"
+checks = ["difftest", "cbmc:h_v2_full"]
+
+[[mutant]]
+id = "v2-consecutive-start"
+old = "consecutive = c_diag.data[j] + 1;"
+new = "consecutive = c_diag.data[j] + 2;"
+checks = ["difftest", "cbmc:h_v2_full"]
