@@ -15,7 +15,7 @@ platform: x86_64, signed and unsigned char
 | `frame_check_height(fr, h)` | true iff `fr->fr_height == h` and, for an `FR_ROW` frame, every child's height is `h` | proved (up to 4 children) |
 | `frame_check_width(fr, w)` | the same for widths and `FR_COL` frames | proved (up to 4 children) |
 | `global_stl_height()` | 1 when `'laststatus'` is 3, else 0, for every 64-bit option value | proved |
-| `set_fraction(wp)` | for `h > 1` rows: `floor((wrow + 1/2) * 16384 / h)`, in `(0, 16384)`; unchanged for `h <= 1` | not finished (CBMC run on the non-linear division did not finish before the 09:00 UTC stop) |
+| `set_fraction(wp)` | for `h > 1` rows: `floor((wrow + 1/2) * 16384 / h)`, in `[0, 16384)` (0 is reachable: with `h > 8192` and `wrow = 0` the fraction truncates to 0); unchanged for `h <= 1` | not finished (CBMC run on the non-linear division did not finish before the 09:00 UTC stop) |
 
 ## What the proof relies on
 
@@ -32,7 +32,9 @@ platform: x86_64, signed and unsigned char
 
 ## Not done (this is not a finished claim)
 
-- No adversarial review, no mutants, no differential test, no CI run yet.
+- No adversarial review, no differential test, no CI run yet. Four quick hand-made mutants
+  (one per proved function: wrong layout, wrong field, wrong minimum, `>=` for `==`) were all caught;
+  this is not the 10-mutant review the prompt requires.
 - 189 other window.c functions are unverified (see STATUS.md); the layout functions
   (`frame_new_height`, `frame_minheight`, `win_equal_rec`, `frame_setheight`, ...) depend on
   global window state and need a frame-tree model.

@@ -37,7 +37,7 @@ void h_set_fraction(void) {
   int64_t num = (int64_t)(2 * row + 1) * 16384;  // (row + 1/2) * 16384, doubled
   int64_t f = wp->w_fraction;
   __CPROVER_assert(f * 2 * h <= num && num < (f + 1) * 2 * h, "floor((row+1/2)*16384/h)");
-  __CPROVER_assert(0 < f && f < 16384, "strictly inside (0, FRACTION_MULT)");
+  __CPROVER_assert(0 <= f && f < 16384, "inside [0, FRACTION_MULT)");
 }
 
 #define NCH 4
