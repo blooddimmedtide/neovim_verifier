@@ -177,7 +177,7 @@ def annotations(fixed):
         ("before", "    int l = utfc_ptr2len(p);", r"""assert str_len((char *)p, invocation + n - p);"""),
     ]
     if fixed:
-        inv.append(("before", "      l = utfc_ptr2len(p);", r"""assert str_len((char *)p, invocation + n - p);"""))
+        inv.append(("before", "      l = utfc_ptr2len(p)", r"""assert str_len((char *)p, invocation + n - p);"""))
     return {
     "path_skip_sep": [("before", "  while (colon ? vim_ispathsep(*path) : vim_ispathsep_nocolon(*path)) {",
         r"""loop invariant within((char *)path, (char *)\at(path, Pre), n);
@@ -201,7 +201,7 @@ def annotations(fixed):
       loop variant \at(fname, Pre) + n - fname;""")],
     "invocation_path_tail": inv,
     "path_with_url": [
-        ("before", "  for (p = fname + 1; (ASCII_ISALNUM(*p) || (*p == '+') || (*p == '-') || (*p == '.')); p++) {}",
+        ("before", "  for (p = fname + 1;",
          r"""loop invariant within((char *)p, (char *)fname, n) && fname + 1 <= p;
       loop invariant \forall integer i; 1 <= i < p - fname ==> schemec(fname[i]);
       loop assigns p;
@@ -220,7 +220,7 @@ def annotations(fixed):
                              && wildcards[3] == '{' && wildcards[4] == 0);
       loop assigns p;
       loop variant \at(p, Pre) + n - p;"""),
-        ("before", "    if (p[0] == '\\\\' && p[1] != NUL) {",
+        ("before", "    if (p[0] == '\\\\'",
          r"""assert bsrun((char *)\at(p, Pre), p + 1 - \at(p, Pre)) == (p[0] == '\\' ? 1 + bsrun((char *)\at(p, Pre), p - \at(p, Pre)) : 0);"""),
         ("before", "      p++;",
          r"""assert bsrun((char *)\at(p, Pre), p + 2 - \at(p, Pre)) == (p[1] == '\\' ? 2 + bsrun((char *)\at(p, Pre), p - \at(p, Pre)) : 0);"""),
@@ -240,8 +240,8 @@ def annotations(fixed):
     "path_tail_with_sep": [
         ("after", "get_past_head(fname)", "ghost (n)"),
         ("after", "path_tail(fname)", "ghost (n)"),
-        ("before", "  while (tail > past_head && after_pathsep(fname, tail)) {", r"""ghost char *t0 = tail;"""),
-        ("before", "  while (tail > past_head && after_pathsep(fname, tail)) {",
+        ("before", "  while (tail ", r"""ghost char *t0 = tail;"""),
+        ("before", "  while (tail ",
          r"""loop invariant past_head <= tail <= t0 && within(tail, fname, n);
       loop invariant allc(tail, t0, '/');
       loop assigns tail;

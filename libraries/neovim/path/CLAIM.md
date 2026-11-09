@@ -98,7 +98,7 @@ Its quoting/escaping behavior is not specified or proved yet, so it is not count
 |---|---|---|
 | WP, upstream | `bash wp/run_wp.sh <nvim> upstream` | 21 functions (20 + ascii_isdigit) all goals, signed and unsigned char; `invocation_path_tail` 34/35 (the finding) |
 | WP, fixed fork | `bash wp/run_wp.sh <verified_neovim> fixed` | 22 / 22 functions all goals, signed and unsigned char |
-| Differential test (gcc -O2, ASan+UBSan) | `bash difftest/run_difftest.sh <nvim> upstream` (and `fixed`) | 5,229,043 strings (all of length 0..6 over 13 bytes), 0 failures, both signednesses |
+| Differential test (gcc -O2, ASan+UBSan) | `bash difftest/run_difftest.sh <nvim> upstream` (and `fixed`) | 12,204,241 strings (all of length 0..6 over 15 bytes), 0 failures, both signednesses |
 | Planted bugs | `python3 -I run_mutants.py <nvim> <verified_neovim>` | see `mutants_result.tsv` |
 | Independent review | — | pending |
 | CI, pinned container | — | pending |

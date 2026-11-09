@@ -77,7 +77,7 @@ new = "tail_end = p + l + 1;"
 fn = "invocation_path_tail"
 mode = "fixed"
 old = "      l = utfc_ptr2len(p);"
-new = "      l = 1;"
+new = "      l = utfc_ptr2len(p) * 0 + 1;"
 [[mutant]]
 fn = "add_pathsep"
 old = "if (plen > MAXPATHL - pathsep_len) {"

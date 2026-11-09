@@ -1,6 +1,6 @@
 // Differential test: the compiled path.c functions (the WP build output, which is the
 // pinned text plus ACSL comments gcc ignores) against references written from the doc
-// comments. Exhaustive over every string of length 0..6 on a 13-byte alphabet, each in an
+// comments. Exhaustive over every string of length 0..6 on a 15-byte alphabet, each in an
 // exact-size heap block so ASan catches any read past the NUL. ASCII only: the mbyte.c
 // helpers are their ASCII behavior (utfc_ptr2len 1, utf_head_off 0).
 #include <stdio.h>
