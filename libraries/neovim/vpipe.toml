@@ -104,3 +104,8 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.cmdexpand_str]
+file = "src/nvim/cmdexpand.c"
+functions = ["find_cmd_after_global_cmd", "sort_func_compare", "get_retab_arg", "get_messages_arg", "get_mapclear_arg"]
+prove = ["bash cmdexpand/cbmc/run.sh"]   # verbatim bodies, sha256 in CLAIM.md; two are bounded only

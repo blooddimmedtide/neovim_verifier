@@ -9,6 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/cmdexpand.c | 0 | 3 | 86 | 89 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -74,6 +75,11 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/cmdexpand.c | `find_cmd_after_global_cmd` | open | cmdexpand/cbmc (CBMC, bounded strlen<=10) | bounded proof only; needs WP for all lengths |
+| src/nvim/cmdexpand.c | `sort_func_compare` | open | cmdexpand/cbmc (CBMC, bounded len<=6) | bounded proof only; needs unbounded proof |
+| src/nvim/cmdexpand.c | `get_retab_arg` | candidate | cmdexpand/cbmc (CBMC) | all idx; see cmdexpand/CLAIM.md; review pending |
+| src/nvim/cmdexpand.c | `get_messages_arg` | candidate | cmdexpand/cbmc (CBMC) | all idx; see cmdexpand/CLAIM.md; review pending |
+| src/nvim/cmdexpand.c | `get_mapclear_arg` | candidate | cmdexpand/cbmc (CBMC) | all idx; see cmdexpand/CLAIM.md; review pending |
 
 ## All files
 
