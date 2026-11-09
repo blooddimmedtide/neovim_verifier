@@ -26,6 +26,7 @@ PIECES = [
     ("src/nvim/ops.c", "span", ("#define OPF_LINES  1  // operator always works on lines",
                                 "#define OPF_CHANGE 2  // operator changes text"), None),
     ("src/nvim/ops.c", "span", ("static const char opchars[][3] = {", "};"), None),
+    ("src/nvim/normal_defs.h", "span", ("/// Arguments for Normal mode commands.", "} cmdarg_T;"), None),
     ("src/nvim/register.c", "span", ("static yankreg_T y_regs[NUM_REGISTERS] = { 0 };",
                                      "static yankreg_T y_regs[NUM_REGISTERS] = { 0 };"), None),
     ("src/nvim/register.c", "span", ("static yankreg_T *y_previous = NULL;  // ptr to last written yankreg",
@@ -50,6 +51,7 @@ PIECES = [
     ("src/nvim/register.c", "fn", "op_reg_set_previous", None),
     ("src/nvim/register.c", "fn", "op_reg_iter", None),
     ("src/nvim/register.c", "fn", "op_global_reg_iter", None),
+    ("src/nvim/ops.c", "fn", "op_self_select", None),
     ("src/nvim/mbyte.c", "fn", "utf_char2bytes", None),
     ("src/nvim/strings.c", "fn", "vim_strchr", None),
     ("src/nvim/register.c", "fn", "valid_yank_reg", None),
@@ -85,6 +87,8 @@ enum { MB_MAXBYTES = 30, };
 typedef uint64_t Timestamp;
 typedef int colnr_T;
 typedef struct AdditionalData AdditionalData;
+typedef struct oparg_opaque oparg_T;   // only a pointer to it is used here (normal_defs.h has the full struct)
+#define MAX_SCHAR_SIZE 32
 /*@ requires \false; assigns \nothing; */  // never reached: get_op_type must prove it
 void internal_error(const char *where);
 """
@@ -102,7 +106,8 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
           ("src/nvim/macros_defs.h", "   / ((size_t)(!(sizeof(arr) % sizeof((arr)[0])))))"),
           ("src/nvim/os/time_defs.h", "typedef uint64_t Timestamp;"),
           ("src/nvim/pos_defs.h", "typedef int colnr_T;"),
-          ("src/nvim/mbyte_defs.h", "  MB_MAXBYTES = 30,")]
+          ("src/nvim/mbyte_defs.h", "  MB_MAXBYTES = 30,"),
+          ("src/nvim/types_defs.h", "#define MAX_SCHAR_SIZE 32")]
 
 
 def piece(tree, path, kind, name):

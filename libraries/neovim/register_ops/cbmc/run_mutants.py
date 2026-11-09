@@ -29,7 +29,7 @@ def main():
     subprocess.run([sys.executable, "-I", f"{HERE}/../wp/build.py", nv, f"{w}/base.c"], check=True)
     base = open(f"{w}/base.c").read(); caught = n = 0
     for hf, fn, old, new in MUTANTS:
-        if quick and fn == "harness_op_reg_iter":
+        if quick and fn == "harness_op_reg_iter" or ("iter" in sys.argv and fn != "harness_op_reg_iter"):
             continue
         if base.count(old) != 1:
             sys.exit(f"anchor not found once: {old}")

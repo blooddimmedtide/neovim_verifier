@@ -12,7 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
-| src/nvim/ops.c | 0 | 8 | 40 | 48 |
+| src/nvim/ops.c | 0 | 9 | 39 | 48 |
 | src/nvim/register.c | 0 | 9 | 44 | 53 |
 
 ## Function details
@@ -93,6 +93,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/register.c | `op_reg_get` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; WP functions: 22/22 self-chosen planted bugs caught; no independent review yet |
 | src/nvim/register.c | `op_reg_set_previous` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; WP functions: 22/22 self-chosen planted bugs caught; no independent review yet |
 | src/nvim/register.c | `valid_yank_reg` | candidate | register_ops/cbmc (CBMC, signed+unsigned char; vim_strchr and utf_char2bytes verbatim, strstr modeled) | see register_ops/CLAIM.md; WP functions: 22/22 self-chosen planted bugs caught; no independent review yet |
+| src/nvim/ops.c | `op_self_select` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; planted bug caught; no independent review yet |
 
 ## All files
 

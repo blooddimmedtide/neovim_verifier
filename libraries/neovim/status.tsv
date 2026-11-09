@@ -73,3 +73,4 @@ src/nvim/register.c	op_reg_amount	candidate	register_ops/wp (Frama-C WP, signed+
 src/nvim/register.c	op_reg_get	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; WP functions: 22/22 self-chosen planted bugs caught; no independent review yet
 src/nvim/register.c	op_reg_set_previous	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; WP functions: 22/22 self-chosen planted bugs caught; no independent review yet
 src/nvim/register.c	valid_yank_reg	candidate	register_ops/cbmc (CBMC, signed+unsigned char; vim_strchr and utf_char2bytes verbatim, strstr modeled)	see register_ops/CLAIM.md; WP functions: 22/22 self-chosen planted bugs caught; no independent review yet
+src/nvim/ops.c	op_self_select	candidate	register_ops/wp (Frama-C WP, signed+unsigned char)	see register_ops/CLAIM.md; planted bug caught; no independent review yet

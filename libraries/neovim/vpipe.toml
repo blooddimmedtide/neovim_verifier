@@ -107,7 +107,7 @@ assumptions = [
 
 [targets.register_ops]
 file = "src/nvim/register.c, src/nvim/ops.c"
-functions = ["get_op_type", "op_on_lines", "op_is_change", "op_redoable", "get_op_char", "get_extra_op_char", "get_vts", "get_vts_sum", "get_y_register", "get_y_previous", "op_reg_amount", "op_reg_get", "op_reg_set_previous", "get_unname_register", "op_reg_iter", "op_global_reg_iter", "valid_yank_reg"]
+functions = ["get_op_type", "op_on_lines", "op_is_change", "op_redoable", "get_op_char", "get_extra_op_char", "get_vts", "get_vts_sum", "get_y_register", "get_y_previous", "op_reg_amount", "op_reg_get", "op_reg_set_previous", "get_unname_register", "op_reg_iter", "op_global_reg_iter", "valid_yank_reg", "op_self_select"]
 annotate = "register_ops/wp/build.py"   # verbatim pieces, sha256 pinned; ACSL only in comments
 prove = ["bash register_ops/wp/run_wp.sh {src}", "FIXED={fixed} bash register_ops/wp/run_wp.sh {src}", "bash register_ops/cbmc/run_cbmc.sh {src}"]
 mutants = "python3 -I register_ops/run_mutants.py {src}"   # session-chosen; reviewer set still to add

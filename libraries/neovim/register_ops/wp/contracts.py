@@ -100,6 +100,10 @@ CONTRACTS = {
     requires index <= vts_array[0] || vts_array[vts_array[0]] * (index - vts_array[0]) <= INT_MAX - 9999 * vts_array[0];
     assigns \\nothing;
     ensures \\result == vts_sum(vts_array, index); */""",
+    # Doc: true for gn / gN / gv (an operator whose motion selects its own region).
+    "op_self_select": """/*@ requires \\valid_read(cap); assigns \\nothing;
+    ensures \\result == 1 <==> cap->cmdchar == 'g' && (cap->nchar == 'n' || cap->nchar == 'N' || cap->nchar == 'v');
+    ensures \\result == 0 || \\result == 1; */""",
     "get_unname_register": """/*@ requires prev_ok; assigns \\nothing;
     ensures y_previous == \\null ==> \\result == -1;
     ensures y_previous != \\null ==> 0 <= \\result < NUM_REGISTERS && &y_regs[\\result] == y_previous; */""",

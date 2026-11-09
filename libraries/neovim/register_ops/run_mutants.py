@@ -27,6 +27,7 @@ MUTANTS = [  # (function, exact old text, new text)
     ("op_reg_index", "    return CHAR_ORD_UP(regname) + 10;", "    return CHAR_ORD_UP(regname) + 11;"),
     ("op_reg_index", "  } else if (regname == '*') {", "  } else if (regname == '+') {"),
     ("get_register_name", "    return '-';", "    return '_';"),
+    ("op_self_select", "  return cap->cmdchar == 'g' && (cap->nchar == 'n' || cap->nchar == 'N' || cap->nchar == 'v');", "  return cap->cmdchar == 'g' && (cap->nchar == 'n' || cap->nchar == 'N' || cap->nchar == 'V');"),
     ("reg_empty", "          || reg->y_size == 0", "          || reg->y_size == 2"),
 ]
 

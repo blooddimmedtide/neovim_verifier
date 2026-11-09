@@ -1,5 +1,5 @@
 ---
-entry: neovim/src/nvim/register.c + src/nvim/ops.c (register and operator helpers; partial, 17 of 101 functions)
+entry: neovim/src/nvim/register.c + src/nvim/ops.c (register and operator helpers; partial, 18 of 101 functions)
 upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: https://github.com/blooddimmedtide/verified_neovim (branch claude/project-thread-dvm5iw, commit 09421b0: get_vts_sum)
@@ -26,6 +26,7 @@ the verbatim text. The reference (`wp/contracts.py`) is written from the documen
 | `get_op_char`, `get_extra_op_char` | first / second command character of op |
 | `get_vts(a, i)` | i-th 'vartabstop' width, 0 for i < 1, the last width past the end |
 | `get_vts_sum(a, n)` | sum of the first n tabstop widths. Upstream: only when the result fits in int (see Finding). Fixed fork: for every n. |
+| `op_self_select(cap)` | true exactly for the commands gn, gN, gv |
 | `get_y_register(r)` | `&y_regs[r]` |
 | `get_y_previous()` | `y_previous` |
 | `op_reg_amount()` | number of non-empty registers among the 37 saved ones |
@@ -53,4 +54,4 @@ Also proved (header helpers used above): `ascii_isdigit`, `op_reg_index`, `get_r
 `findings/vts-sum-overflow.md`: signed int overflow in `get_vts_sum` on `V999999999>` with sw=0 and 'vartabstop'. Fixed in the fork (int64_t), fix proved.
 
 ## Not done
-84 functions are unverified; list in PLAN.md. Planted bugs chosen by the proving session: 22/22 caught (`run_mutants.py`, WP functions only). No independent review, CI not run.
+83 functions are unverified; list in PLAN.md. Planted bugs chosen by the proving session: 23/23 caught (`run_mutants.py`, WP functions) and 7/7 for the get_unname_register / valid_yank_reg harnesses (`cbmc/run_mutants.py`). No independent review, CI not run.
