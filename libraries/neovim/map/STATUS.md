@@ -16,19 +16,21 @@ mh_realloc was vacuous. The stub now takes a ghost "avoid" pointer instead.
 
 ## Proved (int-key instance, full goal count, smoke tests clean)
 
+Goal counts include smoke tests (last run: `SKIP_BV=1 bash wp/run.sh 30`, 2026-11-09).
+
 | Function | Goals | What is proved |
 |---|---|---|
-| mh_find_bucket_int | 50/50 (+15 smoke) | memory safety, **termination** (quadratic probing over a power-of-two table returns to its start after 2n-1 steps: variant `2n-2-step`, ghost `probe_lemma` checked by Z3 for every n = 2^k in `wp/lemmas_probe.smt2`, 96 unsat), and: with `put` the result is a slot `< n_buckets`; a returned used slot holds `key`; without `put` the result is TOMBSTONE or a slot holding `key`. |
-| mh_clear | 26/26 | all buckets 0 and size/n_occupied/n_keys 0 when allocated; nothing changed otherwise |
-| mh_get_int | 15/15 | result is TOMBSTONE or an index `< n_keys` whose key equals `key` |
-| map_ref_int_ptr_t | 15/15 | NULL, or `&values[k]` with `keys[k] == key`, and `*key_alloc` set to `&keys[k]` |
+| mh_find_bucket_int | 65/65 | memory safety, **termination** (quadratic probing over a power-of-two table returns to its start after 2n-1 steps: variant `2n-2-step`, ghost `probe_lemma` checked by Z3 for every n = 2^k in `wp/lemmas_probe.smt2`, 96 unsat), and: with `put` the result is a slot `< n_buckets`; a returned used slot holds `key`; without `put` the result is TOMBSTONE or a slot holding `key`. |
+| mh_clear | 32/32 | all buckets 0 and size/n_occupied/n_keys 0 when allocated; nothing changed otherwise |
+| mh_get_int | 20/20 | result is TOMBSTONE or an index `< n_keys` whose key equals `key` |
+| map_ref_int_ptr_t | 20/20 | NULL, or `&values[k]` with `keys[k] == key`, and `*key_alloc` set to `&keys[k]` |
 
 ## Partly proved
 
 | Function | Goals | Open |
 |---|---|---|
-| mh_realloc | 56/59 | proved: frees the old index, `n_buckets` is a power of two in `[max(16, n_min), 2^31]` for `n_min <= 2^31` (`roundup_lemma`, Z3 `wp/lemmas.smt2`), counters reset, upper_bound cast in range, fresh zeroed block. Open: that the zeroes survive the three header-field writes after the call (2 asserts + 1 ensures; WP does not use `\base_addr` disequality through the `(char *)h` cast). Fix idea: give xcalloc's ghost avoid argument type `MapHash *`. Larger inputs: finding below. |
-| mh_rehash_int | 38/41 | proved: memory safety, termination, no tombstones remain, every key j gets a slot holding j + 1 (ghost witness array `vp_slot`). Open: the last ensures and the function's two assigns goals (time out). |
+| mh_realloc | 56/59 | proved: frees the old index, `n_buckets` is a power of two in `[max(16, n_min), 2^31]` for `n_min <= 2^31` (`roundup_lemma`, Z3 `wp/lemmas.smt2`), counters reset, upper_bound cast in range, fresh zeroed block. Open: that the zeroes survive the header-field writes after the call (asserts after `h->n_buckets = n_buckets;` and the zero ensures time out; the assert right after xcalloc and after the n_occupied/size writes are proved). The avoid pointer is `&h->n_buckets` (typed, no cast); the open goals carry WP's "Stronger" warning, worth checking which hypotheses it drops. Larger inputs: finding below. Bit-vector lemma files: `lemmas.smt2` (seconds), `lemmas_mask.smt2` (instant), `lemmas_probe.smt2` (~10 min, 96 unsat); `SKIP_BV=1` skips them. |
+| mh_rehash_int | 45/48 | proved: memory safety, termination, no tombstones remain, every key j gets a slot holding j + 1 (ghost witness array `vp_slot`). Open: the last ensures and the function's two assigns goals (time out). |
 
 Not specified yet for any function: *completeness* of lookup (a free slot returned means the
 key is absent), which needs a table-wide probe-chain invariant; and "never calls abort()"
@@ -68,7 +70,7 @@ key is absent), which needs a table-wide probe-chain invariant; and "never calls
 
 ## Next steps
 
-1. Close mh_realloc's 3 goals (typed avoid pointer) and mh_rehash_int's 3 goals.
+1. Close mh_realloc's open goals and mh_rehash_int's 3 goals.
 2. Spec and prove mh_put_int (needs `n_buckets < 2^31`: the finding) and mh_delete_int,
    then map_put_ref/map_del.
 3. Write the fix for the bucket wrap on a verified_neovim branch and prove it.

@@ -19,15 +19,15 @@ void xfree(void *p);
     // The ghost argument names a live block the new one must not overlap (true of any
     // allocator); no "for all pointers" clause, which made an earlier stub contradictory.
     requires size == sizeof(uint32_t);
-    requires a1 == \null || \valid_read(a1);
+    requires a1 == \null || \valid_read(a1);  // a uint32_t field of the caller's struct
     assigns \result \from count, size;
     exits vp_oom || count * size > SIZE_MAX;
     ensures count * size <= SIZE_MAX;
     ensures \result != \null && \valid((uint32_t *)\result + (0 .. count - 1));
     ensures \forall integer i; 0 <= i < count ==> ((uint32_t *)\result)[i] == 0;
-    ensures \base_addr((char *)\result) != \base_addr(a1);
+    ensures \base_addr((uint32_t *)\result) != \base_addr(a1);
 */
-void *xcalloc(size_t count, size_t size) /*@ ghost (char *a1) */;
+void *xcalloc(size_t count, size_t size) /*@ ghost (uint32_t *a1) */;
 
 /*@ // xrealloc to n bytes of int keys: keeps the first `old` ints, never returns NULL.
     requires p == \null || \valid((int *)p + (0 .. old - 1));

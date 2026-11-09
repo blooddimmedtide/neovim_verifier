@@ -126,7 +126,7 @@ void mh_realloc(MapHash *h, uint32_t n_min_buckets)
   /*@ assert n_buckets == ru(x0); */
   /*@ ghost roundup_lemma(x0); */
   // sets all buckets to EMPTY
-  h->hash = xcalloc(n_buckets, sizeof *h->hash) /*@ ghost ((char *)h) */;
+  h->hash = xcalloc(n_buckets, sizeof *h->hash) /*@ ghost (&h->n_buckets) */;
   /*@ assert \base_addr(h->hash) != \base_addr(h) && \separated(h, h->hash + (0 .. n_buckets - 1)) && \forall integer i; 0 <= i < n_buckets ==> h->hash[i] == 0; */
   h->n_occupied = h->size = 0;
   /*@ assert \forall integer i; 0 <= i < n_buckets ==> h->hash[i] == 0; */
