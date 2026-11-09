@@ -13,7 +13,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
 | src/nvim/ops.c | 0 | 8 | 40 | 48 |
-| src/nvim/register.c | 0 | 8 | 45 | 53 |
+| src/nvim/register.c | 0 | 9 | 44 | 53 |
 
 ## Function details
 
@@ -92,6 +92,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/register.c | `op_reg_amount` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; no review/mutants yet |
 | src/nvim/register.c | `op_reg_get` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; no review/mutants yet |
 | src/nvim/register.c | `op_reg_set_previous` | candidate | register_ops/wp (Frama-C WP, signed+unsigned char) | see register_ops/CLAIM.md; no review/mutants yet |
+| src/nvim/register.c | `valid_yank_reg` | candidate | register_ops/cbmc (CBMC, signed+unsigned char; vim_strchr and utf_char2bytes verbatim, strstr modeled) | see register_ops/CLAIM.md; no review/mutants yet |
 
 ## All files
 

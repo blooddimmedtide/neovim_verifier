@@ -15,4 +15,14 @@ for cs in "" "--unsigned-char"; do
     [ "$r" = "VERIFICATION SUCCESSFUL" ] || { status=1; grep -E "FAILURE" "$W/$hv$cs.log" | head; }
   done
 done
+# valid_yank_reg + vim_strchr + utf_char2bytes: no --conversion-check (utf_char2bytes stores
+# bytes >= 0x80 into char on purpose; its byte values are proved in mbyte/cbmc).
+cp "$HERE/harness_vyr.c" "$W/"
+for cs in "" "--unsigned-char"; do
+  (cd "$W" && cbmc harness_vyr.c --function harness_valid_yank_reg $cs --bounds-check --pointer-check \
+     --signed-overflow-check --unsigned-overflow-check --pointer-overflow-check --undefined-shift-check \
+     --unwind 40 --unwinding-assertions > "$W/vyr$cs.log" 2>&1)
+  r=$(grep -E "VERIFICATION (SUCCESSFUL|FAILED)" "$W/vyr$cs.log"); echo "harness_valid_yank_reg ${cs:-signed}: ${r:-no result}"
+  [ "$r" = "VERIFICATION SUCCESSFUL" ] || status=1
+done
 echo "logs: $W"; exit $status

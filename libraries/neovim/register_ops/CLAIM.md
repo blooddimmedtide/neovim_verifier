@@ -1,5 +1,5 @@
 ---
-entry: neovim/src/nvim/register.c + src/nvim/ops.c (register and operator helpers; partial, 16 of 101 functions)
+entry: neovim/src/nvim/register.c + src/nvim/ops.c (register and operator helpers; partial, 17 of 101 functions)
 upstream: https://github.com/neovim/neovim
 commit: 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
 fixed_fork: https://github.com/blooddimmedtide/verified_neovim (branch claude/project-thread-dvm5iw, commit 09421b0: get_vts_sum)
@@ -40,6 +40,7 @@ Also proved (header helpers used above): `ascii_isdigit`, `op_reg_index`, `get_r
 |---|---|
 | `get_unname_register()` | -1 when `y_previous` is NULL, else its index |
 | `op_reg_iter`, `op_global_reg_iter` | from NULL or any register pointer: name, contents and is_unnamed of the first non-empty register at or after it, and a pointer to the next non-empty one (NULL at the end); name NUL and NULL when none. Register lines: each register has 0-3 lines (reg_empty only looks at y_size 0, 1, more) |
+| `valid_yank_reg(c, writing)` | true exactly for 0-9, a-z, A-Z, `"`, `-`, `_`, `*`, `+`, and (only when not writing) `/ # . % : =`; every int c. vim_strchr and utf_char2bytes are run verbatim; strstr is a plain C-standard model (CBMC has none) |
 
 ## Relied on (preconditions)
 - `op` / `optype` in 0..30 (callers pass OP_* values); `get_op_type` only gets valid names (documented: "Must only be called with a valid operator name!").
@@ -52,4 +53,4 @@ Also proved (header helpers used above): `ascii_isdigit`, `op_reg_index`, `get_r
 `findings/vts-sum-overflow.md`: signed int overflow in `get_vts_sum` on `V999999999>` with sw=0 and 'vartabstop'. Fixed in the fork (int64_t), fix proved.
 
 ## Not done
-85 functions are unverified; list in PLAN.md. No independent review, no planted bugs, CI not run.
+84 functions are unverified; list in PLAN.md. No independent review, no planted bugs, CI not run.

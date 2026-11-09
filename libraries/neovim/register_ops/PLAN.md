@@ -4,14 +4,14 @@ Pinned upstream: neovim 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd. 101 functions 
 Claimed by thread "Verify Neovim registers and ops" (2026-11-09). Progress and the list of
 unverified functions are kept here.
 
-## Progress (2026-11-09): 16 / 101 functions proved
+## Progress (2026-11-09): 17 / 101 functions proved
 
 - WP (`wp/run_wp.sh`): get_extra_op_char, get_op_char, get_op_type, get_vts, get_y_previous, get_y_register, op_is_change, op_on_lines, op_redoable, op_reg_amount, op_reg_get, op_reg_set_previous.
-- CBMC (`cbmc/run_cbmc.sh`): get_unname_register, op_global_reg_iter, op_reg_iter.
+- CBMC (`cbmc/run_cbmc.sh`): get_unname_register, op_global_reg_iter, op_reg_iter, valid_yank_reg.
 - Fixed and proved: get_vts_sum (finding `findings/vts-sum-overflow.md`, fix verified_neovim 09421b0).
 - Not yet: independent review, planted bugs, CI run.
 
-## Unverified (85)
+## Unverified (84)
 - ops.c:op_shift
 - ops.c:get_new_sw_indent
 - ops.c:get_new_vts_indent
@@ -56,7 +56,6 @@ unverified functions are kept here.
 - register.c:set_expr_line
 - register.c:get_expr_line
 - register.c:get_expr_line_src
-- register.c:valid_yank_reg
 - register.c:get_default_register_name
 - register.c:reg_max_ts
 - register.c:op_reg_set
@@ -102,6 +101,5 @@ unverified functions are kept here.
 - op_reg_set, free_register, clear_registers, set_expr_line need allocation stubs: use ghost
   "avoid" arguments as in typval/wp_blob, run with -wp-smoke-tests (the garray stub is
   contradictory, do not reuse it).
-- valid_yank_reg: CBMC with vim_strchr + utf_char2bytes verbatim (a string-literal argument).
 - shift_block / get_new_vts_indent / get_new_sw_indent: check the other indent arithmetic for
   the same overflow as get_vts_sum (shift_block computes total in int).

@@ -50,6 +50,9 @@ PIECES = [
     ("src/nvim/register.c", "fn", "op_reg_set_previous", None),
     ("src/nvim/register.c", "fn", "op_reg_iter", None),
     ("src/nvim/register.c", "fn", "op_global_reg_iter", None),
+    ("src/nvim/mbyte.c", "fn", "utf_char2bytes", None),
+    ("src/nvim/strings.c", "fn", "vim_strchr", None),
+    ("src/nvim/register.c", "fn", "valid_yank_reg", None),
 ]
 PIN = os.path.join(HERE, "pins.txt")
 
@@ -59,6 +62,9 @@ PRELUDE = r"""// Prelude: what the pieces need from Neovim's headers, written as
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <string.h>
+enum { MB_MAXBYTES = 30, };
+#define FUNC_ATTR_NONNULL_ALL
 #define NUL '\000'
 #define Ctrl_A          1
 #define Ctrl_X          24
@@ -67,6 +73,8 @@ PRELUDE = r"""// Prelude: what the pieces need from Neovim's headers, written as
    / ((size_t)(!(sizeof(arr) % sizeof((arr)[0])))))
 #define ASCII_ISLOWER(c) ((unsigned)(c) >= 'a' && (unsigned)(c) <= 'z')
 #define ASCII_ISUPPER(c) ((unsigned)(c) >= 'A' && (unsigned)(c) <= 'Z')
+#define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))
+#define ASCII_ISALNUM(c) (ASCII_ISALPHA(c) || ascii_isdigit(c))
 #define CHAR_ORD_LOW(x)   ((uint8_t)(x) - 'a')
 #define CHAR_ORD_UP(x)    ((uint8_t)(x) - 'A')
 #define FUNC_ATTR_CONST
@@ -85,13 +93,16 @@ CHECKS = [("src/nvim/ascii_defs.h", "#define NUL             '\\000'"),
           ("src/nvim/ascii_defs.h", "#define Ctrl_X          24"),
           ("src/nvim/macros_defs.h", "#define ASCII_ISLOWER(c) ((unsigned)(c) >= 'a' && (unsigned)(c) <= 'z')"),
           ("src/nvim/macros_defs.h", "#define ASCII_ISUPPER(c) ((unsigned)(c) >= 'A' && (unsigned)(c) <= 'Z')"),
+          ("src/nvim/macros_defs.h", "#define ASCII_ISALPHA(c) (ASCII_ISUPPER(c) || ASCII_ISLOWER(c))"),
+          ("src/nvim/macros_defs.h", "#define ASCII_ISALNUM(c) (ASCII_ISALPHA(c) || ascii_isdigit(c))"),
           ("src/nvim/ascii_defs.h", "#define CHAR_ORD_LOW(x)   ((uint8_t)(x) - 'a')"),
           ("src/nvim/ascii_defs.h", "#define CHAR_ORD_UP(x)    ((uint8_t)(x) - 'A')"),
           ("src/nvim/macros_defs.h", "#define ARRAY_SIZE(arr) \\"),
           ("src/nvim/macros_defs.h", "  ((sizeof(arr)/sizeof((arr)[0])) \\"),
           ("src/nvim/macros_defs.h", "   / ((size_t)(!(sizeof(arr) % sizeof((arr)[0])))))"),
           ("src/nvim/os/time_defs.h", "typedef uint64_t Timestamp;"),
-          ("src/nvim/pos_defs.h", "typedef int colnr_T;")]
+          ("src/nvim/pos_defs.h", "typedef int colnr_T;"),
+          ("src/nvim/mbyte_defs.h", "  MB_MAXBYTES = 30,")]
 
 
 def piece(tree, path, kind, name):
