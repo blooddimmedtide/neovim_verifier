@@ -1,0 +1,291 @@
+"""ACSL contracts for option.c's comma-list helpers, written from their doc comments
+(option.c, upstream 7b87ce8):
+
+- find_key_item: "Find a comma-separated item in src that matches the key part of key.
+  keylen is the length including ':'. Returns a pointer to the found item in src, or NULL
+  if not found. Sets *itemlenp to the length of the found item (up to ',' or NUL)."
+- remove_comma_item: "Remove one item of length itemlen at position item from
+  comma-separated string str in-place. Handles the comma before or after the item."
+- append_item: "Append a comma-separated item to the end of str in-place. Adds a comma
+  before the item if str is not empty."
+- prepend_item: "Prepend a comma-separated item to the beginning of str in-place. Adds a
+  comma after the item if str is not empty."
+
+The reference below is the comma-list meaning of those sentences, not the code.
+"""
+
+LOGIC = r"""
+/*@ // an item starts at i: the start of the string or right after a ','
+    predicate item_start{L}(char *s, integer i) = i == 0 || s[i - 1] == ',';
+    // s[i .. i + kl - 1] is the key key[0 .. kl - 1]
+    predicate key_at{L}(char *s, integer i, char *key, integer kl) =
+      \forall integer j; 0 <= j < kl ==> s[i + j] == key[j];
+    // the item at i ends at i + m: the first ',' or NUL from i
+    predicate item_end{L}(char *s, integer i, integer m) =
+      0 <= m && (s[i + m] == ',' || s[i + m] == 0)
+      && \forall integer j; 0 <= j < m ==> s[i + j] != ',' && s[i + j] != 0;
+
+    // a suffix of a string is a string
+    lemma str_len_suffix{L}: \forall char *s, integer n, k; str_len(s, n) && 0 <= k <= n ==> str_len(s + k, n - k);
+    // a string has one length
+    lemma str_len_unique{L}: \forall char *s, integer n, m; str_len(s, n) && str_len(s, m) ==> n == m;
+    // the bytes before the NUL, by index
+    lemma str_len_nz{L}: \forall char *s, integer n, j; str_len(s, n) && 0 <= j < n ==> s[j] != 0;
+    // item_end does not depend on where the pointer starts
+    lemma item_end_shift{L}: \forall char *s, integer k, m; item_end(s + k, 0, m) ==> item_end(s, k, m);
+    // s[0 .. n] is a string of length n (index form; validity is stated separately)
+    predicate str_at{L}(char *s, integer n) = 0 <= n && s[n] == 0 && \forall integer j; 0 <= j < n ==> s[j] != 0;
+*/
+/*@ ghost
+  // strncmp(s, key, kl) == 0 and key has no NUL in its first kl bytes => s starts with key.
+  // (Induction on the prefix, done by the loop.)
+  /@ requires 0 <= kl;
+     requires \forall integer j; 0 <= j < kl ==> key[j] != 0;
+     requires \forall integer j; 0 <= j < kl ==> (\forall integer j2; 0 <= j2 < j ==> s[j2] != 0) ==> s[j] == key[j];
+     assigns \nothing;
+     ensures key_at(s, 0, key, kl); @/
+  void key_prefix(char *s, char *key, ptrdiff_t kl) {
+    ptrdiff_t j = 0;
+    /@ loop invariant 0 <= j <= kl;
+       loop invariant \forall integer i; 0 <= i < j ==> s[i] == key[i];
+       loop assigns j; loop variant kl - j; @/
+    while (j < kl) j++;
+  }
+*/
+"""
+
+FIND_KEY_ITEM = r"""
+/*@ requires str_len(src, n) && n < PTRDIFF_MAX;
+    requires 0 <= keylen && \valid_read(key + (0 .. keylen - 1));
+    requires \forall integer j; 0 <= j < keylen ==> key[j] != 0;   // keylen counts key's own bytes
+    requires \valid(itemlenp) && \separated(itemlenp, src + (0 .. n));
+    assigns *itemlenp;
+    behavior not_found:
+      assumes \forall integer i; 0 <= i < n ==> !(item_start(src, i) && key_at(src, i, key, keylen));
+      ensures \result == \null;
+      assigns \nothing;
+    behavior found:
+      assumes \exists integer i; 0 <= i < n && item_start(src, i) && key_at(src, i, key, keylen);
+      ensures \exists integer i; 0 <= i < n && \result == src + i
+              && item_start(src, i) && key_at(src, i, key, keylen)
+              && (\forall integer i2; 0 <= i2 < i ==> !(item_start(src, i2) && key_at(src, i2, key, keylen)))
+              && item_end(src, i, *itemlenp) && i + *itemlenp <= n;
+    complete behaviors; disjoint behaviors;
+*/
+"""
+FIND_KEY_ITEM_LOOP = r"""  /*@ loop invariant \base_addr(p) == \base_addr(src) && src <= p <= src + n;
+      loop invariant \forall integer i; 0 <= i < p - src ==> !(item_start(src, i) && key_at(src, i, key, keylen));
+      loop assigns p;
+      loop variant n - (p - src); */
+"""
+
+REMOVE_COMMA_ITEM = r"""
+/*@ requires str_len((char *)str, n) && n < PTRDIFF_MAX && \valid((char *)str + (0 .. n));
+    requires \base_addr(item) == \base_addr((char *)str) && (char *)str <= item;
+    requires 0 <= itemlen && item + itemlen <= (char *)str + n;
+    requires item_end(item, 0, itemlen);   // the item is the whole item, up to ',' or NUL
+    requires item == (char *)str || *(item - 1) == ',';   // and it starts where an item starts
+    assigns ((char *)str)[0 .. n];
+    behavior inner:   // a ',' follows: drop the item and that comma
+      assumes item[itemlen] == ',';
+      ensures item[n - (item - str) - itemlen - 1] == 0
+              && \forall integer i; 0 <= i < n - (item - str) - itemlen - 1 ==> item[i] != 0;
+      ensures \forall integer j; 0 <= j < item - str ==> str[j] == \old(str[j]);
+      ensures \forall integer i; 0 <= i <= n - (item - str) - itemlen - 1 ==> item[i] == \old(item[i + itemlen + 1]);
+    behavior last:    // the last of several items: drop the comma before it and the item
+      assumes item[itemlen] != ',' && item > str && *(item - 1) == ',';
+      ensures str_at((char *)str, n - itemlen - 1);
+      ensures \forall integer j; 0 <= j < item - str - 1 ==> str[j] == \old(str[j]);
+      ensures \forall integer j; item - str - 1 <= j <= n - itemlen - 1 ==> str[j] == \old(str[j + itemlen + 1]);
+    behavior only:    // the only item: the list ends where the item started
+      assumes item[itemlen] != ',' && !(item > str && *(item - 1) == ',');
+      ensures \forall integer j; 0 <= j < item - str ==> str[j] == \old(str[j]);
+      ensures item[0] == 0;
+    complete behaviors; disjoint behaviors;
+*/
+"""
+
+APPEND_ITEM = r"""
+/*@ requires str_len(str, n) && 0 <= item_len && n + 1 + item_len < PTRDIFF_MAX;
+    requires \valid(str + (0 .. n + 1 + item_len)) && \valid_read(item + (0 .. item_len - 1));
+    requires \separated(item + (0 .. item_len - 1), str + (0 .. n + 1 + item_len));
+    assigns str[0 .. n + 1 + item_len];
+    behavior empty:
+      assumes n == 0;
+      ensures \forall integer t; 0 <= t < item_len ==> str[t] == \old(item[t]);
+      ensures str[item_len] == 0;
+    behavior nonempty:
+      assumes n > 0;
+      ensures \forall integer j; 0 <= j < n ==> str[j] == \old(str[j]);
+      ensures str[n] == ',';
+      ensures \forall integer t; 0 <= t < item_len ==> str[n + 1 + t] == \old(item[t]);
+      ensures str[n + 1 + item_len] == 0;
+    complete behaviors; disjoint behaviors;
+*/
+"""
+
+PREPEND_ITEM = r"""
+/*@ requires str_len(str, n) && 0 <= item_len && n + 1 + item_len < PTRDIFF_MAX;
+    requires \valid(str + (0 .. n + item_len + (n > 0 ? 1 : 0))) && \valid_read(item + (0 .. item_len - 1));
+    requires \separated(item + (0 .. item_len - 1), str + (0 .. n + item_len + 1));
+    assigns str[0 .. n + item_len + (n > 0 ? 1 : 0)];
+    ensures \forall integer t; 0 <= t < item_len ==> str[t] == \old(item[t]);
+    behavior empty:
+      assumes n == 0;
+      ensures str[item_len] == 0;
+    behavior nonempty:
+      assumes n > 0;
+      ensures str[item_len] == ',';
+      ensures \forall integer j; 0 <= j <= n ==> str[item_len + 1 + j] == \old(str[j]);
+    complete behaviors; disjoint behaviors;
+*/
+"""
+
+GHOST_N = " /*@ ghost (size_t n) */"
+CONTRACTS = {
+    "find_key_item": (FIND_KEY_ITEM, [
+        ("ptrdiff_t *itemlenp)", GHOST_N, "after"),
+        ("  while (*p != NUL) {", FIND_KEY_ITEM_LOOP, "before"),
+        ("    // Check if this item starts with the same key",
+         "    /*@ assert str_len(p, n - (p - src)); */\n", "before"),
+        ("      // Find the end of this item", "      /*@ ghost key_prefix(p, key, keylen); */\n"
+         "      /*@ assert p - src < n && item_start(src, p - src) && key_at(src, p - src, key, keylen); */\n", "before"),
+        ("      return p;", "      /*@ assert item_end(src, p - src, *itemlenp); */\n", "before"),
+        ("      *itemlenp = end - p;",
+         "      /*@ assert 0 <= end - p && (p - src) + (end - p) <= n && item_end(p, 0, end - p); */\n", "before")]),
+    "remove_comma_item": (REMOVE_COMMA_ITEM, [
+        ("ptrdiff_t itemlen)", GHOST_N, "after"),
+        ("    // Remove item and trailing comma",
+         "    /*@ assert str_len(item + itemlen + 1, n - (item - str) - itemlen - 1); */\n"
+         "    /*@ assert \\forall integer j; 0 <= j < n ==> str[j] != 0; */\n", "before"),
+        ("    STRMOVE(item, item + itemlen + 1);",
+         "\n    /*@ assert \\forall integer i; 0 <= i <= n - (item - str) - itemlen - 1 ==> item[i] == \\at(item[i + itemlen + 1], Pre); */"
+         "\n    /*@ assert \\forall integer j; 0 <= j < item - str ==> str[j] != 0; */"
+         "\n    /*@ assert \\forall integer i; 0 <= i < n - (item - str) - itemlen - 1 ==> \\at(item[i + itemlen + 1], Pre) != 0; */"
+         "\n    /*@ assert \\forall integer i; 0 <= i < n - (item - str) - itemlen - 1 ==> item[i] != 0; */", "after"),
+        ("    // Last item: remove leading comma and item",
+         "    /*@ assert str_len(item + itemlen, n - (item - str) - itemlen); */\n", "before")]),
+    "append_item": (APPEND_ITEM, [("ptrdiff_t item_len)", GHOST_N, "after")]),
+    "prepend_item": (PREPEND_ITEM, [("ptrdiff_t item_len)", GHOST_N, "after")]),
+}
+
+# stropt_concat_with_comma: "Concatenate the original and new values of a string option,
+# adding a ',' if needed." For OP_ADDING the result is origval, then ',', then newval
+# (a trailing ',' of origval is dropped first for kOptFlagOneComma options, unless it is
+# escaped, so the result has no ",,"); otherwise (OP_PREPENDING) newval, ',', origval.
+# The ',' is added only for comma-list options when both values are non-empty.
+# `upstream` adds the limit under which the int length is right (findings/option-concat-over-2gib.md).
+def concat_contract(upstream):
+    limit = ("    requires no <= INT_MAX && nn <= INT_MAX;   // upstream keeps lengths in int\n"
+             if upstream else "")
+    return r"""
+/*@ logic integer cc(uint32_t flags, integer no, integer nn) =
+      ((flags & kOptFlagComma) != 0 && no > 0 && nn > 0) ? 1 : 0;
+    // how much of origval is kept when adding
+    logic integer kept_len{L}(char *o, uint32_t flags, integer no, integer nn) =
+      (cc(flags, no, nn) == 1 && no > 1 && (flags & kOptFlagOneComma) == kOptFlagOneComma
+       && o[no - 1] == ',' && o[no - 2] != '\\') ? no - 1 : no;
+*/
+/*@ requires str_len((char *)origval, no) && str_len(newval, nn) && no + nn + 2 < PTRDIFF_MAX;
+""" + limit + r"""    requires \valid(newval + (0 .. no + nn + 1));
+    requires \separated(origval + (0 .. no), newval + (0 .. no + nn + 1));
+    assigns newval[0 .. no + nn + 1];
+    behavior adding:
+      assumes op == OP_ADDING;
+      ensures \let k = kept_len((char *)origval, flags, no, nn); \let c = cc(flags, no, nn);
+              (\forall integer j; 0 <= j < k ==> newval[j] == origval[j])
+              && (c == 1 ==> newval[k] == ',')
+              && (\forall integer j; 0 <= j <= nn ==> newval[k + c + j] == \old(newval[j]));
+    behavior other:
+      assumes op != OP_ADDING;
+      ensures \let c = cc(flags, no, nn);
+              (\forall integer j; 0 <= j < nn ==> newval[j] == \old(newval[j]))
+              && (c == 1 ==> newval[nn] == ',')
+              && (\forall integer j; 0 <= j <= no ==> newval[nn + c + j] == origval[j]);
+    complete behaviors; disjoint behaviors;
+*/
+"""
+
+CONCAT_ANCHORS = [("uint32_t flags)", " /*@ ghost (size_t no, size_t nn) */", "after")]
+
+ALNUM = r"""
+/*@ predicate alnum(integer c) = ('a' <= c <= 'z') || ('A' <= c <= 'Z') || ('0' <= c <= '9');
+    predicate in_str{L}(char *a, integer m, integer c) = \exists integer i; 0 <= i < m && a[i] == c;
+*/
+"""
+# valid_name (no doc comment; callers: "Check for a 'normal' name", e.g. 'spelllang' and
+# 'filetype'): true iff every byte of val is an ASCII letter or digit or one of `allowed`.
+VALID_NAME = ALNUM + r"""
+/*@ requires str_len((char *)val, n) && n < PTRDIFF_MAX;
+    requires str_len((char *)allowed, m) && ascii_str((char *)allowed);
+    assigns \nothing;
+    ensures \result <==> \forall integer j; 0 <= j < n ==> alnum(val[j]) || in_str((char *)allowed, m, val[j]);
+*/
+"""
+VALID_NAME_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && val <= s <= val + n;
+      loop invariant \forall integer j; 0 <= j < s - val ==> alnum(val[j]) || in_str((char *)allowed, m, val[j]);
+      loop invariant *s == val[s - val];
+      loop assigns s;
+      loop variant n - (s - val); */
+"""
+# check_option_listflag: "Validate a list of character flags against flags": NULL when
+# every byte of val is one of flags, otherwise an error message (never NULL).
+LISTFLAG = r"""
+/*@ predicate in_str2{L}(char *a, integer m, integer c) = \exists integer i; 0 <= i < m && a[i] == c; */
+/*@ requires str_len(val, n) && n < PTRDIFF_MAX;
+    requires str_len(flags, m) && ascii_str(flags);
+    requires errbuf == \null || (\valid_read(errbuf) && \valid(errbuf->data + (0 .. errbuf->size - 1)));
+    assigns errbuf->data[0 .. errbuf->size - 1], vp_transchar_buf;
+    ensures \result == \null <==> \forall integer j; 0 <= j < n ==> \at(in_str2(flags, m, val[j]), Pre);
+*/
+"""
+LISTFLAG_LOOP = r"""  /*@ loop invariant \base_addr(s) == \base_addr(val) && val <= s <= val + n;
+      loop invariant \forall integer j; 0 <= j < s - val ==> in_str2(flags, m, val[j]);
+      loop invariant *s == val[s - val];
+      loop assigns s;
+      loop variant n - (s - val); */
+"""
+CONTRACTS["valid_name"] = (VALID_NAME, [
+    ("const char *allowed)", " /*@ ghost (size_t n, size_t m) */", "after"),
+    ("  for (const char *s = val; *s != NUL; s++) {", VALID_NAME_LOOP, "before"),
+    ("      return false;", "      /*@ assert s - val < n && !alnum(val[s - val]) && !in_str((char *)allowed, m, val[s - val]); */\n", "before")])
+CONTRACTS["check_option_listflag"] = (LISTFLAG, [
+    ("const CharBuf *errbuf)", " /*@ ghost (size_t n, size_t m) */", "after"),
+    ("  for (char *s = val; *s; s++) {", LISTFLAG_LOOP, "before"),
+    ("  return NULL;\n}", "  /*@ assert \\forall integer j; 0 <= j < n ==> in_str2(flags, m, val[j]); */\n", "before"),
+    ("      return illegal_char(errbuf, (uint8_t)(*s));", "      /*@ assert s - val < n && !in_str2(flags, m, val[s - val]); */\n", "before")])
+
+# find_key_len, as string_to_key (its only caller) uses it: has_lt means arg_arg is just
+# after a '<' and len counts that '<'. A "t_xx" name gives TERMCAP2KEY(x, x) (with has_lt
+# only when "<t_xx>" is closed by '>'); otherwise has_lt asks find_special_key.
+FIND_KEY_LEN = r"""
+/*@ requires has_lt ==> 1 <= len && str_len((char *)arg_arg, len - 1) && \valid_read(arg_arg - 1);
+    requires !has_lt ==> str_len((char *)arg_arg, len);
+    requires len < SIZE_MAX;
+    assigns \nothing;
+    behavior termcap:
+      assumes len >= 4 && arg_arg[0] == 't' && arg_arg[1] == '_';
+      ensures (!has_lt || (len > 4 && arg_arg[4] == '>'))
+                ? \result == -((unsigned char)arg_arg[2] + (unsigned char)arg_arg[3] * 256)
+                : \result == 0;
+    behavior special:
+      assumes !(len >= 4 && arg_arg[0] == 't' && arg_arg[1] == '_') && has_lt;
+    behavior none:
+      assumes !(len >= 4 && arg_arg[0] == 't' && arg_arg[1] == '_') && !has_lt;
+      ensures \result == 0;
+    complete behaviors; disjoint behaviors;
+*/
+"""
+# shl8: a byte shifted left by 8 is b * 256. The SMT provers cannot do shifts, so this is a
+# bodiless ghost lemma function; lemmas.py checks it for all 256 values of b.
+SHL8 = r"""
+/*@ ghost
+  /@ requires 0 <= b <= 255;
+     assigns \nothing;
+     ensures (b << 8) == b * 256; @/
+  void shl8(int b);
+*/
+"""
+CONTRACTS["find_key_len"] = (SHL8 + FIND_KEY_LEN, [
+    ("      key = TERMCAP2KEY((uint8_t)arg[2], (uint8_t)arg[3]);",
+     "      /*@ ghost shl8((uint8_t)arg[3]); */\n", "before")])

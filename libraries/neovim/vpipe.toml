@@ -104,3 +104,9 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.option_values]   # in progress: see option/PLAN.md and option/CLAIM.md (no mutants/review yet)
+file = "src/nvim/option.c"
+functions = ["find_key_item", "remove_comma_item", "append_item", "prepend_item", "stropt_concat_with_comma", "valid_name", "check_option_listflag"]
+annotate = "option/wp/build.py"   # verbatim extraction, sha256 pinned per piece; ACSL as comments only
+prove = ["bash option/wp/run_wp.sh {src}", "bash option/wp/run_wp.sh {fixed} 30 stropt_concat_with_comma"]
