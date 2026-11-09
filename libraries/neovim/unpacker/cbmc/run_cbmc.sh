@@ -6,7 +6,7 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd)
 W=$(mktemp -d)
 if [ $# -ge 2 ]; then cp "$2" "$W/unpacker_part.c"; else python3 -I "$HERE/build.py" "$NV" "$W/unpacker_part.c" "${MODE:-upstream}" || exit 1; fi
-python3 -I "$HERE/build_init.py" "$NV" "$W/init_part.c" || exit 1
+python3 -I "$HERE/build_init.py" "$NV" "$W/init_part.c" "${MODE:-upstream}" || exit 1
 if grep -n '__CPROVER_assume' "$W/unpacker_part.c" "$W/init_part.c"; then echo "assume in code under test"; exit 1; fi
 status=0
 for sign in signed --unsigned-char; do

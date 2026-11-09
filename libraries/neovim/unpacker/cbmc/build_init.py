@@ -1,7 +1,7 @@
 """Standalone copy of unpacker_init from src/nvim/msgpack_rpc/unpacker.c, with the real
 src/mpack/object.c (mpack_parser_init) and mpack_core.c (mpack_tokbuf_init) included whole.
 
-Usage: python3 -I build_init.py <neovim checkout> <out.c>
+Usage: python3 -I build_init.py <neovim checkout> <out.c> [upstream|fixed] [--pin]
 The Unpacker struct body is copied verbatim from unpacker.h (checked as one block). Field
 types unpacker_init never touches (Object, handlers, GridLineEvent) are opaque placeholders
 of fixed size: the proof shows which fields are written; those fields' layout does not
@@ -54,11 +54,12 @@ void api_set_error(Error *err, ErrorType errType, const char *format, ...);
 '''
 
 
-def main(tree, out):
+def main(tree, out, mode="upstream"):
+    pf = "pins_init_fixed.txt" if mode == "fixed" else "pins_init.txt"
     for path, block in BLOCKS:
         if block not in open(f"{tree}/{path}").read():
             sys.exit(f"build_init: {path} no longer contains:\n{block}")
-    pins = dict(l.split() for l in open(os.path.join(HERE, "pins_init.txt")))
+    pins = dict(l.split() for l in open(os.path.join(HERE, pf)))
     got = {"src/mpack/mpack_core.c": hashlib.sha256(open(f"{tree}/src/mpack/mpack_core.c", "rb").read()).hexdigest(),
            "src/mpack/object.c": hashlib.sha256(open(f"{tree}/src/mpack/object.c", "rb").read()).hexdigest(),
            "src/mpack/object.h": hashlib.sha256(open(f"{tree}/src/mpack/object.h", "rb").read()).hexdigest()}
@@ -72,7 +73,7 @@ def main(tree, out):
         got[name] = hashlib.sha256(piece.encode()).hexdigest()
         code.append(f"// {F}:{s + 1} (verbatim)\n{piece}\n")
     if "--pin" in sys.argv:
-        with open(os.path.join(HERE, "pins_init.txt"), "a") as f:
+        with open(os.path.join(HERE, pf), "a") as f:
             for k, v in got.items():
                 if k not in pins:
                     f.write(f"{k.replace(' ', '_')} {v}\n")
@@ -86,4 +87,5 @@ def main(tree, out):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    a = [x for x in sys.argv[1:] if x != "--pin"]
+    main(a[0], a[1], a[2] if len(a) > 2 else "upstream")
