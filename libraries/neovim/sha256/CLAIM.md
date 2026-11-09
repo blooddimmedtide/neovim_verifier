@@ -134,12 +134,12 @@ proof covers every `size_t` length.
 |---|---|---|
 | Compression pieces | `bash cbmc/run_cbmc.sh <nvim>` | h_forms, h_start, h_prims, h_round, h_sched, h_endian proved (43 s) |
 | Compression structure | `python3 -I cbmc/check_structure.py <nvim>` | 98 statements match FIPS 180-4; 13 macros each defined once, no other directives; 12 Neovim headers clean |
-| update, upstream (each call < 4 GiB) | `bash cbmc/run_stream.sh <nvim>` | proved (about 25 min) |
+| update, upstream (each call < 4 GiB) | `bash cbmc/run_stream.sh <nvim>` | proved, with the state shadow (rerun 2026-11-09, CBMC 6.4.1) |
 | update, fixed fork (every len) | `bash cbmc/run_stream.sh <fork> fixed` | proved |
 | finish | `bash cbmc/run_finish.sh <nvim>` | proved (3 min with the state shadow) |
 | bytes | `bash cbmc/run_bytes.sh <nvim>` | proved |
 | Differential test (gcc -O2, ASan/UBSan, vs Python hashlib) | `python3 -I difftest/difftest.py <nvim> 20000` | self-test passed; 40,000 digests, 0 mismatches (sha256_bytes checked against the exact salted or unsalted hash) |
 | Independent review | `REVIEW.md` | accept with changes; both blocking issues (B1, B2) fixed, see "Changes after the review" there |
-| Planted bugs | `python3 -I run_mutants.py <nvim>` (`mutants.toml`) | 30 chosen by the reviewer: 29 caught by the proofs after the fixes, the self-test-vector one by the native run (as stated above) |
+| Planted bugs | `python3 -I run_mutants.py <nvim>` (`mutants.toml`) | 30 chosen by the reviewer, rerun 2026-11-09 with CBMC 6.4.1 after the review fixes: all 30 caught (29 by the proofs, the self-test-vector one by the native run, as stated above); `mutants_result.tsv` |
 | CI, pinned container, twice | `.github/workflows/verify.yml` | pending |
 | Owner review | Yerin | pending |
