@@ -9,6 +9,7 @@ A function is done only when every property in its contract is proved; partial r
 |---|---|---|---|---|
 | src/mpack/mpack_core.c | 0 | 23 | 0 | 23 |
 | src/nvim/base64.c | 0 | 4 | 0 | 4 |
+| src/nvim/grid.c | 0 | 9 | 39 | 48 |
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
@@ -74,6 +75,15 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/grid.c | `grid_adjust` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | proved under undocumented precondition: offsets sum fits in int (owner decision); 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_high` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | byte 0 == 0xFF; all inputs; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_get_ascii` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | single ASCII byte or NUL; all inputs; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_len` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | text length, inline or cached (glyph cache model); 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_get_adv` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | copies text, advances pointer, in bounds; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_get` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | copies text + NUL in MAX_SCHAR_SIZE buffer; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_get_first_byte` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | first byte of text; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_in_arabic_block` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | first byte 0xD8/0xD9; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
+| src/nvim/grid.c | `schar_from_char` | candidate | grid/cbmc (CBMC, all inputs, both char signednesses) | UTF-8 of c zero padded; >= 0x200000 gives U+FFFD; 10/10 planted bugs; see grid/CLAIM.md. No review yet |
 
 ## All files
 
