@@ -12,7 +12,7 @@ and are being rerun):
 | hash_hash, hash_hash_len, hash_find, hash_find_len, hash_lookup (with termination) | proved |
 | hash_clear_all | proved |
 | hash_add, hash_add_item, hash_remove, hash_unlock | proved against hash_may_resize's contract |
-| hash_may_resize | contract and annotations written; proof running, not done |
+| hash_may_resize | 250 / 269 goals, smoke tests 77 / 77; open: the outer move loop's invariants, the kept/resized posts (Qed takes ~60 s per goal: split into ghost helpers) |
 
 Not yet done: the CBMC equivalence checks for the tool patches (`wp/tool_patches.py`), the
 differential test, the review pass with planted bugs.
