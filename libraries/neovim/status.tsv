@@ -56,3 +56,64 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_list_len	candidate	typval/wp (Frama-C WP), typval.h inline used by typval.c	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_list_uidx	candidate	typval/wp (Frama-C WP), typval.h inline used by typval.c	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_list_locked	candidate	typval/wp (Frama-C WP), typval.h inline used by typval.c	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_blob_len	candidate	typval/wp (Frama-C WP), typval.h inline used by typval.c	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_blob_get	candidate	typval/wp (Frama-C WP), typval.h inline used by typval.c	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_str_or_nr	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_num	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_str	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_islocked	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	check_repeat_count	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_get_float	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv2bool	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_get_number_chk	candidate	typval/wp (Frama-C WP), modulo vim_str2nr (charset.c, uninterpreted value)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_get_bool_chk	candidate	typval/wp (Frama-C WP), via tv_get_number_chk (modulo vim_str2nr)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_get_bool	candidate	typval/wp (Frama-C WP), via tv_get_number_chk (modulo vim_str2nr)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_callback_equal	candidate	typval/wp (Frama-C WP), uses strequal's contract proved in memory/wp	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_check_index	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_check_range	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_equal	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_string_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_nonempty_string_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_opt_string_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_number_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_opt_number_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_float_or_nr_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_bool_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_opt_bool_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_blob_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_list_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_dict_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_nonnull_dict_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_opt_dict_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_string_or_number_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_buffer_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_lnum_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_string_or_list_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_string_or_list_or_blob_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_opt_string_or_list_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_string_or_func_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_for_list_or_blob_arg	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	value_check_lock	candidate	typval/wp (Frama-C WP), strlen by its libc contract	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_check_lock	candidate	typval/wp (Frama-C WP)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_alloc	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_free	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_unref	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_alloc_ret	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_copy	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_index	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_set_append	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_set_range	candidate	typval/wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_slice	candidate	typval/wp_blob (Frama-C WP), upstream only with n2 > INT64_MIN when exclusive (finding: slice overflow, no fix yet)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_blob_slice_or_index	candidate	typval/wp_blob (Frama-C WP), upstream only with n2 > INT64_MIN when exclusive (finding: slice overflow, no fix yet)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_get_lnum_buf	fixed-candidate	typval/wp_lnum (Frama-C WP): upstream wraps numbers outside int32 (findings/lnum-wraps.md); fixed version proved (verified_neovim #11)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_list_find	candidate	typval/wp_list (Frama-C WP), needs lv_idx + lv_len within int (candidate overflow above ~1.07e9 items)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_list_idx_of_item	candidate	typval/wp_list (Frama-C WP, linked-list model)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_list_find_index	candidate	typval/wp_list (Frama-C WP, linked-list model)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_list_check_range_index_one	candidate	typval/wp_list (Frama-C WP, linked-list model)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_list_check_range_index_two	candidate	typval/wp_list (Frama-C WP, linked-list model)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.c	tv_list_reverse	candidate	typval/wp_list (Frama-C WP), needs lv_len - lv_idx within int (stale lv_idx, see wp_list/RESULTS.md)	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_blob_set	candidate	typval/wp_blob (Frama-C WP), typval.h inline	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off
+src/nvim/eval/typval.h	tv_blob_set_ret	candidate	typval/wp_blob (Frama-C WP), typval.h inline	see typval/CLAIM.md; no adversarial review yet; waiting on owner spec sign-off

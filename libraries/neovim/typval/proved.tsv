@@ -50,3 +50,12 @@ tv_blob_set_append	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof un
 tv_blob_set_range	wp_blob (Frama-C WP), uses garray contracts (ga_grow proof under re-check)
 tv_blob_slice	wp_blob (Frama-C WP), upstream only with n2 > INT64_MIN when exclusive (finding: slice overflow, no fix yet)
 tv_blob_slice_or_index	wp_blob (Frama-C WP), upstream only with n2 > INT64_MIN when exclusive (finding: slice overflow, no fix yet)
+tv_get_lnum_buf	wp_lnum (Frama-C WP): upstream wraps numbers outside int32 (findings/lnum-wraps.md); fixed version proved (verified_neovim #11)
+tv_list_find	wp_list (Frama-C WP), needs lv_idx + lv_len within int (candidate overflow above ~1.07e9 items)
+tv_list_idx_of_item	wp_list (Frama-C WP, linked-list model)
+tv_list_find_index	wp_list (Frama-C WP, linked-list model)
+tv_list_check_range_index_one	wp_list (Frama-C WP, linked-list model)
+tv_list_check_range_index_two	wp_list (Frama-C WP, linked-list model)
+tv_list_reverse	wp_list (Frama-C WP), needs lv_len - lv_idx within int (stale lv_idx, see wp_list/RESULTS.md)
+tv_blob_set	wp_blob (Frama-C WP), typval.h inline
+tv_blob_set_ret	wp_blob (Frama-C WP), typval.h inline

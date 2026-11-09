@@ -104,3 +104,14 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.typval]
+file = "src/nvim/eval/typval.c"
+# partial: typval/PROGRESS.md lists every function, proved or not
+annotate = "typval/wp/build.py"   # verbatim extraction, sha256 pinned; ACSL on prototypes and as comments
+prove = ["bash typval/wp/run_wp.sh {src} 30", "bash typval/wp_blob/run_wp.sh {src} 15"]
+
+[targets.typval_lnum_fix]
+file = "src/nvim/eval/typval.c"
+annotate = "typval/wp_lnum/build.py"
+prove = ["bash typval/wp_lnum/run_wp.sh {src} {fixed} 30"]   # upstream must fail on the cast, fixed must prove
