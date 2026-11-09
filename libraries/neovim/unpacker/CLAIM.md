@@ -57,6 +57,15 @@ The fix covers bytes only: `nitems` stays `uint32_t`, and shada.c adds it into a
 entry count, so near 2^32 extra items (8 GiB or more in one entry) the count can still wrap.
 That part is in shada.c (claimed by PR #10) and is not fixed here. See `../findings/additional-data-over-4gib.md`.
 
+## Second finding (fix tested, not yet proved)
+
+`unpacker_parse_header` narrows the message type and msgid to 32 bits before checking them,
+so `[2^32+2, "a", []]` is accepted as a notification and msgid 2^32+7 is answered as 7.
+See `../findings/rpc-header-uint32-truncation.md`. Fix: verified_neovim 695ee31 (same branch
+as the first fix, since this session can push only that branch name). The CBMC harness for
+the header (`cbmc/harness_hdr.c`, written from the msgpack-rpc spec) runs out of memory
+(16 GB) and has not completed, so `unpacker_parse_header` stays open.
+
 ## Not covered yet (file not done)
 
 `unpack`, `api_parse_enter`, `unpacker_teardown`,

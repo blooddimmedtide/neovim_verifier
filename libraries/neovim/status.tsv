@@ -67,7 +67,7 @@ src/nvim/msgpack_rpc/unpacker.c	api_parse_enter	open		not started (needs WP with
 src/nvim/msgpack_rpc/unpacker.c	api_parse_exit	candidate	unpacker/cbmc (CBMC)	empty
 src/nvim/msgpack_rpc/unpacker.c	unpacker_init	candidate	unpacker/cbmc/harness_init.c (CBMC, real object.c)	empty parser (depth 32) pointing back at p, empty readers, no error, empty arena; other fields unchanged. Not in the independent review
 src/nvim/msgpack_rpc/unpacker.c	unpacker_teardown	open		not started (needs WP with callee contracts)
-src/nvim/msgpack_rpc/unpacker.c	unpacker_parse_header	open		not started (needs WP with callee contracts)
+src/nvim/msgpack_rpc/unpacker.c	unpacker_parse_header	open	unpacker/cbmc/harness_hdr.c (CBMC, not completed: out of memory)	finding: type/msgid narrowed to 32 bits before the check (findings/rpc-header-uint32-truncation.md); fix verified_neovim 695ee31 tested, not proved
 src/nvim/msgpack_rpc/unpacker.c	unpacker_advance	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	unpacker_parse_redraw	open		not started (needs WP with callee contracts)
 src/nvim/msgpack_rpc/unpacker.c	unpack_skip	open		not started (needs WP with callee contracts)
