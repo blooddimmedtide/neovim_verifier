@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/shada.c | 0 | 6 | 51 | 57 |
 
 ## Function details
 
@@ -74,6 +75,12 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/shada.c | `vim_be64toh` | candidate | shada/cbmc (CBMC, no loops but 8-iter fully unwound, all inputs) | equals big-endian reading of the 8 bytes of x; portable branch Neovim uses when be64toh is absent. See shada/CLAIM.md |
+| src/nvim/shada.c | `fread_len` | candidate | shada/cbmc (CBMC, all inputs, exact-size file model) | Success iff exactly length bytes available, then buffer holds them; NotShaDa on short read, ReadError on failure; no OOB write |
+| src/nvim/shada.c | `sd_reader_skip` | candidate | shada/cbmc (CBMC, all inputs) | Success iff offset bytes available and cursor advances exactly offset; NotShaDa on short skip, ReadError on failure |
+| src/nvim/shada.c | `msgpack_read_uint64` | candidate | shada/cbmc (CBMC, all inputs, MessagePack-spec reference) | decodes one unsigned msgpack int to its exact value; Finished/NotShaDa/ReadError per contract; *result untouched unless Success. Sizes every shada entry |
+| src/nvim/shada.c | `shada_check_status` | candidate | shada/cbmc (CBMC, all inputs) | Success iff msgpack parse was MPACK_OK and consumed every byte of the item; NotShaDa otherwise. Guards each parsed entry |
+| src/nvim/shada.c | `shada_pack_entry` | fixed-candidate | shada/cbmc (CBMC, h_arrsize_guard: guard arithmetic, all inputs) | write-back arr_size (uint32 k+additional_data_len) wraps for entries with ~2^32 additional items -> desynchronised ShaDa (findings/shada-additional-data-nitems-wrap.md); fix = read-side reject, verified_neovim#15. Guard invariant proved; full shada_pack_entry proof pending |
 
 ## All files
 

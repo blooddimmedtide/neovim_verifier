@@ -1,0 +1,93 @@
+# Planted bugs the proofs must catch: a self-check that the harnesses are not
+# vacuous (AGENT_PROMPT review step). Each is a one-line change to the verbatim
+# extraction; the named harness(es) must turn "proved" -> "FAILED".
+# Run: bash run_mutants.sh <neovim checkout>.
+
+[[mutant]]
+name = "uint32-reads-3-bytes"
+desc = "msgpack_read_uint64: uint32 payload length 4 -> 3"
+find = "case 0xCE:    // uint32\n      length = 4;"
+repl = "case 0xCE:    // uint32\n      length = 3;"
+caught_by = "h_read_uint64"
+
+[[mutant]]
+name = "uint16-reads-1-byte"
+desc = "msgpack_read_uint64: uint16 payload length 2 -> 1"
+find = "case 0xCD:    // uint16\n      length = 2;"
+repl = "case 0xCD:    // uint16\n      length = 1;"
+caught_by = "h_read_uint64"
+
+[[mutant]]
+name = "uint64-reads-7-bytes"
+desc = "msgpack_read_uint64: uint64 payload length 8 -> 7"
+find = "case 0xCF:    // uint64\n      length = 8;"
+repl = "case 0xCF:    // uint64\n      length = 7;"
+caught_by = "h_read_uint64"
+
+[[mutant]]
+name = "fixint-mask-wrong"
+desc = "msgpack_read_uint64: positive-fixint test ~first_char & 0x80 -> & 0x40"
+find = "if (~first_char & 0x80) {"
+repl = "if (~first_char & 0x40) {"
+caught_by = "h_read_uint64"
+
+[[mutant]]
+name = "read-uint64-buf-offset"
+desc = "msgpack_read_uint64: payload written at wrong offset (sizeof(buf) - length -> - length - 1)"
+find = "if ((fl_ret = fread_len(sd_reader, &(buf_u8[sizeof(buf) - length]), length))"
+repl = "if ((fl_ret = fread_len(sd_reader, &(buf_u8[sizeof(buf) - length - 1]), length))"
+caught_by = "h_read_uint64"
+
+[[mutant]]
+name = "read-uint64-eof-wrong-status"
+desc = "msgpack_read_uint64: empty read returns Success instead of Finished/NotShaDa"
+find = "    if (allow_eof && file_eof(sd_reader)) {\n      return kSDReadStatusFinished;\n    }"
+repl = "    if (allow_eof && file_eof(sd_reader)) {\n      return kSDReadStatusSuccess;\n    }"
+caught_by = "h_read_uint64"
+
+[[mutant]]
+name = "be64toh-shift-off-by-one"
+desc = "vim_be64toh: byte shift (8 - i) -> (7 - i)"
+find = "ret |= ((uint64_t)buf[i - 1]) << ((8 - i) * 8);"
+repl = "ret |= ((uint64_t)buf[i - 1]) << ((7 - i) * 8);"
+caught_by = "h_be64toh, h_read_uint64"
+
+[[mutant]]
+name = "be64toh-wrong-index"
+desc = "vim_be64toh: reads buf[i] instead of buf[i-1] (off-by-one, OOB on last)"
+find = "ret |= ((uint64_t)buf[i - 1]) << ((8 - i) * 8);"
+repl = "ret |= ((uint64_t)buf[i]) << ((8 - i) * 8);"
+caught_by = "h_be64toh, h_read_uint64"
+
+[[mutant]]
+name = "fread_len-accepts-short"
+desc = "fread_len: length mismatch test != -> > (accepts short read as success)"
+find = "if (read_bytes != (ptrdiff_t)length) {"
+repl = "if (read_bytes > (ptrdiff_t)length) {"
+caught_by = "h_fread_len, h_read_uint64"
+
+[[mutant]]
+name = "fread_len-ignores-error"
+desc = "fread_len: drop the negative-read (ReadError) branch guard"
+find = "  if (read_bytes < 0) {"
+repl = "  if (read_bytes < -2147483647 - 1) {"
+caught_by = "h_fread_len"
+
+[[mutant]]
+name = "skip-accepts-short"
+desc = "sd_reader_skip: skip mismatch test != -> > (accepts short skip)"
+find = "  } else if (skip_bytes != (ptrdiff_t)offset) {"
+repl = "  } else if (skip_bytes > (ptrdiff_t)offset) {"
+caught_by = "h_skip"
+
+[[mutant]]
+name = "check-status-remaining-ignored"
+desc = "shada_check_status: return Success on MPACK_OK even with bytes remaining"
+find = "  case MPACK_OK:\n    if (remaining) {"
+repl = "  case MPACK_OK:\n    if (0 && remaining) {"
+caught_by = "h_check_status"
+
+# The arr_size-guard proof (h_arrsize_guard) is self-contained in harness.c, so it
+# is self-checked by weakening the bound rather than mutating extracted code:
+# SHADA_MAX_ADDITIONAL_ITEMS (0xFFFFFFFF - 3) -> (0xFFFFFFFF - 2) must make
+# h_arrsize_guard FAIL (verified 2026-11-09). The bound is exactly tight.
