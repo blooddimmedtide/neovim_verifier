@@ -104,3 +104,10 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.marktree_leaves]
+file = "src/nvim/marktree.c"
+functions = ["pos_leq", "pos_less", "relative", "unrelative", "compose", "key_cmp", "marktree_getp_aux", "intersection_has", "intersect_item_pos", "marktree_itr_node_done", "marktree_itr_pos", "itr_eq", "meta_describe_key_inc", "meta_describe_key", "meta_has"]
+annotate = "marktree/wp/build.py"   # verbatim extraction, sha256 pinned per function; strip check
+prove = ["bash marktree/wp/run_wp.sh {src} upstream", "bash marktree/wp/run_wp.sh {fixed} fixed", "bash marktree/cbmc/run_cbmc.sh {fixed} fixed"]
+# fixed tree: verified_neovim branch claude/project-thread-aeqr1o (5ee8dd2) until it is merged into `verified`

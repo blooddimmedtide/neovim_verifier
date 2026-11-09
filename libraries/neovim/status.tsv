@@ -56,3 +56,18 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/marktree.c	pos_leq	candidate	marktree/wp (Frama-C WP)	(row, col) order; see marktree/CLAIM.md
+src/nvim/marktree.c	pos_less	candidate	marktree/wp (Frama-C WP)	strict (row, col) order; see marktree/CLAIM.md
+src/nvim/marktree.c	relative	candidate	marktree/wp (Frama-C WP)	offset from base; upstream assert proved; inverse lemma with unrelative; see marktree/CLAIM.md
+src/nvim/marktree.c	unrelative	candidate	marktree/wp (Frama-C WP)	absolute position from offset; see marktree/CLAIM.md
+src/nvim/marktree.c	compose	candidate	marktree/wp (Frama-C WP)	base := unrelative(base, v); see marktree/CLAIM.md
+src/nvim/marktree.c	key_cmp	candidate	marktree/wp (Frama-C WP)	three-way key order; antisymmetric, transitive; see marktree/CLAIM.md
+src/nvim/marktree.c	marktree_getp_aux	candidate	marktree/wp (Frama-C WP)	node search, last key not after k; doc comment range wrong (findings/marktree-getp-doc.md); see marktree/CLAIM.md
+src/nvim/marktree.c	intersection_has	candidate	marktree/wp (Frama-C WP)	membership in ascending array; see marktree/CLAIM.md
+src/nvim/marktree.c	intersect_item_pos	candidate	marktree/wp (Frama-C WP)	lower bound in ascending array; see marktree/CLAIM.md
+src/nvim/marktree.c	marktree_itr_node_done	candidate	marktree/wp (Frama-C WP)	at last key of node; see marktree/CLAIM.md
+src/nvim/marktree.c	marktree_itr_pos	candidate	marktree/wp (Frama-C WP)	absolute position of current key; see marktree/CLAIM.md
+src/nvim/marktree.c	itr_eq	candidate	marktree/wp (Frama-C WP)	same key slot; see marktree/CLAIM.md
+src/nvim/marktree.c	meta_describe_key_inc	candidate	marktree/cbmc (CBMC, all inputs)	per-kind counts of one key added; see marktree/CLAIM.md
+src/nvim/marktree.c	meta_describe_key	candidate	marktree/cbmc (CBMC, all inputs)	per-kind counts of one key; see marktree/CLAIM.md
+src/nvim/marktree.c	meta_has	fixed-candidate	marktree/cbmc (CBMC, fixed: all inputs; upstream: counterexample)	upstream sum wraps at 2^32 (findings/marktree-meta-has-wrap.md); fix verified_neovim 5ee8dd2
