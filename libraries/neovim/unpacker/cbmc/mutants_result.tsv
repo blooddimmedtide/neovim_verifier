@@ -1,0 +1,8 @@
+harness	mutant (sed on the extracted file)	result
+h_unpack_string	size2 < tok.length -> size2 <= tok.length	caught
+h_unpack_string	(*size) = size2 - tok.length -> (*size) = size2	caught
+h_unpack_string	accept EXT instead of BIN	caught
+h_unpack_array	accept MAP instead of ARRAY	caught
+h_unpack_array	return tok.length - 1	caught
+h_unpack_integer	SINT decoded with mpack_unpack_uint	caught
+h_unpack_uint_or_sint	BOOLEAN accepted as UINT	caught
