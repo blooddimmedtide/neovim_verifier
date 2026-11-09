@@ -12,6 +12,7 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/math.c | 0 | 7 | 0 | 7 |
 | src/nvim/mbyte.c | 0 | 8 | 82 | 90 |
 | src/nvim/memory.c | 0 | 15 | 28 | 43 |
+| src/nvim/window.c | 0 | 4 | 189 | 193 |
 
 ## Function details
 
@@ -74,6 +75,10 @@ A function is done only when every property in its contract is proved; partial r
 | src/nvim/memory.c | `xmemrchr` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
 | src/nvim/memory.c | `strnequal` | candidate | memory/wp (Frama-C WP, every length), memory/difftest | NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off |
+| src/nvim/window.c | `win_default_scroll` | candidate | window/cbmc (CBMC, all inputs) | max(h/2,1); see window/CLAIM.md. Review pending |
+| src/nvim/window.c | `frame_check_height` | candidate | window/cbmc (CBMC, up to 4 children) | see window/CLAIM.md. Review pending; unbounded lists open |
+| src/nvim/window.c | `frame_check_width` | candidate | window/cbmc (CBMC, up to 4 children) | see window/CLAIM.md. Review pending; unbounded lists open |
+| src/nvim/window.c | `global_stl_height` | candidate | window/cbmc (CBMC, all inputs) | see window/CLAIM.md. Review pending |
 
 ## All files
 

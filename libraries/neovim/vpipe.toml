@@ -104,3 +104,9 @@ assumptions = [
   "allocation is tracked by ghost variables in base64/wp/stubs/nvim/memory.h (WP itself ignores \\fresh and frees): no leak, no double free, no freed buffer returned",
   "upstream base64_decode: inputs below 2 GiB; larger inputs hit findings/base64-decode-over-2gib.md (the fixed decoder has no limit)",
 ]
+
+[targets.window]
+file = "src/nvim/window.c"
+functions = ["win_default_scroll", "frame_check_height", "frame_check_width", "global_stl_height", "set_fraction"]
+annotate = "window/cbmc/build.py"   # verbatim extraction, sha256 pinned
+prove = ["bash window/cbmc/run_cbmc.sh {src}"]
