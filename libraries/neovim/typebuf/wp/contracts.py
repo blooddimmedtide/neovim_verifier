@@ -69,7 +69,7 @@ def contracts(fixed):
     requires slen < 0 ==> \forall integer n; str_len((char *)s, n) ==> n <= SIZE_MAX / 4;
     requires slen <= SIZE_MAX / 4;
     exits vp_oom;
-    assigns buf->keys, buf->insert, vp_live, buf->keys.items[0 .. \at(buf->keys.capacity, Post) - 1],
+    assigns buf->keys, buf->insert, vp_live, vp_av1, vp_av2, buf->keys.items[0 .. \at(buf->keys.capacity, Post) - 1],
             ((char *)\at(buf->keys.items, Post))[0 .. \at(buf->keys.capacity, Post) - 1];
     behavior add:
       assumes slen > 0 || (slen < 0 && !str_len((char *)s, 0));
@@ -298,6 +298,12 @@ def annotations(fixed):
           typebuf.tb_noremap[typebuf.tb_off + k + offset] == nr_flag(noremap, addlen, k);
         loop assigns i, nrm, typebuf.tb_noremap[typebuf.tb_off + offset .. typebuf.tb_off + offset + addlen - 1];
         loop variant addlen - i;"""),
+    ]
+    A["add_buff"] = [
+        ("before", "  kv_ensure_space(buf->keys, (size_t)slen);", "ghost vp_av1 = (void *)s; vp_av2 = (void *)buf;"),
+        ("before", "  char *at = buf->keys.items + buf->insert;",
+         r"""assert room: buf->keys.capacity >= buf->keys.size + slen && \valid(buf->keys.items + (0 .. buf->keys.size + slen - 1))
+          && \base_addr(buf->keys.items) != \base_addr(s) && \base_addr(buf->keys.items) != \base_addr(buf);"""),
     ]
     A["alloc_typebuf"] = [
         ("after", "  typebuf.tb_buf = xmalloc(TYPELEN_INIT)", "ghost (&typebuf, &typebuf_init[0], &noremapbuf_init[0], &typebuf)"),

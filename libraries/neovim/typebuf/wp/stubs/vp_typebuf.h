@@ -26,13 +26,20 @@
 */
 void *xmalloc(size_t n) /*@ ghost (void *a1, void *a2, void *a3, void *a4) */;
 
+/*@ ghost void *vp_av1; void *vp_av2; */  // blocks the caller names as "not p" before xrealloc
 /*@ // xrealloc (memory.c): the bytes of p that are in range are kept
     requires n > 0;
+    // the avoid blocks are live and are not p's block, so the result (p's block moved or kept)
+    // cannot be either of them. Set by a ghost statement in the caller (kv_resize is a macro, so
+    // the call cannot take ghost arguments).
+    requires \valid_read((char *)vp_av1) && \valid_read((char *)vp_av2);
+    requires p != \null ==> \base_addr((char *)vp_av1) != \base_addr((char *)p) && \base_addr((char *)vp_av2) != \base_addr((char *)p);
     requires vp_live < LONG_MAX;
     assigns \result \from p, n;
     assigns vp_live;
     allocates \result;
     ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
+    ensures \base_addr((char *)\result) != \base_addr((char *)vp_av1) && \base_addr((char *)\result) != \base_addr((char *)vp_av2);
     ensures \forall integer i; 0 <= i < n && p != \null && \at(\valid_read((char *)p + i), Pre) ==>
               ((char *)\result)[i] == \old(((char *)p)[i]);
     ensures vp_live == \old(vp_live) + (p == \null ? 1 : 0);

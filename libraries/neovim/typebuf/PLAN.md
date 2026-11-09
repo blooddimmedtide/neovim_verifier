@@ -10,7 +10,7 @@ Tool: Frama-C WP (Typed+Cast, -wp-rte), Z3 + CVC5.
 | function | status |
 |---|---|
 | free_buff | proved 21/21 goals (upstream), smoke tests clean |
-| add_buff | open: 87/94 goals; memmove/memcpy ranges after kv_ensure_space time out (the xrealloc result needs separation facts the kv_resize macro cannot pass as ghost arguments) |
+| add_buff | open: 96/98 goals, smoke tests clean (2026-11-09 08:50Z). xrealloc now takes ghost "avoid" globals vp_av1/vp_av2 set by a ghost statement before kv_ensure_space (the macro call cannot take ghost args); with them memmove/memcpy/assigns prove. Left: assert `room` (capacity >= size + slen after kv_roundup32 bit ops) and add_ensures_2 time out even at 240 s |
 | read_readbuf | proved 50/50 goals (upstream), smoke tests clean |
 | read_readbuffers | proved 22/22 goals (upstream), smoke tests clean |
 | start_stuff | proved 5/5 goals (upstream), smoke tests clean |
