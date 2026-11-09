@@ -73,7 +73,7 @@ the "tail cleared" property. Details: `../findings/search-csearch-overflow.md`.
 |---|---|---|
 | CBMC, fixed | `bash search/cbmc/run_cbmc.sh <fixed>` | 30/30 proved (set_last_csearch: 2 char signednesses x 2 length ranges; 13 accessors x 2) |
 | CBMC, upstream | `bash search/cbmc/run_cbmc.sh <upstream>` | set_last_csearch refuted as expected (overflow + stale bytes); accessors 26/26 proved |
-| Planted bugs | `bash search/cbmc/run_mutants.sh <fixed>` | 25/25 killed (9 in set_last_csearch, 16 in the accessors) |
+| Planted bugs | `bash search/cbmc/run_mutants.sh <checkout>` | 25/25 killed on the fixed fork (9 in set_last_csearch, 16 in the accessors); on a checkout without the fix (CI pin of `verified` until fork PR #6 merges) only the 16 accessor mutants run |
 | Neovim tests | `test_charsearch.vim`, `test_search.vim`, `test_normal.vim` on the fixed fork (ASan) | pass (test_normal's Test_normal25_tag needs help tags, absent in this build) |
 
 Still to do before `verified`: independent review, owner sign-off.

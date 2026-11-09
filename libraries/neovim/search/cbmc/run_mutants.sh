@@ -1,13 +1,18 @@
 #!/bin/bash
-# Usage: bash run_mutants.sh <fixed neovim checkout>
+# Usage: bash run_mutants.sh <neovim checkout>
 # Plants small bugs in the extracted search.c functions and checks that the
 # CBMC harness for that function rejects every one. Exit 0 = all killed.
+# The set_last_csearch mutants are written against the fixed fork's text: on
+# upstream text (which run_cbmc.sh already shows is wrong) they are reported as
+# not run, and only the accessor mutants run.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd); NV=$(cd "$1" && pwd)
-W=$(mktemp -d); python3 -I "$HERE/build.py" "$NV" "$W/base.c" | grep -qx fixed || { echo "not the fixed version"; exit 1; }
-status=0; n=0; k=0
+W=$(mktemp -d); ver=$(python3 -I "$HERE/build.py" "$NV" "$W/base.c") || exit 1
+status=0; n=0; k=0; skipped=0
 while IFS='|' read -r file h m; do
-  [ -z "$m" ] && continue; n=$((n+1))
+  [ -z "$m" ] && continue
+  if [ "$h" = h_set_last_csearch ] && [ "$ver" != fixed ]; then skipped=$((skipped+1)); continue; fi
+  n=$((n+1))
   sed "$m" "$W/base.c" > "$W/m.c"
   if cmp -s "$W/base.c" "$W/m.c"; then echo "NOT APPLIED: $m"; status=1; continue; fi
   out=$(cbmc "$HERE/$file" --function "$h" -I "$HERE" -DSEARCH_C="\"$W/m.c\"" -DMAXLEN=64 \
@@ -41,4 +46,6 @@ accessors.c|h_search_pattern_cleared|s/substitute ? RE_SUBST : RE_SEARCH/substit
 accessors.c|h_set_last_used_pattern|s/is_substitute_pattern ? 1 : 0/is_substitute_pattern ? 2 : 0/
 accessors.c|h_search_was_last_used|s/  return last_idx == 0;/  return last_idx != 1;/
 MUTANTS
-echo "$k/$n killed"; rm -rf "$W"; exit $status
+echo "$k/$n killed"
+[ $skipped -gt 0 ] && echo "NOT RUN: $skipped set_last_csearch mutants (this checkout has the upstream set_last_csearch; they need the fixed fork)"
+rm -rf "$W"; exit $status
