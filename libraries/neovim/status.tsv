@@ -56,3 +56,6 @@ src/nvim/memory.c	xstrlcat	candidate	memory/wp (Frama-C WP, every length), memor
 src/nvim/memory.c	xmemrchr	candidate	memory/wp (Frama-C WP, every length), memory/difftest	last c, or NULL; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware string equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
 src/nvim/memory.c	strnequal	candidate	memory/wp (Frama-C WP, every length), memory/difftest	NULL-aware bounded equality; see memory/CLAIM.md. Review done (accept with changes); waiting on owner spec sign-off
+src/nvim/option.c	get_op	candidate	option_parse/cbmc (CBMC, bounded n<=64)	see option_parse/CLAIM.md; review pending
+src/nvim/option.c	get_option_prefix	candidate	option_parse/cbmc (CBMC, bounded n<=64)	see option_parse/CLAIM.md; review pending
+src/nvim/option.c	find_tty_option_end	candidate	option_parse/cbmc (CBMC, bounded n<=64)	bounded only; unbounded WP proof of the > loop open; review pending
