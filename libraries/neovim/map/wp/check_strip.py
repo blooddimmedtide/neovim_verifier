@@ -1,5 +1,7 @@
 """Check that map_int.c's C text is the exact upstream text.
-Usage: python3 -I check_strip.py <neovim checkout at 7b87ce8>
+Usage: python3 -I check_strip.py <neovim checkout at 7b87ce8> [fixed]
+With "fixed": checks map_realloc_fixed.c against the fork (verified_neovim branch
+claude/project-thread-ik9odv, commit 9821c98).
 Removes every /*@ ... */ from map_int.c and checks that each upstream function
 below appears verbatim, and that its text has the pinned sha256."""
 import hashlib, re, sys
@@ -18,7 +20,12 @@ PIECES = [("src/nvim/map.c", "mh_realloc"), ("src/nvim/map.c", "mh_clear"),
           ("src/nvim/map_key_impl.c.h", "KEY_NAME(mh_rehash_)"),
           ("src/nvim/map_value_impl.c.h", "MAP_NAME(map_ref_)")]
 tree = sys.argv[1]
-ann = open(f"{HERE}/map_int.c").read()
+src_file = "map_int.c"
+if len(sys.argv) > 2 and sys.argv[2] == "fixed":
+    SHA = {"mh_realloc": "93c1b14d251e4465d35851578fe5850677972712f6596202081dd1a4ade4c6e3"}
+    PIECES = [("src/nvim/map.c", "mh_realloc")]
+    src_file = "map_realloc_fixed.c"
+ann = open(f"{HERE}/{src_file}").read()
 stripped = re.sub(r"[ \t]*/\*@.*?\*/[ \t]*\n?", "", ann, flags=re.S)
 stripped = re.sub(r"/\*@.*?\*/", "", stripped, flags=re.S)
 ok = True

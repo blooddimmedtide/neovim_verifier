@@ -22,9 +22,10 @@ arithmetic, so at `keys_capacity == 2^31` it becomes 8 and `set->keys[pos]` is w
 past the new 32-byte block. It is only reached if the bucket wrap above is fixed
 without also capping the key count.
 
-Fix (proposed, not yet written or proved): refuse to grow past 2^31 buckets
-(abort with an out-of-memory error, as `xcalloc` does on overflow), and compute
-`keys_capacity * 2` in `size_t` with the same cap.
+Fix: verified_neovim branch claude/project-thread-ik9odv, commit 9821c98: `mh_realloc`
+calls abort() when asked for more than 2^31 buckets. With the bucket count capped, the
+keys_capacity wrap is unreachable (the table aborts at ~1.49e9 keys, before keys_capacity
+would need to pass 2^31). Proof: map/wp/map_realloc_fixed.c, 59/62 goals (see STATUS.md).
 
-Status: upstream `mh_realloc` is proved for `n_min_buckets <= 2^31` only; the fixed
-version is not written yet. Draft upstream issue: `/mnt/project-files/neovim-verify/upstream/issue-map-bucket-wrap.md`.
+Status: upstream `mh_realloc` is proved for `n_min_buckets <= 2^31` only (56/59); the fixed
+version is written and 59/62 proved. Draft upstream issue: `/mnt/project-files/neovim-verify/upstream/issue-map-bucket-wrap.md`.

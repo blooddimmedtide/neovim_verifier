@@ -53,6 +53,21 @@ key is absent), which needs a table-wide probe-chain invariant; and "never calls
   ORs up to `>> 16` on a `size_t` (the comment in kv_concat_len says this is intended);
   both need a proof or a finding.
 
+## Fix (written, partly proved)
+
+`verified_neovim` branch `claude/project-thread-ik9odv`, commit 9821c98: `mh_realloc` calls
+`abort()` when more than 2^31 buckets are asked for, instead of wrapping to 0. Proof file
+`wp/map_realloc_fixed.c` (verbatim check: `python3 -I wp/check_strip.py <fork tree> fixed`):
+59/62 goals. The contract has **no size precondition**; the fix's goals (no wrap, `exits`
+exactly when `n_min_buckets > 2^31`, power-of-two result) are proved. Open: the same 3
+zero-fill goals as upstream mh_realloc. They are unstable under load: with `@assert` only
+and no `-wp-rte` they once proved 4/4, and full runs report `Failure`/`Timeout` (Z3 and CVC5
+on a 4-core box). Next try: `-wp-par 1`, longer timeouts, or split the post into a ghost
+lemma. Not merged anywhere; no fork PR opened yet.
+
+Note: `check_strip.py` without `fixed` needs a tree at the pinned upstream commit
+(the fork checkout on the fix branch differs in mh_realloc).
+
 ## Finding
 
 - `findings/map-realloc-bucket-wrap.md`: past 2^31 buckets (~1.49e9 keys) `mh_realloc`
@@ -73,7 +88,7 @@ key is absent), which needs a table-wide probe-chain invariant; and "never calls
 1. Close mh_realloc's open goals and mh_rehash_int's 3 goals.
 2. Spec and prove mh_put_int (needs `n_buckets < 2^31`: the finding) and mh_delete_int,
    then map_put_ref/map_del.
-3. Write the fix for the bucket wrap on a verified_neovim branch and prove it.
+3. Finish the fixed mh_realloc proof (3 goals), open a fork PR into `verified`.
 4. Generalise to every key type (the bodies are identical; only hash_/equal_ differ).
 5. Lookup completeness and no-abort, then the 8 map.c hash/equal helpers and pmap_del2.
 6. kvec.h.
