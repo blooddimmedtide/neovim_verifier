@@ -32,7 +32,11 @@ SHA = {  # upstream 7b87ce822e6fd45a4d9993599c2854afdb0dc4dd
     "free_typebuf": "27c8bdb032ebc672f6cfe15c56319ea90123d6924c75813c59a2d7110e3b33d2",
     "put_string_in_typebuf": "39d099d87128a8190f3adb4023c4348fd26c7f0832655763e658b0bf7b9b098c",
 }
-FIXED_SHA = {}
+FIXED_SHA = {  # verified_neovim 4c11bf5 (branch claude/project-thread-2h2bgy)
+    "ins_typebuf": "c982f31526e866fc5897bc6659cc2eb4593a10ee1c055710416d40ee5f1fbb95",
+    "del_typebuf": "918d7b79aef2f4f427436644ef4c4ac70513197c5201ffaee51ee92f35537081",
+    "alloc_typebuf": "e9ef8848b5b422c5d87df614f2d2e7578fef4f791abedbcd3fe2eff2f28cca75",
+}
 PRELUDE = r"""
 #include <limits.h>
 #include <stdbool.h>

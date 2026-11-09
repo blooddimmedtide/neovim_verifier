@@ -11,18 +11,19 @@
 /*@ ghost int vp_oom; */        // allocations may run out of memory (then preserve_exit())
 
 /*@ // xmalloc (memory.c): never returns NULL; exits when memory runs out
+    requires n > 0;
     requires vp_live < LONG_MAX;
     assigns \result \from n;
     assigns vp_live;
     allocates \result;
-    ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
-    ensures \forall char *q; \at(\valid_read(q), Pre) ==> \base_addr(q) != \base_addr((char *)\result);
+    ensures \result != \null && \fresh{Old, Here}((char *)\result, n);
     ensures vp_live == \old(vp_live) + 1;
     exits vp_oom;
 */
 void *xmalloc(size_t n);
 
 /*@ // xrealloc (memory.c): the bytes of p that are in range are kept
+    requires n > 0;
     requires vp_live < LONG_MAX;
     assigns \result \from p, n;
     assigns vp_live;
@@ -30,8 +31,8 @@ void *xmalloc(size_t n);
     ensures \result != \null && \valid((char *)\result + (0 .. n - 1));
     ensures \forall integer i; 0 <= i < n && p != \null && \at(\valid_read((char *)p + i), Pre) ==>
               ((char *)\result)[i] == \old(((char *)p)[i]);
-    ensures \forall char *q; \at(\valid_read(q), Pre) && \base_addr(q) != \base_addr((char *)p)
-              ==> \base_addr(q) != \base_addr((char *)\result);
+    // the same block, or a new one
+    ensures (p != \null && \base_addr((char *)\result) == \base_addr((char *)p)) || \fresh{Old, Here}((char *)\result, n);
     ensures vp_live == \old(vp_live) + (p == \null ? 1 : 0);
     exits vp_oom;
 */

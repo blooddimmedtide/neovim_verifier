@@ -29,6 +29,8 @@ LOGIC = r"""
       && typebuf.tb_change_cnt != 0;
     // the change counter after one change: never zero
     logic integer next_cnt(integer c) = c + 1 == 0 ? 1 : c + 1;
+    // fixed fork: also wraps from INT_MAX to 1 (no signed overflow)
+    logic integer next_cnt_fix(integer c) = c == INT_MAX || c + 1 == 0 ? 1 : c + 1;
     // a prefix count after deleting len chars at offset
     logic integer cnt_del(integer c, integer off, integer len) =
       c > off ? (c < off + len ? off : c - len) : c;
@@ -50,6 +52,7 @@ def contracts(fixed):
     # (findings/typebuf-change-cnt-overflow.md), so upstream is proved for counts below INT_MAX.
     cnt_ok = "" if fixed else "\n    requires typebuf.tb_change_cnt != INT_MAX;   // upstream only: see findings"
     C = {}
+    NC = "next_cnt_fix" if fixed else "next_cnt"
     C["free_buff"] = r"""requires sb_ok(buf) && (buf->keys.items != \null ==> vp_live > LONG_MIN);
     assigns *buf, vp_live;
     ensures buf->keys.size == 0 && buf->keys.capacity == 0 && buf->keys.items == \null;
@@ -183,7 +186,7 @@ def contracts(fixed):
       ensures typebuf.tb_silent == cnt_del(\old(typebuf.tb_silent), offset, len);
       ensures typebuf.tb_no_abbr_cnt == cnt_del(\old(typebuf.tb_no_abbr_cnt), offset, len);
       ensures typebuf_was_filled == \false;
-      ensures typebuf.tb_change_cnt == next_cnt(\old(typebuf.tb_change_cnt));
+      ensures typebuf.tb_change_cnt == """ + NC + r"""(\old(typebuf.tb_change_cnt));
     complete behaviors; disjoint behaviors;"""
 
     C["alloc_typebuf"] = r"""requires vp_live < LONG_MAX - 1;""" + cnt_ok + r"""
@@ -192,11 +195,10 @@ def contracts(fixed):
     ensures typebuf.tb_buf != \null && typebuf.tb_noremap != \null;
     ensures \valid(typebuf.tb_buf + (0 .. TYPELEN_INIT - 1)) && \valid(typebuf.tb_noremap + (0 .. TYPELEN_INIT - 1));
     ensures \base_addr(typebuf.tb_buf) != \base_addr(typebuf.tb_noremap);
-    ensures \forall char *q; \at(\valid_read(q), Pre) ==>
-      \base_addr(q) != \base_addr((char *)typebuf.tb_buf) && \base_addr(q) != \base_addr((char *)typebuf.tb_noremap);
+    ensures \fresh{Old, Here}((char *)typebuf.tb_buf, TYPELEN_INIT) && \fresh{Old, Here}((char *)typebuf.tb_noremap, TYPELEN_INIT);
     ensures typebuf.tb_buflen == TYPELEN_INIT && typebuf.tb_off == MAXMAPLEN + 4 && typebuf.tb_len == 0;
     ensures typebuf.tb_maplen == 0 && typebuf.tb_silent == 0 && typebuf.tb_no_abbr_cnt == 0;
-    ensures typebuf.tb_change_cnt == next_cnt(\old(typebuf.tb_change_cnt));
+    ensures typebuf.tb_change_cnt == """ + NC + r"""(\old(typebuf.tb_change_cnt));
     ensures typebuf_was_filled == \false && vp_live == \old(vp_live) + 2;"""
 
     C["free_typebuf"] = r"""requires vp_live > LONG_MIN + 2;
@@ -211,7 +213,10 @@ def contracts(fixed):
     # ins_typebuf. Upstream takes the length as (int)strlen(str): a string of 2^31 bytes or
     # more gives a negative length (findings/ins-typebuf-strlen-truncation.md), so upstream is
     # proved for strings shorter than 2^31.
-    up_len = "" if fixed else "\n    requires n <= INT_MAX;   // upstream only: see findings"
+    up_len = "" if fixed else "\n    requires n <= INT_MAX - 5 * (MAXMAPLEN + 4);   // upstream only: see findings"
+    TL = "n > INT_MAX - 5 * (MAXMAPLEN + 4) || " if fixed else ""
+    OK_ = "n <= INT_MAX - 5 * (MAXMAPLEN + 4) && (" if fixed else ""
+    OK_END = ")" if fixed else ""
     C["ins_typebuf"] = r"""requires typebuf.tb_buf != \null ==> tb_ok;
     requires typebuf.tb_buf == \null ==> typebuf.tb_maplen == 0 && typebuf.tb_silent == 0
                                          && typebuf.tb_no_abbr_cnt == 0 && typebuf_init[MAXMAPLEN + 4] == 0;
@@ -228,16 +233,16 @@ def contracts(fixed):
             \at(typebuf.tb_noremap, Post)[0 .. \at(typebuf.tb_buflen, Post) - 1],
             typebuf.tb_buf[0 .. typebuf.tb_buflen - 1], typebuf.tb_noremap[0 .. typebuf.tb_buflen - 1];
     behavior too_long:   // E74 "Command too complex": FAIL
-      assumes !(offset == 0 && n <= (typebuf.tb_buf == \null ? MAXMAPLEN + 4 : typebuf.tb_off))
+      assumes """ + TL + r"""!(offset == 0 && n <= (typebuf.tb_buf == \null ? MAXMAPLEN + 4 : typebuf.tb_off))
            && !((typebuf.tb_buf == \null || typebuf.tb_len == 0)
                 && (typebuf.tb_buf == \null ? TYPELEN_INIT : typebuf.tb_buflen) >= n + 3 * (MAXMAPLEN + 4))
            && (typebuf.tb_buf == \null ? 0 : typebuf.tb_len) > INT_MAX - (n + 5 * (MAXMAPLEN + 4));
       ensures \result == FAIL;
     behavior ok:
-      assumes (offset == 0 && n <= (typebuf.tb_buf == \null ? MAXMAPLEN + 4 : typebuf.tb_off))
+      assumes """ + OK_ + r"""((offset == 0 && n <= (typebuf.tb_buf == \null ? MAXMAPLEN + 4 : typebuf.tb_off))
            || ((typebuf.tb_buf == \null || typebuf.tb_len == 0)
                 && (typebuf.tb_buf == \null ? TYPELEN_INIT : typebuf.tb_buflen) >= n + 3 * (MAXMAPLEN + 4))
-           || (typebuf.tb_buf == \null ? 0 : typebuf.tb_len) <= INT_MAX - (n + 5 * (MAXMAPLEN + 4));
+           || (typebuf.tb_buf == \null ? 0 : typebuf.tb_len) <= INT_MAX - (n + 5 * (MAXMAPLEN + 4)))""" + OK_END + r""";
       ensures \result == OK && tb_ok;
       ensures typebuf.tb_len == (\old(typebuf.tb_buf) == \null ? 0 : \old(typebuf.tb_len)) + n;
       ensures \forall integer i; 0 <= i < n ==>
@@ -254,8 +259,30 @@ def contracts(fixed):
       ensures typebuf.tb_no_abbr_cnt == \old(typebuf.tb_no_abbr_cnt)
                                         + (\old(typebuf.tb_no_abbr_cnt) != 0 && offset == 0 ? n : 0);
       ensures cmd_silent == (silent || \old(typebuf.tb_silent) > offset ? \true : \old(cmd_silent));
-      ensures typebuf.tb_change_cnt == next_cnt(\old(typebuf.tb_buf) == \null ? 1 : \old(typebuf.tb_change_cnt));
+      ensures typebuf.tb_change_cnt == """ + NC + r"""(\old(typebuf.tb_buf) == \null ? 1 : \old(typebuf.tb_change_cnt));
     complete behaviors; disjoint behaviors;"""
+    C["put_string_in_typebuf"] = r"""requires tb_ok;
+    requires 0 <= offset && 0 <= slen <= new_slen && offset + slen <= typebuf.tb_len;
+    requires new_slen - slen <= INT_MAX - 5 * (MAXMAPLEN + 4);
+    requires \valid(string + (0 .. new_slen));
+    requires \forall integer i; slen <= i < new_slen ==> string[i] != 0;
+    requires \base_addr(string) != \base_addr(typebuf.tb_buf) && \base_addr(string) != \base_addr(typebuf.tb_noremap)
+             && \base_addr(string) != \base_addr(&typebuf_init[0]) && \base_addr(string) != \base_addr(&noremapbuf_init[0])
+             && \base_addr(string) != \base_addr(&typebuf);""" + cnt_ok + r"""
+    requires vp_live < LONG_MAX - 2 && vp_live > LONG_MIN + 2;
+    exits vp_oom;
+    assigns string[new_slen], typebuf, cmd_silent, typebuf_was_filled, vp_live,
+            ((char *)\at(typebuf.tb_buf, Post))[0 .. \at(typebuf.tb_buflen, Post) - 1],
+            ((char *)\at(typebuf.tb_noremap, Post))[0 .. \at(typebuf.tb_buflen, Post) - 1],
+            \at(typebuf.tb_noremap, Post)[0 .. \at(typebuf.tb_buflen, Post) - 1],
+            typebuf.tb_buf[0 .. typebuf.tb_buflen - 1], typebuf.tb_noremap[0 .. typebuf.tb_buflen - 1],
+            ((char *)typebuf.tb_buf)[0 .. typebuf.tb_buflen - 1], ((char *)typebuf.tb_noremap)[0 .. typebuf.tb_buflen - 1];
+    ensures \result == OK || \result == FAIL;
+    // FAIL only when inserting failed (E74)
+    ensures \result == FAIL ==> new_slen > slen;
+    ensures \result == OK ==> tb_ok && typebuf.tb_len == \old(typebuf.tb_len) + new_slen - slen
+      && \forall integer i; 0 <= i < new_slen ==>
+           ((uint8_t *)typebuf.tb_buf)[typebuf.tb_off + offset + i] == \old(string[i]);"""
     return C
 
 
@@ -270,5 +297,8 @@ def annotations(fixed):
           typebuf.tb_noremap[typebuf.tb_off + k + offset] == nr_flag(noremap, addlen, k);
         loop assigns i, nrm, typebuf.tb_noremap[typebuf.tb_off + offset .. typebuf.tb_off + offset + addlen - 1];
         loop variant addlen - i;"""),
+    ]
+    A["put_string_in_typebuf"] = [
+        ("after", "(char *)string + slen, REMAP_YES, offset, false, false)", "ghost ((size_t)(new_slen - slen))"),
     ]
     return A
