@@ -24,3 +24,7 @@ Planted bugs (`mutants.py`, self-written, NOT the independent review): 8/8 caugh
 
 Not done (deadline 2026-11-09 09:00 UTC): independent adversarial review + its mutants, CI,
 vpipe.toml target entry.
+
+## mbyte.c functions still unverified (79 of 90, after rounds 1 and 2)
+
+enc_canon_search enc_canon_props bomb_size remove_bom mb_get_class mb_get_class_tab prop_is_emojilike utf_char2cells ptr2cells utf_ptr2cells mb_string2cells mb_string2cells_len mb_ptr2char_adv utf_iscomposing_first utf_composinglike utf_iscomposing utfc_ptr2schar utfc_ptrlen2schar schar_from_buf_first utfc_ptr2len utfc_ptr2len_len utf_iscomposing_legacy utf_isalnum utf_printable intable utf_printable utf_class utf_class_tab utf_ambiguous_width utf_fold mb_toupper mb_islower mb_tolower mb_isupper mb_isalpha utf_strnicmp utf8_to_utf16 utf16_to_utf8 mb_utflen mb_utf_index_to_bytes mb_strnicmp mb_stricmp show_utf8 always_break always_break_two utf_head_off utf_ClusterInfo_impl utf_eat_space utf_allow_break_before utf_allow_break_after utf_allow_break mb_copy_char mb_off_next utf_find_illegal utf_valid_string mb_adjust_cursor mb_check_adjust_col mb_prevptr mb_charlen mb_charlen_len mb_unescape enc_skip enc_canonize enc_alias_search enc_locale my_iconv_open iconv_string f_iconv convert_setup convert_setup_ext string_convert string_convert_ext cw_value tv_nr_compare f_setcellwidths f_getcellwidths f_charclass get_encoding_name mb_strcmp_ic 
