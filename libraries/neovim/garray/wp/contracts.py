@@ -214,7 +214,7 @@ def contracts(fixed):
     {'complete behaviors; disjoint behaviors;' if fixed else ''}"""
 
     C["ga_append_via_ptr"] = rf"""requires ga_ok(gap) && vp_live < LONG_MAX;
-    requires item_size == gap->ga_itemsize;   // the WLOG names a wrong size as a caller error
+    requires 1 <= item_size <= gap->ga_itemsize;   // a different size is only logged (WLOG); a larger one would overrun
     exits vp_oom{' || \\old(gap->ga_maxlen == gap->ga_len && gap->ga_len == INT_MAX)' if fixed else ''};
     assigns gap->ga_len, gap->ga_maxlen, gap->ga_data, vp_live,
             ((char *)\at(gap->ga_data, Post))[0 .. \at(ga_bytes(gap), Post) - 1];

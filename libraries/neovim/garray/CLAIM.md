@@ -24,13 +24,10 @@ platform: x86_64 (machdep x86_64, char signed: what WP proves); unsigned char is
 > fixed stubs, as are both fixes.
 >
 > Redo in progress (2026-11-09, upstream text, stubs with ghost "avoid" arguments, every run with
-> `-wp-smoke-tests`): ga_grow 67/67, ga_concat_len 48/48, ga_append 33/33, ga_concat 33/33,
-> ga_clear 19/19, ga_clear_strings 48/48, ga_init 22/22, ga_set_growsize 14/14, both lemma
+> `-wp-smoke-tests`): ga_grow 67/67, ga_concat_len 48/48, ga_append 33/33, ga_append_via_ptr 34/34 (precondition widened to 1 <= item_size <= ga_itemsize, so the WLOG branch is live), ga_concat 33/33,
+> ga_remove_duplicate_strings 85/85, ga_clear 19/19, ga_clear_strings 48/48, ga_init 22/22, ga_set_growsize 14/14, both lemma
 > helpers, all smoke tests passing. Open: ga_concat_strings 84/94 (the write loop needs
-> separation facts that the old stubs gave vacuously), ga_remove_duplicate_strings 84/85 (one
-> loop invariant timed out at 20 s, passed before; rerun), ga_append_via_ptr 32/34 (both are
-> smoke tests flagging the WLOG branch as dead: the contract requires item_size == ga_itemsize;
-> to be widened). The fixed variant has not been rerun yet.
+> separation facts that the old stubs gave vacuously), The fixed variant has not been rerun yet.
 
 `wp/build.py` copies the exact pinned text of each function (sha256 checked; the fixed
 fork's text for `ga_grow` and `ga_concat_strings` in mode `fixed`), expands the two garray.h
