@@ -45,7 +45,8 @@ overflow, undefined shift, memory leak, unwinding assertions. Every byte is nond
 | Gate | Result |
 |---|---|
 | CBMC, 3 harnesses x 2 signednesses | 6/6 proved |
-| Planted bugs (`cbmc/mutants.txt`) | see PR |
+| Planted bugs (`cbmc/mutants.txt`) | 8/9 caught. `cnt_shift7` (count built with `<< 7`) survives: with a 20-byte file every 2-byte count >= 256 is a short body either way, so the bound hides it. This is why read_cnt_string stays **bounded**, not candidate |
+| k = 1 run with 257-byte file (would cover every 1-byte count) | ran out of memory in this container; not done |
 | Differential test, independent review | not done (deadline 2026-11-09 09:00 UTC) |
 
 ## Still unverified in spellfile.c

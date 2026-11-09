@@ -5,5 +5,5 @@ cnt_zero_no_null|    return NULL;            // nothing to read, return NULL|   
 cnt_err_code|    *cntp = SP_OTHERERROR;|    *cntp = SP_TRUNCERROR;
 readstr_no_nul_end|  char *str = xmallocz(cnt);|  char *str = malloc(cnt);
 region_off_by_one|  if (len > MAXREGIONS * 2) {|  if (len > MAXREGIONS * 2 + 1) {
-region_no_nul_check|    if (memchr(buf__SPRNB, NUL, (size_t)n__SPRNB)) { \\|    if (0) { \\
+region_no_nul_check|    if (memchr(buf__SPRNB, NUL, (size_t)n__SPRNB)) { \|    if (0) { \
 region_no_term|  lp->sl_regions[len] = NUL;|  lp->sl_regions[0] = NUL;

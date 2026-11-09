@@ -42,6 +42,9 @@ void h_magic(void) {
 void h_cnt_string(void) {
   FILE f = mkfile();
   int k = nondet_int(); __CPROVER_assume(k == 1 || k == 2);
+#ifdef CNT_K1
+  __CPROVER_assume(k == 1);  // k = 1 run: SPL_N = 257 covers every count 0..255
+#endif
   int cnt = 12345;
   char *s = read_cnt_string(&f, k, &cnt);
   if (f.len < (size_t)k) {
