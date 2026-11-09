@@ -41,4 +41,4 @@ itself been proved against memory.c.
   `len` would shift by 64 or more bits (UB).
 - `put_time` (`fixed-candidate`): upstream FAILS its documented contract (FAIL on success, see
   findings/put-time-return.md). The fix on verified_neovim `fix-put-time-return` is proved.
-No mutants or difftest for these two yet.
+Mutants: 7/7 non-equivalent caught (`cbmc_put/mutants.txt`). No difftest yet.
