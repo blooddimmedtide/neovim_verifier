@@ -1,0 +1,9 @@
+s/return FIO_UCS2 | FIO_ENDIAN_L;/return FIO_UCS2;/	caught
+s/if (prop \& ENC_LATIN1)/if (prop \& ENC_8BIT)/	caught
+s/return FIO_UTF8;/return FIO_LATIN1;/	caught
+s/name = p_enc;/name = "utf-8";/	caught
+s/return !(fenc_flags == FIO_UTF8);/return true;/	caught
+s/enc_flags != 0 \&\& //	caught
+s/fenc_flags = 0;/fenc_flags = FIO_UTF8;/	equivalent (same_encoding is true on that path, so fenc_flags is never read)
+s/return FIO_UTF16;/return FIO_UCS2;/	caught
+s/if (prop \& ENC_4BYTE)/if (prop \& ENC_2WORD)/	caught
