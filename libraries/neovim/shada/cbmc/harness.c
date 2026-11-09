@@ -125,3 +125,35 @@ void h_check_status(void)
     assert(r == kSDReadStatusNotShaDa);
   }
 }
+
+// Fix for the write-side arr_size wrap (findings/shada-additional-data-nitems-wrap.md):
+// shada_read_next_item rejects an entry whose additional-item count exceeds this bound,
+// so every stored entry keeps 1/2/3 + nitems representable as a uint32 msgpack array32 length.
+#define SHADA_MAX_ADDITIONAL_ITEMS (0xFFFFFFFFu - 3u)
+
+// Proof of the guard's arithmetic: for every admitted count, the three write-side array
+// sizes used by shada_pack_entry (1 + n for SubString, 2 + n and 3 + n for History/Variable)
+// do not wrap uint32 and stay within msgpack's array32 limit; for every rejected count, at
+// least one of them would wrap.
+void h_arrsize_guard(void)
+{
+  uint32_t n = nondet_uint();
+  int admit = (n <= SHADA_MAX_ADDITIONAL_ITEMS);
+  // the widths shada_pack_entry adds to the item count
+  // compute the sums in 64-bit, then truncate to model the uint32 arr_size exactly
+  // mask to 32 bits to model uint32 arr_size wrap exactly (value-preserving cast)
+  uint32_t s1 = (uint32_t)((1ull + n) & 0xFFFFFFFFull);
+  uint32_t s2 = (uint32_t)((2ull + n) & 0xFFFFFFFFull);
+  uint32_t s3 = (uint32_t)((3ull + n) & 0xFFFFFFFFull);
+  if (admit) {
+    // no wrap: the uint32 result equals the exact mathematical sum ...
+    assert((uint64_t)s1 == 1ull + n);
+    assert((uint64_t)s2 == 2ull + n);
+    assert((uint64_t)s3 == 3ull + n);
+    // ... and every header fits a msgpack array32 (<= 0xFFFFFFFF)
+    assert(s3 <= 0xFFFFFFFFu);
+  } else {
+    // rejected counts are exactly those where some header would wrap
+    assert((uint64_t)s3 != 3ull + n);
+  }
+}

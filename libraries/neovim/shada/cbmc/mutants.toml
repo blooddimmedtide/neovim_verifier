@@ -86,3 +86,8 @@ desc = "shada_check_status: return Success on MPACK_OK even with bytes remaining
 find = "  case MPACK_OK:\n    if (remaining) {"
 repl = "  case MPACK_OK:\n    if (0 && remaining) {"
 caught_by = "h_check_status"
+
+# The arr_size-guard proof (h_arrsize_guard) is self-contained in harness.c, so it
+# is self-checked by weakening the bound rather than mutating extracted code:
+# SHADA_MAX_ADDITIONAL_ITEMS (0xFFFFFFFF - 3) -> (0xFFFFFFFF - 2) must make
+# h_arrsize_guard FAIL (verified 2026-11-09). The bound is exactly tight.

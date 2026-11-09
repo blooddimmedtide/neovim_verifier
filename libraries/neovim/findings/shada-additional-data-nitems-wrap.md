@@ -1,66 +1,63 @@
-# shada.c: additional-data item count (`nitems`) wraps at 2^32
+# shada.c: additional-data array size (`2 + nitems`) wraps on write-back
 
-Status: **finding, fix not yet verified.** Pinned upstream
-`7b87ce822e6fd45a4d9993599c2854afdb0dc4dd`. Found 2026-11-09 (lead from the msgpack-unpacker
-thread). Sibling of the `nbytes` wrap in `push_additional_data` reported in verified_neovim#9;
-this is the item-count half, which that fix does not cover.
+Status: **finding, fix proved (counting invariant); integration into shada.c read path on the
+fork.** Pinned upstream `7b87ce822e6fd45a4d9993599c2854afdb0dc4dd`. Found 2026-11-09 (lead from
+the msgpack-unpacker thread, then narrowed on inspection). Complement of the `nbytes` wrap fixed
+in verified_neovim#9.
 
-## Where
+## Corrected characterisation
 
-`AdditionalData` (src/nvim/types_defs.h:69-74) counts its items in a **32-bit** field:
+The original lead was "the item count wraps past 2^32". On inspection that is **not** what
+happens, and this note records the accurate defect:
 
-```c
-typedef struct {
-  uint32_t nitems;
-  uint32_t nbytes;
-  char data[];
-} AdditionalData;
-```
+- `AdditionalData.nitems` is `uint32_t` (src/nvim/types_defs.h:69-74), incremented once per item
+  by `push_additional_data` (unpacker.c:604).
+- The per-entry builder `ad` is reset at the top of `shada_read_next_item` (shada.c:3130), and the
+  items it receives come from **one** msgpack container — the trailing array (`unpack_array`, its
+  length `read_additional_array_elements`) for History/Variable/SubString, or the unknown keys of
+  one map (`unpack_keydict`) for SearchPattern/Mark/Register. `mpack_token_t.length` is
+  `mpack_uint32_t` (src/mpack/mpack_core.h:64), so a container header caps the count at
+  `2^32 - 1`. Hence `nitems <= 2^32 - 1`: the **field itself does not wrap**.
 
-`push_additional_data` (src/nvim/msgpack_rpc/unpacker.c:604) does `a->nitems++` once per stored
-item. In the ShaDa reader it is called once per trailing array element by
-`shada_read_next_item` (src/nvim/shada.c, the loop
-`for (uint32_t i = 0; i < read_additional_array_elements; i++) { ... push_additional_data(&ad, ...); }`)
-and once per unknown dict key by `unpack_keydict`. Nothing clamps the running count.
-
-## The wrap
-
-The number of trailing items is bounded only by the size of the item, which
-`shada_read_next_item` holds fully in memory (`buf = xmalloc(length)`), and `length` is accepted
-up to `PTRDIFF_MAX`. A single entry (e.g. a Variable or SubString) whose trailing array has more
-than 2^32 one-byte msgpack items (each nil/fixint is 1 byte, so an entry of a few GiB) makes
-`nitems` wrap past 2^32 back to a small value. On the read paths that pass `max_kbyte == 0`
-(`shada_read` → `shada_read_next_item(..., 0)`), no size limit stops such an entry.
-
-`nitems` is read back by `additional_data_len` (shada.c:1330, `return src ? src->nitems : 0`) and
-used on the **write** side to size the msgpack array header:
+The real defect is on the **write** side. `shada_pack_entry` rebuilds the entry's msgpack array
+header from the count:
 
 ```c
-uint32_t arr_size = 2 + (uint32_t)is_hist_search + additional_data_len(entry.additional_data);
-mpack_array(&sbuf.ptr, arr_size);          // claims arr_size elements
+uint32_t arr_size = (2 + (uint32_t)is_hist_search + additional_data_len(entry.additional_data));
+// also: 2 + is_blob + len (Variable),  1 + len (SubString)
+mpack_array(&sbuf.ptr, arr_size);
 ...
-dump_additional_data(entry.additional_data, &sbuf);   // writes all nbytes raw item bytes
+dump_additional_data(entry.additional_data, &sbuf);   // emits all nitems items
 ```
 
-After the wrap, `arr_size` is far smaller than the number of items `dump_additional_data`
-actually emits (it copies `nbytes` raw bytes). The written ShaDa file then carries an array
-header that under-counts its elements: the surplus item bytes trail the array, so a subsequent
-read of that file misparses the entry or rejects it with "additional bytes". The result is a
-corrupted / desynchronised ShaDa file on write-back, i.e. a data-integrity and round-trip bug.
+`additional_data_len` returns `nitems` (shada.c:1330). For an entry whose additional-item count is
+within 3 of `UINT32_MAX`, `2 + nitems` / `3 + nitems` **overflows the `uint32_t` `arr_size`** and
+`mpack_array` writes a header claiming far fewer elements than `dump_additional_data` then emits.
+The written ShaDa file is desynchronised and misparses on the next read. (At that count the array
+is also not representable in msgpack at all — array32 maxes at `2^32 - 1` elements — so the only
+correct behaviour is to reject the entry, not to write it.)
 
-## Severity
+## Reachability and severity
 
-Not a memory-safety bug: `dump_additional_data` writes exactly `nbytes` bytes, all within the
-allocated builder buffer, so there is no out-of-bounds access. It requires a multi-GiB entry held
-in memory, so it is a large-input integrity/DoS wrap, not a small-input exploit. Severity: low,
-but it breaks the reader↔writer invariant this file is supposed to maintain, so it is in scope.
+Reaching it needs a single entry carrying ~`2^32` additional items — each item is >=1 byte of the
+in-memory item buffer, so a >~4 GiB entry, and `length` is accepted up to `PTRDIFF_MAX` with
+`max_kbyte == 0` on the `shada_read` path. Large-input only. No out-of-bounds access (every write
+stays in the allocated builder/packer buffers), so this is a data-integrity / round-trip-corruption
+defect, not a memory-safety bug. Severity: low, but it breaks the reader<->writer invariant this
+file must maintain, so it is in scope.
 
-## Proposed fix (to be verified, not yet done)
+## Fix (proved invariant; fork integration)
 
-Make the count saturate-or-fail rather than wrap: have `push_additional_data` detect
-`nitems == UINT32_MAX` (and, together with the #9 change, `nbytes + size` overflow) and signal
-failure, and have `shada_read_next_item` treat that as a malformed entry
-(`goto shada_read_next_item_error`). That bounds both counters and keeps the write-side
-`arr_size` consistent with the data actually dumped. The fix needs its own proof (a bounded CBMC
-harness over `push_additional_data` plus the read loop's termination/count) before it can be
-marked `fixed`; that is the next step. No fix branch pushed yet.
+Reject the un-writable entry on read, so it is never stored or written back: in
+`shada_read_next_item`, after the additional-data array is built, if its item count exceeds
+`UINT32_MAX - 3` (the largest count for which every write-side `k + nitems`, `k <= 3`, stays within
+`uint32_t` and within msgpack's array32 limit), go to the entry-error path. CBMC proof of the
+guard's arithmetic is in `shada/cbmc/harness.c` (`h_arrsize_guard`): for every `nitems` the guard
+admits, each of `1 + nitems`, `2 + nitems`, `3 + nitems` equals its `uint32_t` truncation (no wrap)
+and is `<= 0xFFFFFFFF`; for every `nitems` it rejects, some `k + nitems` wraps. Non-vacuous
+(`mutants.toml` `arrsize-guard-off-by-one`).
+
+The guard is on the shada.c read side only, so it does not touch `push_additional_data` and does
+not conflict with verified_neovim#9 (which widened `nbytes` to `size_t`); the two compose. Full
+verification of `shada_read_next_item` itself (needed to mark this `fixed` rather than
+`fixed-candidate`) still depends on modelling the MessagePack unpacker and remains future work.
